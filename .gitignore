@@ -27,6 +27,7 @@ Thumbs.db
 # VS Code
 # =========================
 .vscode/
+progress/
 
 # =========================
 # Logs

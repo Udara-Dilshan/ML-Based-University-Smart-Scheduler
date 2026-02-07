@@ -69,16 +69,28 @@ Currently, university scheduling is a manual, error-prone process leading to dou
 University-Scheduler/
 │
 ├── backend/                # FastAPI Backend
-│   ├── main.py             # Entry point
+│   ├── app/
+│   │   ├── database/       # Database connection & session
+│   │   ├── models/         # SQLAlchemy ORM models
+│   │   ├── schemas/        # Pydantic schemas
+│   │   ├── routers/        # API endpoints
+│   │   └── utils/          # Helper functions
+│   ├── alembic/            # Database migrations
 │   ├── venv/               # Virtual environment
-│   └── ...
+│   ├── main.py             # FastAPI entry point
+│   ├── .env                # Environment variables
+│   ├── requirements.txt    # Python dependencies
+│   ├── DATABASE_SETUP.md   # Database documentation
+│   └── ROADMAP.md          # Development roadmap
 │
 ├── frontend/               # React Frontend
 │   ├── src/
+│   │   ├── components/     # Reusable components
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API integration
+│   │   ├── context/        # React context
+│   │   └── assets/         # Images, styles
 │   ├── public/
 │   └── package.json
-│
-├── database/               # SQL Scripts
-│   └── schema.sql          # Database creation script
 │
 └── README.md               # Project documentation
