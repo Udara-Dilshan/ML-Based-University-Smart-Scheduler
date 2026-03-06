@@ -17,6 +17,9 @@ load_dotenv()
 from app.database import get_db, engine
 from app.models import Base
 
+# Import routers
+from app.routers import auth, user
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Smart Scheduling System API",
@@ -32,6 +35,10 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+
+# Include routers
+app.include_router(auth.router)
+app.include_router(user.router)
 
 # Create a root endpoint
 @app.get("/")
