@@ -1,107 +1,205 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Base API URL - Update this when backend is deployed
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor to add JWT token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
     return Promise.reject(error);
   }
 );
 
-// Authentication API calls
 export const authAPI = {
-  // Login - Returns JWT token and user data
   login: async (email, password) => {
     try {
-      const response = await api.post('/auth/login', {
-        email,
-        password,
-      });
+      const response = await api.post("/api/auth/login", { email, password });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Login failed' };
+      throw error.response?.data || { message: "Login failed" };
     }
   },
-
-  // Student Signup - Only students can self-register
-  signup: async (userData) => {
+  signup: async (payload) => {
     try {
-      const response = await api.post('/auth/signup', userData);
+      const response = await api.post("/api/auth/signup", payload);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Signup failed' };
+      throw error.response?.data || { message: "Signup failed" };
     }
   },
-
-  // Get current user profile
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get("/api/auth/me");
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch user data' };
+      throw error.response?.data || { message: "Failed to fetch user data" };
     }
   },
-
-  // Logout - Clear local storage and redirect
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/';
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   },
 };
 
-// Helper functions
-export const setAuthToken = (token) => {
-  localStorage.setItem('token', token);
+export const userAPI = {
+  getAll: async () => {
+    const response = await api.get("/api/users/");
+    return response.data;
+  },
+  create: async (payload) => {
+    const response = await api.post("/api/users/", payload);
+    return response.data;
+  },
+  update: async (id, payload) => {
+    const response = await api.put(`/api/users/${id}`, payload);
+    return response.data;
+  },
+  remove: async (id) => {
+    await api.delete(`/api/users/${id}`);
+  },
 };
 
-export const getAuthToken = () => {
-  return localStorage.getItem('token');
+export const academicAPI = {
+  getFaculties: async () => {
+    const response = await api.get("/academic/faculties");
+    return response.data;
+  },
+  createFaculty: async (payload) => {
+    const response = await api.post("/academic/faculties", payload);
+    return response.data;
+  },
+  updateFaculty: async (id, payload) => {
+    const response = await api.put(`/academic/faculties/${id}`, payload);
+    return response.data;
+  },
+  deleteFaculty: async (id) => {
+    await api.delete(`/academic/faculties/${id}`);
+  },
+  getDepartments: async () => {
+    const response = await api.get("/academic/departments");
+    return response.data;
+  },
+  createDepartment: async (payload) => {
+    const response = await api.post("/academic/departments", payload);
+    return response.data;
+  },
+  updateDepartment: async (id, payload) => {
+    const response = await api.put(`/academic/departments/${id}`, payload);
+    return response.data;
+  },
+  deleteDepartment: async (id) => {
+    await api.delete(`/academic/departments/${id}`);
+  },
+  getModules: async () => {
+    const response = await api.get("/academic/modules");
+    return response.data;
+  },
+  createModule: async (payload) => {
+    const response = await api.post("/academic/modules", payload);
+    return response.data;
+  },
+  updateModule: async (id, payload) => {
+    const response = await api.put(`/academic/modules/${id}`, payload);
+    return response.data;
+  },
+  deleteModule: async (id) => {
+    await api.delete(`/academic/modules/${id}`);
+  },
+  getBatches: async () => {
+    const response = await api.get("/academic/batches");
+    return response.data;
+  },
+  createBatch: async (payload) => {
+    const response = await api.post("/academic/batches", payload);
+    return response.data;
+  },
+  updateBatch: async (id, payload) => {
+    const response = await api.put(`/academic/batches/${id}`, payload);
+    return response.data;
+  },
+  deleteBatch: async (id) => {
+    await api.delete(`/academic/batches/${id}`);
+  },
 };
+
+export const resourceAPI = {
+  getResources: async () => {
+    const response = await api.get("/resources/");
+    return response.data;
+  },
+  createResource: async (payload) => {
+    const response = await api.post("/resources/", payload);
+    return response.data;
+  },
+  updateResource: async (id, payload) => {
+    const response = await api.put(`/resources/${id}`, payload);
+    return response.data;
+  },
+  deleteResource: async (id) => {
+    await api.delete(`/resources/${id}`);
+  },
+};
+
+export const setAuthToken = (token) => {
+  localStorage.setItem("token", token);
+};
+
+export const getAuthToken = () => localStorage.getItem("token");
 
 export const setUser = (user) => {
-  localStorage.setItem('user', JSON.stringify(user));
+  localStorage.setItem("user", JSON.stringify(user));
 };
 
 export const getUser = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  const rawUser = localStorage.getItem("user");
+  if (!rawUser) {
+    return null;
+  }
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    return null;
+  }
 };
 
-export const isAuthenticated = () => {
-  return !!getAuthToken();
+export const isAuthenticated = () => !!getAuthToken();
+
+export const getHomeRouteByRole = (role) => {
+  switch (role) {
+    case "SuperAdmin":
+      return "/admin/dashboard";
+    case "Scheduler":
+      return "/scheduler/dashboard";
+    case "Lecturer":
+      return "/lecturer/dashboard";
+    case "Student":
+      return "/student/dashboard";
+    case "ResourceManager":
+      return "/resource/dashboard";
+    default:
+      return "/";
+  }
 };
 
 export default api;

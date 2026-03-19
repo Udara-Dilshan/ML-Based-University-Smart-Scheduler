@@ -27,7 +27,7 @@ def create_admin_user(db: Session):
         password_hash=hash_password("admin1234"),
         first_name="System",
         last_name="Administrator",
-        role=UserRole.SUPER_ADMIN,
+        role=UserRole.SUPER_ADMIN.value,
         contact_number="+94712345678",
         is_active=True
     )
@@ -46,10 +46,10 @@ def create_admin_user(db: Session):
 def create_sample_faculties(db: Session):
 
     faculties_data = [
-        {"name": "Faculty of Animal Science and Export Agriculture"},
-        {"name": "Faculty of Applied Sciences"},
-        {"name": "Faculty of Management"},
-        {"name": "Faculty of Technological Studies"},
+        {"name": "Faculty of Animal Science and Export Agriculture", "code": "FASEA"},
+        {"name": "Faculty of Applied Sciences", "code": "FAS"},
+        {"name": "Faculty of Management", "code": "FOM"},
+        {"name": "Faculty of Technological Studies", "code": "FTS"},
 
     ]
 
@@ -102,6 +102,19 @@ def create_sample_departments(db: Session, faculties):
         {"name": "Department of Information and Communication Technology", "faculty_id": faculty_map["Faculty of Technological Studies"].faculty_id},
     ]
 
+    department_codes = {
+        "Department of Animal Science": "DAS",
+        "Department of Export Agriculture": "DEA",
+        "Department of Computer Science and Informatics": "DCSI",
+        "Department of Science and Technology": "DST",
+        "Department of Applied Earth Sciences": "DAES",
+        "Department of Management Sciences": "DMS",
+        "Department of Tourism Studies": "DTS",
+        "Department of Biosystems Technology": "DBT",
+        "Department of Engineering Technology": "DET",
+        "Department of Information and Communication Technology": "DICT",
+    }
+
     created = []
 
     for dept in departments_data:
@@ -109,6 +122,7 @@ def create_sample_departments(db: Session, faculties):
         existing = db.query(Department).filter(Department.name == dept["name"]).first()
 
         if not existing:
+            dept["code"] = department_codes[dept["name"]]
             department = Department(**dept)
             db.add(department)
             created.append(department)
@@ -169,16 +183,19 @@ def create_sample_degrees(db: Session):
 def create_sample_batches(db: Session):
 
     batches = [
-        {"year": 2021},
-        {"year": 2022},
-        {"year": 2023},
-        {"year": 2024},
-        {"year": 2025},
+        {"name": "ICT 21", "academic_year": "2021/2025"},
+        {"name": "ICT 22", "academic_year": "2022/2026"},
+        {"name": "ICT 23", "academic_year": "2023/2027"},
+        {"name": "ICT 24", "academic_year": "2024/2028"},
+        {"name": "ICT 25", "academic_year": "2025/2029"},
     ]
 
     for batch in batches:
 
-        existing = db.query(Batch).filter(Batch.year == batch["year"]).first()
+        existing = db.query(Batch).filter(
+            Batch.name == batch["name"],
+            Batch.academic_year == batch["academic_year"]
+        ).first()
 
         if not existing:
             db.add(Batch(**batch))
@@ -199,28 +216,28 @@ def create_sample_users(db: Session):
             "password": "scheduler123",
             "first_name": "Academic",
             "last_name": "Scheduler",
-            "role": UserRole.SCHEDULER
+            "role": UserRole.SCHEDULER.value
         },
         {
             "email": "lecturer@uwu.ac.lk",
             "password": "lecturer123",
             "first_name": "Kasun",
             "last_name": "Perera",
-            "role": UserRole.LECTURER
+            "role": UserRole.LECTURER.value
         },
         {
             "email": "student@uwu.ac.lk",
             "password": "student123",
             "first_name": "Nimal",
             "last_name": "Silva",
-            "role": UserRole.STUDENT
+            "role": UserRole.STUDENT.value
         },
         {
             "email": "resource@uwu.ac.lk",
             "password": "resource123",
             "first_name": "Resource",
             "last_name": "Manager",
-            "role": UserRole.RESOURCE_MANAGER
+            "role": UserRole.RESOURCE_MANAGER.value
         },
     ]
 
@@ -265,9 +282,7 @@ def seed_database():
 
         create_sample_departments(db, faculties)
 
-        # Skip degrees and batches for now - they need more complex setup
-        # create_sample_degrees(db)
-        # create_sample_batches(db)
+        create_sample_batches(db)
 
         create_sample_users(db)
 

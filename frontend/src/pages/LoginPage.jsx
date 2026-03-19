@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2, Calendar, Clock } from 'lucide-react';
-import { authAPI, setAuthToken, setUser } from '../services/api';
+import { authAPI, getHomeRouteByRole, setAuthToken, setUser } from '../services/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -67,30 +67,10 @@ const LoginPage = () => {
       setAuthToken(response.access_token || response.token);
       setUser(response.user);
 
-      // Redirect based on user role
-      const role = response.user.role;
-      switch (role) {
-        case 'SuperAdmin':
-          navigate('/admin/dashboard');
-          break;
-        case 'Scheduler':
-          navigate('/scheduler/dashboard');
-          break;
-        case 'Lecturer':
-          navigate('/lecturer/dashboard');
-          break;
-        case 'Student':
-          navigate('/student/dashboard');
-          break;
-        case 'ResourceManager':
-          navigate('/resource/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
-      }
+      navigate(getHomeRouteByRole(response.user.role));
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Invalid email or password. Please try again.');
+      setError(err.detail || err.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }

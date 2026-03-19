@@ -1,60 +1,99 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, Any
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
 
-# 1. Base User Class
+
+class StudentProfileInput(BaseModel):
+    reg_no: str = Field(min_length=1, max_length=50)
+    registration_number: Optional[str] = Field(default=None, max_length=50)
+    batch_id: Optional[int] = None
+
+
+class LecturerProfileInput(BaseModel):
+    staff_id: str = Field(min_length=1, max_length=50)
+    dept_id: Optional[int] = None
+    designation: Optional[str] = Field(default=None, max_length=100)
+
+
+class ResourceManagerProfileInput(BaseModel):
+    assigned_section: str = Field(min_length=1, max_length=50)
+
+
 class UserBase(BaseModel):
-    email: EmailStr
-    first_name: str
-    last_name: str
+    email: str
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
     role: str
-    contact_number: Optional[str] = None
-    is_active: bool = True
+    contact_number: Optional[str] = Field(default=None, max_length=20)
+    profile_image: Optional[str] = Field(default=None, max_length=255)
 
-# 2. For User Creation
+
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=6)
+    is_active: bool = True
+    student_profile: Optional[StudentProfileInput] = None
+    lecturer_profile: Optional[LecturerProfileInput] = None
+    resource_manager_profile: Optional[ResourceManagerProfileInput] = None
 
-# 3. Output Models (Auth.py එකට මේ නම් දෙකම අවශ්‍යයි)
-class UserOut(UserBase):
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    role: Optional[str] = None
+    contact_number: Optional[str] = Field(default=None, max_length=20)
+    profile_image: Optional[str] = Field(default=None, max_length=255)
+    password: Optional[str] = Field(default=None, min_length=6)
+    is_active: Optional[bool] = None
+    student_profile: Optional[StudentProfileInput] = None
+    lecturer_profile: Optional[LecturerProfileInput] = None
+    resource_manager_profile: Optional[ResourceManagerProfileInput] = None
+
+
+class StudentProfileResponse(BaseModel):
+    reg_no: Optional[str] = None
+    registration_number: Optional[str] = None
+    batch_id: Optional[int] = None
+
+
+class LecturerProfileResponse(BaseModel):
+    staff_id: Optional[str] = None
+    dept_id: Optional[int] = None
+    designation: Optional[str] = None
+
+
+class ResourceManagerProfileResponse(BaseModel):
+    assigned_section: Optional[str] = None
+
+
+class UserResponse(UserBase):
     user_id: int
+    is_active: bool
     created_at: datetime
+    student_profile: Optional[StudentProfileResponse] = None
+    lecturer_profile: Optional[LecturerProfileResponse] = None
+    resource_manager_profile: Optional[ResourceManagerProfileResponse] = None
+
     class Config:
         from_attributes = True
 
-class UserResponse(UserOut):
-    pass
-
-# 4. Auth & Signup Request (Error ආපු ඒවා)
-class StudentSignupRequest(BaseModel):
-    email: EmailStr
-    password: str
-    first_name: str
-    last_name: str
-    registration_number: str = Field(..., alias="index_no")
-    contact_number: Optional[str] = None
 
 class UserLoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    email: str
+    password: str = Field(min_length=1)
 
-class PasswordUpdateRequest(BaseModel):
-    current_password: str = Field(..., alias="old_password")
-    new_password: str
 
-# 5. Token & Success Models
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+class StudentSignupRequest(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    email: str
+    registration_number: str = Field(min_length=1, max_length=50)
+    batch: str = Field(min_length=1, max_length=50)
+    year: int
+    password: str = Field(min_length=8)
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
-    user: UserOut
-
-class SuccessResponse(BaseModel):
-    message: str
-    data: Optional[Any] = None
+    user: UserResponse
