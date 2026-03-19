@@ -54,7 +54,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=3600,
-    echo=os.getenv("DEBUG", "False") == "True",
+    echo=os.getenv("SQL_ECHO", "False") == "True",
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

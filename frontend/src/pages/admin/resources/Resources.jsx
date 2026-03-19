@@ -10,7 +10,7 @@ const initialForm = {
   location: "",
 };
 
-const resourceTypes = ["Lecture Hall", "Lab", "Seminar Room", "Auditorium", "Vehicle"];
+const resourceTypes = ["Lecture Hall", "Lab", "Auditorium", "Ground"];
 
 export default function Resources() {
   const [resources, setResources] = useState([]);

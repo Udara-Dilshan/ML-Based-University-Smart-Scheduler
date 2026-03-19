@@ -65,15 +65,24 @@ export const authAPI = {
 export const userAPI = {
   getAll: async () => {
     const response = await api.get("/api/users/");
-    return response.data;
+    return (response.data || []).map((user) => ({
+      ...user,
+      role: normalizeRole(user?.role),
+    }));
   },
   create: async (payload) => {
     const response = await api.post("/api/users/", payload);
-    return response.data;
+    return {
+      ...response.data,
+      role: normalizeRole(response.data?.role),
+    };
   },
   update: async (id, payload) => {
     const response = await api.put(`/api/users/${id}`, payload);
-    return response.data;
+    return {
+      ...response.data,
+      role: normalizeRole(response.data?.role),
+    };
   },
   remove: async (id) => {
     await api.delete(`/api/users/${id}`);
@@ -168,7 +177,11 @@ export const setAuthToken = (token) => {
 export const getAuthToken = () => localStorage.getItem("token");
 
 export const setUser = (user) => {
-  localStorage.setItem("user", JSON.stringify(user));
+  const normalizedUser = {
+    ...user,
+    role: normalizeRole(user?.role),
+  };
+  localStorage.setItem("user", JSON.stringify(normalizedUser));
 };
 
 export const getUser = () => {
@@ -177,7 +190,11 @@ export const getUser = () => {
     return null;
   }
   try {
-    return JSON.parse(rawUser);
+    const parsed = JSON.parse(rawUser);
+    return {
+      ...parsed,
+      role: normalizeRole(parsed?.role),
+    };
   } catch {
     return null;
   }
@@ -185,8 +202,25 @@ export const getUser = () => {
 
 export const isAuthenticated = () => !!getAuthToken();
 
-export const getHomeRouteByRole = (role) => {
+export const normalizeRole = (role) => {
   switch (role) {
+    case "SUPER_ADMIN":
+      return "SuperAdmin";
+    case "RESOURCE_MANAGER":
+      return "ResourceManager";
+    case "SCHEDULER":
+      return "Scheduler";
+    case "LECTURER":
+      return "Lecturer";
+    case "STUDENT":
+      return "Student";
+    default:
+      return role;
+  }
+};
+
+export const getHomeRouteByRole = (role) => {
+  switch (normalizeRole(role)) {
     case "SuperAdmin":
       return "/admin/dashboard";
     case "Scheduler":

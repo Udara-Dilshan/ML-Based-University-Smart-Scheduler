@@ -12,14 +12,51 @@ from app.utils.dependencies import require_admin_user
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+APP_TO_DB_ROLE = {
+    "SuperAdmin": "SUPER_ADMIN",
+    "Scheduler": "SCHEDULER",
+    "Lecturer": "LECTURER",
+    "Student": "STUDENT",
+    "ResourceManager": "RESOURCE_MANAGER",
+}
+
+DB_TO_APP_ROLE = {value: key for key, value in APP_TO_DB_ROLE.items()}
+
+
+def _normalize_app_role(role: Optional[str]) -> Optional[str]:
+    if role is None:
+        return None
+    raw = str(role).strip()
+    if not raw:
+        return None
+
+    if raw in APP_TO_DB_ROLE:
+        return raw
+
+    upper = raw.upper()
+    if upper in DB_TO_APP_ROLE:
+        return DB_TO_APP_ROLE[upper]
+
+    normalized = upper.replace(" ", "_")
+    if normalized in DB_TO_APP_ROLE:
+        return DB_TO_APP_ROLE[normalized]
+
+    return None
+
+
+def _to_db_role(role: str) -> str:
+    return APP_TO_DB_ROLE[role]
+
+
 def _validate_role(role: str) -> str:
+    normalized_role = _normalize_app_role(role)
     valid_roles = {item.value for item in UserRole}
-    if role not in valid_roles:
+    if normalized_role not in valid_roles:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid role. Allowed roles: {sorted(valid_roles)}",
         )
-    return role
+    return normalized_role
 
 
 def _parse_int(value: Optional[str]) -> Optional[int]:
@@ -59,7 +96,7 @@ def _to_user_response(user: User) -> UserResponse:
         email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
-        role=user.role,
+        role=_normalize_app_role(user.role) or user.role,
         is_active=user.is_active,
         created_at=user.created_at,
         contact_number=user.contact_number,
@@ -181,7 +218,7 @@ def create_user(
         password_hash=hash_password(payload.password),
         first_name=payload.first_name,
         last_name=payload.last_name,
-        role=role,
+        role=_to_db_role(role),
         is_active=payload.is_active,
         contact_number=payload.contact_number,
         profile_image=payload.profile_image,
@@ -249,10 +286,10 @@ def update_user(
                 detail="Email already exists",
             )
 
-    target_role = user.role
+    target_role = _normalize_app_role(user.role) or user.role
     if "role" in data:
         target_role = _validate_role(data["role"])
-        data["role"] = target_role
+        data["role"] = _to_db_role(target_role)
 
     password = data.pop("password", None)
     if password:

@@ -25,6 +25,7 @@ class FacultyUpdate(BaseModel):
 
 class FacultyOut(FacultyBase):
     faculty_id: int
+    code: Optional[str] = None
 
     class Config:
         from_attributes = True

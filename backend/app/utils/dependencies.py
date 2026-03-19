@@ -8,6 +8,20 @@ from app.utils.auth import decode_access_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
+def _normalize_role(role: str | None) -> str:
+    if role == "SUPER_ADMIN":
+        return UserRole.SUPER_ADMIN.value
+    if role == "RESOURCE_MANAGER":
+        return UserRole.RESOURCE_MANAGER.value
+    if role == "SCHEDULER":
+        return UserRole.SCHEDULER.value
+    if role == "LECTURER":
+        return UserRole.LECTURER.value
+    if role == "STUDENT":
+        return UserRole.STUDENT.value
+    return role or ""
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -48,7 +62,7 @@ def require_roles(*allowed_roles: UserRole):
     allowed_values = {role.value for role in allowed_roles}
 
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_values:
+        if _normalize_role(current_user.role) not in allowed_values:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied",
@@ -60,7 +74,7 @@ def require_roles(*allowed_roles: UserRole):
 
 def require_admin_user(current_user: User = Depends(get_current_user)) -> User:
     allowed = {UserRole.SUPER_ADMIN.value}
-    if current_user.role not in allowed:
+    if _normalize_role(current_user.role) not in allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="SuperAdmin access required",
