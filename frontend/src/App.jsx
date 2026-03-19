@@ -1,95 +1,89 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import StudentSignupPage from './pages/StudentSignupPage';
-import { isAuthenticated } from './services/api';
-
-// Import Dashboard Components
-import AdminDashboard from './pages/admin/AdminDashboard';
-import StudentDashboard from './pages/student/StudentDashboard';
-import LecturerDashboard from './pages/lecturer/LecturerDashboard';
-import SchedulerDashboard from './pages/scheduler/SchedulerDashboard';
-import ResourceDashboard from './pages/resource/ResourceDashboard';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/" replace />;
-};
-
-// Forgot Password Placeholder
-const ForgotPassword = () => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-    <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Forgot Password</h2>
-      <p className="text-gray-600 mb-6">
-        This feature will be available soon. Please contact IT support for password reset.
-      </p>
-      <a
-        href="/"
-        className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Back to Login
-      </a>
-    </div>
-  </div>
-);
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./pages/LoginPage";
+import StudentSignupPage from "./pages/StudentSignupPage";
+import Dashboard from "./pages/admin/dashboard/Dashboard";
+import UserManagement from "./pages/admin/users/UserManagement";
+import Timetable from "./pages/admin/timetable/Timetable";
+import Resources from "./pages/admin/resources/Resources";
+import Requests from "./pages/admin/requests/Requests";
+import Reports from "./pages/admin/reports/Reports";
+import Settings from "./pages/admin/settings/Settings";
+import FacultyManagement from "./pages/admin/faculties/FacultyManagement";
+import Courses from "./pages/admin/courses/Courses";
+import Departments from "./pages/admin/departments/Departments";
+import Batches from "./pages/admin/batches/Batches";
+import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
+import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import ResourceDashboard from "./pages/resource/ResourceDashboard";
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<StudentSignupPage />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Protected Routes - Dashboards */}
-        <Route
-          path="/student/dashboard"
-          element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/scheduler/dashboard"
-          element={
-            <ProtectedRoute>
-              <SchedulerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lecturer/dashboard"
-          element={
-            <ProtectedRoute>
-              <LecturerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/resource/dashboard"
-          element={
-            <ProtectedRoute>
-              <ResourceDashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<ProtectedRoute allowedRoles={["SuperAdmin"]} />}>
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route
+            path="/admin/users/admins"
+            element={<UserManagement forcedRole="SuperAdmin" titleOverride="Super Admins" />}
+          />
+          <Route
+            path="/admin/users/schedulers"
+            element={<UserManagement forcedRole="Scheduler" titleOverride="Schedulers" />}
+          />
+          <Route
+            path="/admin/users/lecturers"
+            element={<UserManagement forcedRole="Lecturer" titleOverride="Lecturers" />}
+          />
+          <Route
+            path="/admin/users/students"
+            element={<UserManagement forcedRole="Student" titleOverride="Students" />}
+          />
+          <Route
+            path="/admin/users/resource-managers"
+            element={
+              <UserManagement
+                forcedRole="ResourceManager"
+                titleOverride="Resource Managers"
+              />
+            }
+          />
+          <Route path="/admin/timetable" element={<Timetable />} />
+          <Route path="/admin/resources" element={<Resources />} />
+          <Route path="/admin/requests" element={<Requests />} />
+          <Route path="/admin/reports" element={<Reports />} />
+          <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/admin/faculties" element={<FacultyManagement />} />
+          <Route path="/admin/courses" element={<Courses />} />
+          <Route path="/admin/departments" element={<Departments />} />
+          <Route path="/admin/batches" element={<Batches />} />
+        </Route>
 
-        {/* Fallback Route */}
+        <Route element={<ProtectedRoute allowedRoles={["Scheduler"]} />}>
+          <Route path="/scheduler/dashboard" element={<SchedulerDashboard />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["Lecturer"]} />}>
+          <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["ResourceManager"]} />}>
+          <Route path="/resource/dashboard" element={<ResourceDashboard />} />
+        </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 
 export default App;
-

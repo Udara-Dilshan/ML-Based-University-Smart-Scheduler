@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Keep bcrypt as primary for new hashes, but allow legacy pbkdf2 hashes for login compatibility.
+pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
 
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "SmartSchedulingSecretKey")  # Use a strong secret key in production
@@ -30,6 +31,11 @@ def hash_password(password: str) -> str:
         Hashed password
     """
     return pwd_context.hash(password)
+
+
+def get_password_hash(password: str) -> str:
+    """Backward-compatible alias for `hash_password`."""
+    return hash_password(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
