@@ -16,6 +16,7 @@ import FacultyManagement from "./pages/admin/faculties/FacultyManagement";
 import Courses from "./pages/admin/courses/Courses";
 import Departments from "./pages/admin/departments/Departments";
 import Batches from "./pages/admin/batches/Batches";
+import Degrees from "./pages/admin/degrees/Degrees";
 
 // Other portals
 import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
@@ -66,6 +67,7 @@ function App() {
           <Route path="/admin/courses" element={<Courses />} />
           <Route path="/admin/departments" element={<Departments />} />
           <Route path="/admin/batches" element={<Batches />} />
+          <Route path="/admin/degrees" element={<Degrees />} />
         </Route>
 
         {/* ── Scheduler Routes ── */}

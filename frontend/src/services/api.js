@@ -150,6 +150,21 @@ export const academicAPI = {
   deleteBatch: async (id) => {
     await api.delete(`/academic/batches/${id}`);
   },
+  getDegrees: async () => {
+    const response = await api.get("/academic/degrees");
+    return response.data;
+  },
+  createDegree: async (payload) => {
+    const response = await api.post("/academic/degrees", payload);
+    return response.data;
+  },
+  updateDegree: async (id, payload) => {
+    const response = await api.put(`/academic/degrees/${id}`, payload);
+    return response.data;
+  },
+  deleteDegree: async (id) => {
+    await api.delete(`/academic/degrees/${id}`);
+  },
 };
 
 export const resourceAPI = {

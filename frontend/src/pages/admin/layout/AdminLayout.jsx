@@ -18,6 +18,7 @@ const pageTitles = {
 "/admin/faculties":"Faculties",
 "/admin/departments":"Departments",
 "/admin/courses":"Courses",
+"/admin/degrees":"Degrees",
 "/admin/batches":"Batches"
 }
 

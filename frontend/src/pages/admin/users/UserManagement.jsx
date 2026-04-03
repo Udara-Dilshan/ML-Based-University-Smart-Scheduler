@@ -710,7 +710,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
               <option value="">Select Batch</option>
               {batches.map((batch) => (
                 <option key={batch.batch_id} value={batch.batch_id}>
-                  {batch.name} - {batch.academic_year}
+                  {batch.batch_code || batch.name} - {batch.degree ? `${batch.degree.code} ${batch.degree.name}` : "Degree"}
                 </option>
               ))}
             </select>

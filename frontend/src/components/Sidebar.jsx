@@ -36,6 +36,7 @@ export default function Sidebar() {
     "/admin/faculties",
     "/admin/departments",
     "/admin/courses",
+    "/admin/degrees",
     "/admin/batches",
   ].includes(location.pathname);
 
@@ -149,6 +150,9 @@ export default function Sidebar() {
               </NavLink>
               <NavLink to="/admin/courses" className={subItemClass}>
                 Courses
+              </NavLink>
+              <NavLink to="/admin/degrees" className={subItemClass}>
+                Degrees
               </NavLink>
               <NavLink to="/admin/batches" className={subItemClass}>
                 Batches

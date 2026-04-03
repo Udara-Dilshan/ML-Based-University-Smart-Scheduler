@@ -4,15 +4,15 @@ import Modal from "../../../components/Modal";
 import { academicAPI } from "../../../services/api";
 
 const initialForm = {
-  batch_code: "",
-  degree_id: "",
-  student_count: "",
-  current_semester: "",
+  code: "",
+  name: "",
+  dept_id: "",
+  duration_years: "4",
 };
 
-export default function Batches() {
-  const [batches, setBatches] = useState([]);
+export default function Degrees() {
   const [degrees, setDegrees] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,20 +21,20 @@ export default function Batches() {
   const [modalError, setModalError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const modalTitle = useMemo(() => (editId ? "Edit Batch" : "Add Batch"), [editId]);
+  const modalTitle = useMemo(() => (editId ? "Edit Degree" : "Add Degree"), [editId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError("");
-      const [batchData, deptData] = await Promise.all([
-        academicAPI.getBatches(),
+      const [degreeData, departmentData] = await Promise.all([
         academicAPI.getDegrees(),
+        academicAPI.getDepartments(),
       ]);
-      setBatches(batchData);
-      setDegrees(deptData);
+      setDegrees(degreeData);
+      setDepartments(departmentData);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load batches");
+      setError(err.response?.data?.detail || "Failed to load degrees");
     } finally {
       setLoading(false);
     }
@@ -51,13 +51,13 @@ export default function Batches() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (batch) => {
-    setEditId(batch.batch_id);
+  const openEditModal = (degree) => {
+    setEditId(degree.degree_id);
     setForm({
-      batch_code: batch.batch_code || batch.name || "",
-      degree_id: batch.degree_id ? String(batch.degree_id) : "",
-      student_count: batch.student_count ?? "",
-      current_semester: batch.current_semester ?? batch.academic_year ?? "",
+      code: degree.code || "",
+      name: degree.name || "",
+      dept_id: degree.dept_id ? String(degree.dept_id) : "",
+      duration_years: degree.duration_years ? String(degree.duration_years) : "4",
     });
     setModalError("");
     setIsModalOpen(true);
@@ -75,78 +75,75 @@ export default function Batches() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async () => {
-    if (!form.batch_code.trim() || !form.degree_id || !form.current_semester || form.student_count === "") {
-      setModalError("Batch code, degree, student count and current semester are required");
+    if (!form.code.trim() || !form.name.trim() || !form.dept_id || !form.duration_years) {
+      setModalError("Degree code, name, department and duration are required");
       return;
     }
 
-    const studentCount = Number(form.student_count);
-    const currentSemester = Number(form.current_semester);
-    if (!Number.isFinite(studentCount) || studentCount < 0) {
-      setModalError("Student count must be 0 or more");
-      return;
-    }
-    if (!Number.isFinite(currentSemester) || currentSemester <= 0) {
-      setModalError("Current semester must be greater than 0");
+    const durationYears = Number(form.duration_years);
+    if (!Number.isFinite(durationYears) || durationYears <= 0) {
+      setModalError("Duration years must be greater than 0");
       return;
     }
 
     const payload = {
-      batch_code: form.batch_code.trim(),
-      degree_id: Number(form.degree_id),
-      student_count: studentCount,
-      current_semester: currentSemester,
+      code: form.code.trim().toUpperCase(),
+      name: form.name.trim(),
+      dept_id: Number(form.dept_id),
+      duration_years: durationYears,
     };
 
     try {
       setSaving(true);
       setModalError("");
       if (editId) {
-        await academicAPI.updateBatch(editId, payload);
+        await academicAPI.updateDegree(editId, payload);
       } else {
-        await academicAPI.createBatch(payload);
+        await academicAPI.createDegree(payload);
       }
       await loadData();
       closeModal();
     } catch (err) {
-      setModalError(err.response?.data?.detail || "Failed to save batch");
+      setModalError(err.response?.data?.detail || "Failed to save degree");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (batchId) => {
-    const confirmed = window.confirm("Are you sure you want to delete this batch? This action cannot be undone.");
+  const handleDelete = async (degreeId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this degree? This action cannot be undone.");
     if (!confirmed) {
       return;
     }
 
     try {
       setError("");
-      await academicAPI.deleteBatch(batchId);
+      await academicAPI.deleteDegree(degreeId);
       await loadData();
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to delete batch");
+      setError(err.response?.data?.detail || "Failed to delete degree");
     }
+  };
+
+  const getDepartmentName = (deptId) => {
+    const department = departments.find((item) => item.dept_id === deptId);
+    return department?.name || "-";
   };
 
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Batches</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Degrees</h1>
         <button
           type="button"
           onClick={openCreateModal}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          Add Batch
+          Add Degree
         </button>
       </div>
 
@@ -160,10 +157,10 @@ export default function Batches() {
         <table className="w-full min-w-[760px]">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Batch Code</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Degree</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Students</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Semester</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Department</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Duration (Years)</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
@@ -171,38 +168,36 @@ export default function Batches() {
             {loading && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
-                  Loading batches...
+                  Loading degrees...
                 </td>
               </tr>
             )}
-            {!loading && batches.length === 0 && (
+            {!loading && degrees.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
-                  No batches found.
+                  No degrees found.
                 </td>
               </tr>
             )}
             {!loading &&
-              batches.map((batch) => (
-                <tr key={batch.batch_id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 text-sm text-gray-800">{batch.batch_code || batch.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
-                    {batch.degree ? `${batch.degree.code} - ${batch.degree.name}` : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{batch.student_count ?? "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{batch.current_semester ?? batch.academic_year ?? "-"}</td>
+              degrees.map((degree) => (
+                <tr key={degree.degree_id} className="border-t border-gray-100">
+                  <td className="px-4 py-3 text-sm text-gray-800">{degree.code}</td>
+                  <td className="px-4 py-3 text-sm text-gray-800">{degree.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{getDepartmentName(degree.dept_id)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{degree.duration_years}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => openEditModal(batch)}
+                        onClick={() => openEditModal(degree)}
                         className="rounded bg-yellow-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-600"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(batch.batch_id)}
+                        onClick={() => handleDelete(degree.degree_id)}
                         className="rounded bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600"
                       >
                         Delete
@@ -224,43 +219,41 @@ export default function Batches() {
 
         <div className="grid grid-cols-1 gap-4">
           <input
-            name="batch_code"
-            value={form.batch_code}
+            name="code"
+            value={form.code}
             onChange={handleChange}
-            placeholder="Batch Code"
+            placeholder="Degree Code"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <input
-            name="student_count"
-            type="number"
-            min="0"
-            value={form.student_count}
+            name="name"
+            value={form.name}
             onChange={handleChange}
-            placeholder="Student Count"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          />
-          <input
-            name="current_semester"
-            type="number"
-            min="1"
-            value={form.current_semester}
-            onChange={handleChange}
-            placeholder="Current Semester"
+            placeholder="Degree Name"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <select
-            name="degree_id"
-            value={form.degree_id}
+            name="dept_id"
+            value={form.dept_id}
             onChange={handleChange}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
-            <option value="">Select Degree</option>
-            {degrees.map((degree) => (
-              <option key={degree.degree_id} value={degree.degree_id}>
-                {degree.code} - {degree.name}
+            <option value="">Select Department</option>
+            {departments.map((department) => (
+              <option key={department.dept_id} value={department.dept_id}>
+                {department.name}
               </option>
             ))}
           </select>
+          <input
+            name="duration_years"
+            type="number"
+            min="1"
+            value={form.duration_years}
+            onChange={handleChange}
+            placeholder="Duration in years"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
@@ -277,7 +270,7 @@ export default function Batches() {
             disabled={saving}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {saving ? "Saving..." : editId ? "Update Batch" : "Add Batch"}
+            {saving ? "Saving..." : editId ? "Update Degree" : "Add Degree"}
           </button>
         </div>
       </Modal>

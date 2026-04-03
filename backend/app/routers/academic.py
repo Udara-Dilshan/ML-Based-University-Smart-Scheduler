@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, Department, Faculty, Module
+from ..models.academic import Batch, Degree, Department, Faculty, Module
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -79,20 +79,52 @@ class ModuleOut(ModuleBase):
 
 
 class BatchBase(BaseModel):
-    name: str = Field(min_length=1)
-    academic_year: str = Field(min_length=1)
-    dept_id: Optional[int] = None
+    batch_code: str = Field(min_length=1)
+    degree_id: int
+    student_count: int = Field(ge=0)
+    current_semester: int = Field(gt=0)
 
 
 class BatchUpdate(BaseModel):
+    batch_code: Optional[str] = None
+    degree_id: Optional[int] = None
+    student_count: Optional[int] = Field(default=None, ge=0)
+    current_semester: Optional[int] = Field(default=None, gt=0)
+
+
+class DegreeBase(BaseModel):
+    code: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    dept_id: int
+    duration_years: int = Field(gt=0)
+
+
+class DegreeUpdate(BaseModel):
+    code: Optional[str] = None
     name: Optional[str] = None
-    academic_year: Optional[str] = None
     dept_id: Optional[int] = None
+    duration_years: Optional[int] = Field(default=None, gt=0)
+
+
+class DegreeOut(BaseModel):
+    degree_id: int
+    code: str
+    dept_id: int
+    name: str
+    duration_years: int
+
+    class Config:
+        from_attributes = True
 
 
 class BatchOut(BatchBase):
     batch_id: int
-    department: Optional[DepartmentOut] = None
+    degree_id: int
+    student_count: int
+    current_semester: int
+    name: str
+    academic_year: int
+    degree: Optional[DegreeOut] = None
 
     class Config:
         from_attributes = True
@@ -191,6 +223,92 @@ def create_department(payload: DepartmentBase, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.get("/degrees", response_model=List[DegreeOut])
+def get_degrees(db: Session = Depends(get_db)):
+    return db.query(Degree).order_by(Degree.name.asc()).all()
+
+
+@router.post("/degrees", response_model=DegreeOut, status_code=status.HTTP_201_CREATED)
+def create_degree(payload: DegreeBase, db: Session = Depends(get_db)):
+    department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    code = payload.code.strip().upper()
+    duplicate_code = db.query(Degree).filter(Degree.code == code).first()
+    if duplicate_code:
+        raise HTTPException(status_code=409, detail="Degree code already exists")
+
+    duplicate = db.query(Degree).filter(
+        Degree.name == payload.name.strip(),
+        Degree.dept_id == payload.dept_id,
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=409, detail="Degree already exists in this department")
+
+    item = Degree(
+        code=code,
+        name=payload.name.strip(),
+        dept_id=payload.dept_id,
+        duration_years=payload.duration_years,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/degrees/{degree_id}", response_model=DegreeOut)
+def update_degree(degree_id: int, payload: DegreeUpdate, db: Session = Depends(get_db)):
+    item = db.query(Degree).filter(Degree.degree_id == degree_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Degree not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "code" in data:
+        data["code"] = data["code"].strip().upper()
+    if "name" in data:
+        data["name"] = data["name"].strip()
+    if "dept_id" in data:
+        department = db.query(Department).filter(Department.dept_id == data["dept_id"]).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Department not found")
+
+    if "code" in data:
+        duplicate_code = db.query(Degree).filter(
+            Degree.degree_id != degree_id,
+            Degree.code == data["code"],
+        ).first()
+        if duplicate_code:
+            raise HTTPException(status_code=409, detail="Degree code already exists")
+
+    target_name = data.get("name", item.name)
+    target_dept = data.get("dept_id", item.dept_id)
+    duplicate = db.query(Degree).filter(
+        Degree.degree_id != degree_id,
+        Degree.name == target_name,
+        Degree.dept_id == target_dept,
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=409, detail="Degree already exists in this department")
+
+    for key, value in data.items():
+        setattr(item, key, value)
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/degrees/{degree_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_degree(degree_id: int, db: Session = Depends(get_db)):
+    item = db.query(Degree).filter(Degree.degree_id == degree_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Degree not found")
+    db.delete(item)
+    commit_delete_or_raise(db, "Cannot delete degree because it is linked to batches or other records.")
 
 
 @router.get("/departments", response_model=List[DepartmentOut])
@@ -323,23 +441,19 @@ def delete_module(module_id: int, db: Session = Depends(get_db)):
 
 @router.post("/batches", response_model=BatchOut, status_code=status.HTTP_201_CREATED)
 def create_batch(payload: BatchBase, db: Session = Depends(get_db)):
-    if payload.dept_id is not None:
-        department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
-        if not department:
-            raise HTTPException(status_code=404, detail="Department not found")
+    degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
+    if not degree:
+        raise HTTPException(status_code=404, detail="Degree not found")
 
-    duplicate = db.query(Batch).filter(
-        Batch.name == payload.name.strip(),
-        Batch.academic_year == payload.academic_year.strip(),
-        Batch.dept_id == payload.dept_id,
-    ).first()
+    duplicate = db.query(Batch).filter(Batch.batch_code == payload.batch_code.strip()).first()
     if duplicate:
-        raise HTTPException(status_code=409, detail="Batch already exists")
+        raise HTTPException(status_code=409, detail="Batch code already exists")
 
     item = Batch(
-        name=payload.name.strip(),
-        academic_year=payload.academic_year.strip(),
-        dept_id=payload.dept_id,
+        batch_code=payload.batch_code.strip(),
+        degree_id=payload.degree_id,
+        student_count=payload.student_count,
+        current_semester=payload.current_semester,
     )
     db.add(item)
     db.commit()
@@ -359,28 +473,19 @@ def update_batch(batch_id: int, payload: BatchUpdate, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Batch not found")
 
     data = payload.model_dump(exclude_unset=True)
-    if "name" in data:
-        data["name"] = data["name"].strip()
-    if "academic_year" in data:
-        data["academic_year"] = data["academic_year"].strip()
+    if "batch_code" in data:
+        data["batch_code"] = data["batch_code"].strip()
+    if "degree_id" in data:
+        degree = db.query(Degree).filter(Degree.degree_id == data["degree_id"]).first()
+        if not degree:
+            raise HTTPException(status_code=404, detail="Degree not found")
 
-    dept_id = data.get("dept_id", item.dept_id)
-    name = data.get("name", item.name)
-    academic_year = data.get("academic_year", item.academic_year)
-
-    if dept_id is not None:
-        department = db.query(Department).filter(Department.dept_id == dept_id).first()
-        if not department:
-            raise HTTPException(status_code=404, detail="Department not found")
-
-    duplicate = db.query(Batch).filter(
-        Batch.batch_id != batch_id,
-        Batch.name == name,
-        Batch.academic_year == academic_year,
-        Batch.dept_id == dept_id,
-    )
-    if duplicate.first():
-        raise HTTPException(status_code=409, detail="Batch already exists")
+    if "batch_code" in data:
+        duplicate = db.query(Batch).filter(
+            Batch.batch_code == data["batch_code"], Batch.batch_id != batch_id
+        )
+        if duplicate.first():
+            raise HTTPException(status_code=409, detail="Batch code already exists")
 
     for key, value in data.items():
         setattr(item, key, value)
