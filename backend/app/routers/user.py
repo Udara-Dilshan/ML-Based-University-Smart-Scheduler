@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.models.academic import Batch, Department
@@ -8,6 +8,9 @@ from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.utils.auth import hash_password
 from app.utils.dependencies import require_admin_user
+import os
+import uuid
+from pathlib import Path
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -353,3 +356,59 @@ def delete_user(
 
     db.delete(user)
     db.commit()
+
+
+@router.post("/upload-image")
+async def upload_user_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
+    """
+    Upload a profile image for a user (admin use).
+    Image is saved to static/uploads and path is returned.
+    """
+    # Validate file type
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Only image files (JPEG, PNG, GIF, WebP) are allowed",
+        )
+
+    # Validate file size (max 5MB)
+    max_size = 5 * 1024 * 1024  # 5MB
+    file_content = await file.read()
+    if len(file_content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="File size must be less than 5MB",
+        )
+
+    try:
+        # Create uploads directory if it doesn't exist
+        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename
+        file_extension = Path(file.filename).suffix.lower()
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = uploads_dir / unique_filename
+
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+
+        # Return relative path
+        relative_path = f"/static/uploads/{unique_filename}"
+
+        return {
+            "message": "Image uploaded successfully",
+            "profile_image": relative_path,
+        }
+
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image: {str(err)}",
+        )

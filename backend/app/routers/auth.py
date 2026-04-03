@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.models.user import User, UserRole
@@ -11,6 +12,9 @@ from app.schemas.user import (
 )
 from app.utils.auth import verify_password, create_access_token, hash_password
 from app.utils.dependencies import get_current_user
+import os
+import uuid
+from pathlib import Path
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -126,3 +130,86 @@ def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return _serialize_auth_user(current_user)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=6)
+
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    current_user.password_hash = hash_password(request.new_password)
+    db.commit()
+
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/upload-profile-image")
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload a profile image for the current user.
+    Image is saved to static/uploads and path is stored in database.
+    """
+    # Validate file type
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Only image files (JPEG, PNG, GIF, WebP) are allowed",
+        )
+
+    # Validate file size (max 5MB)
+    max_size = 5 * 1024 * 1024  # 5MB
+    file_content = await file.read()
+    if len(file_content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="File size must be less than 5MB",
+        )
+
+    try:
+        # Create uploads directory if it doesn't exist
+        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename
+        file_extension = Path(file.filename).suffix.lower()
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = uploads_dir / unique_filename
+
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+
+        # Store relative path in database
+        relative_path = f"/static/uploads/{unique_filename}"
+        current_user.profile_image = relative_path
+        db.commit()
+        db.refresh(current_user)
+
+        return {
+            "message": "Profile image uploaded successfully",
+            "profile_image": relative_path,
+            "user_id": current_user.user_id,
+        }
+
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image: {str(err)}",
+        )

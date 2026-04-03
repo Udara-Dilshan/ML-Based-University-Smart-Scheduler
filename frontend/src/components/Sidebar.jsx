@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   BarChart3,
@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Users,
 } from "lucide-react";
+import { getUser } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
 const navItemClass = ({ isActive }) =>
@@ -28,6 +29,8 @@ const subItemClass = ({ isActive }) =>
 
 export default function Sidebar() {
   const location = useLocation();
+  const [userRefresh, setUserRefresh] = useState(0);
+  const currentUser = getUser();
   const isUsersRoute = location.pathname.startsWith("/admin/users");
   const isAcademicRoute = [
     "/admin/faculties",
@@ -38,6 +41,16 @@ export default function Sidebar() {
 
   const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
   const [isAcademicOpen, setIsAcademicOpen] = useState(isAcademicRoute);
+
+  // Listen for storage changes to update profile image
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUserRefresh((prev) => prev + 1);
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+  }, []);
 
   useEffect(() => {
     if (isUsersRoute) {
@@ -160,12 +173,22 @@ export default function Sidebar() {
 
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-sm font-medium flex items-center justify-center">
-            SA
-          </div>
+          {currentUser?.profile_image ? (
+            <img
+              src={`http://localhost:8000${currentUser.profile_image}`}
+              alt="Profile"
+              className="h-8 w-8 rounded-full object-cover border border-gray-300"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-sm font-medium flex items-center justify-center">
+              SA
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">Super Admin</p>
-            <p className="text-xs text-gray-500 truncate">admin@university.edu</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {currentUser?.first_name || "Super"} {currentUser?.last_name || "Admin"}
+            </p>
+            <p className="text-xs text-gray-500 truncate">{currentUser?.email || "admin@university.edu"}</p>
           </div>
           <ChevronDown size={14} className="text-gray-400" />
         </div>

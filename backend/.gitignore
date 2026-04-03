@@ -8,6 +8,9 @@ venv/
 env/
 ENV/
 
+# Uploaded images
+static/uploads/
+
 # Environment variables
 .env
 

@@ -2,6 +2,7 @@
 # Python / FastAPI
 # =========================
 backend/venv/
+backend/static/uploads/
 __pycache__/
 *.pyc
 *.pyo

@@ -9,6 +9,7 @@ import Resources from "./pages/admin/resources/Resources";
 import Requests from "./pages/admin/requests/Requests";
 import Reports from "./pages/admin/reports/Reports";
 import Settings from "./pages/admin/settings/Settings";
+import Profile from "./pages/admin/profile/Profile";
 import FacultyManagement from "./pages/admin/faculties/FacultyManagement";
 import Courses from "./pages/admin/courses/Courses";
 import Departments from "./pages/admin/departments/Departments";
@@ -58,6 +59,7 @@ function App() {
           <Route path="/admin/requests" element={<Requests />} />
           <Route path="/admin/reports" element={<Reports />} />
           <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/admin/profile" element={<Profile />} />
           <Route path="/admin/faculties" element={<FacultyManagement />} />
           <Route path="/admin/courses" element={<Courses />} />
           <Route path="/admin/departments" element={<Departments />} />

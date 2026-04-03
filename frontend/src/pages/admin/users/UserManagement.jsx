@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
 import { academicAPI } from "../../../services/api";
 import { createUser, deleteUser, getUsers, updateUser } from "../../../services/userService";
+import { Upload, X } from "lucide-react";
+import api from "../../../services/api";
 
 const roleOptions = [
   "SuperAdmin",
@@ -49,6 +51,10 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const fileInputRef = useRef(null);
 
   const selectedRole = forcedRole || form.role;
   const showRoleColumn = !forcedRole;
@@ -111,6 +117,11 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     setModalError("");
     setForm(createInitialForm(forcedRole || "Student"));
     setEditId(null);
+    setImagePreview(null);
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const openCreateModal = () => {
@@ -146,6 +157,11 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
         assigned_section: user.resource_manager_profile?.assigned_section || "Transport",
       },
     });
+    setImagePreview(null);
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setModalError("");
     setIsModalOpen(true);
   };
@@ -166,6 +182,84 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
         [field]: value,
       },
     }));
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setImageError("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image must be less than 5MB");
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result);
+    };
+    reader.readAsDataURL(file);
+    setImageError("");
+  };
+
+  const handleUploadImage = async () => {
+    if (!fileInputRef.current?.files?.[0]) return;
+
+    const file = fileInputRef.current.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploadingImage(true);
+      setImageError("");
+      const response = await api.post("/api/users/upload-image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      // Update form with image path
+      setForm((prev) => ({
+        ...prev,
+        profile_image: response.data.profile_image,
+      }));
+
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      setImageError(err.response?.data?.detail || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setForm((prev) => ({
+      ...prev,
+      profile_image: "",
+    }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setImageError("");
+  };
+
+  const cancelImageUpload = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setImageError("");
   };
 
   const validateForm = () => {
@@ -454,13 +548,92 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
             onChange={handleFieldChange}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
-          <input
-            name="profile_image"
-            placeholder="Profile Image URL (optional)"
-            value={form.profile_image}
-            onChange={handleFieldChange}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 md:col-span-2"
-          />
+          
+          {/* Profile Image Upload */}
+          <div className="md:col-span-2">
+            <div className="rounded-lg border border-gray-300 p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-16 w-16 rounded-lg object-cover border-2 border-blue-400"
+                    />
+                  ) : form.profile_image ? (
+                    <img
+                      src={`http://localhost:8000${form.profile_image}`}
+                      alt="Profile"
+                      className="h-16 w-16 rounded-lg object-cover border-2 border-gray-300"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                      <Upload size={24} className="text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Profile Image (optional)
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  
+                  {imagePreview ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUploadImage}
+                        disabled={uploadingImage}
+                        className="px-3 py-1 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                      >
+                        {uploadingImage ? "Uploading..." : "Save Image"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelImageUpload}
+                        disabled={uploadingImage}
+                        className="px-3 py-1 text-xs rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Choose Image
+                      </button>
+                      {form.profile_image && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="px-3 py-1 text-xs rounded-lg border border-red-300 text-red-700 hover:bg-red-50"
+                        >
+                          <X size={14} className="inline mr-1" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {imageError && (
+                <div className="mt-2 text-xs text-red-600">{imageError}</div>
+              )}
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-sm text-gray-700 md:col-span-2">
             <input
               type="checkbox"

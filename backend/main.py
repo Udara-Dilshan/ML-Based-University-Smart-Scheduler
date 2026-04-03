@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 import uvicorn
 
@@ -43,6 +44,14 @@ app.include_router(academic.router)
 app.include_router(resource.router)
 app.include_router(lecturer_availability.router)
 app.include_router(timetable.router)
+
+# Serve static files (uploads)
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+    os.makedirs(os.path.join(static_dir, "uploads"), exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/")

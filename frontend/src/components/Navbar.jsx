@@ -6,8 +6,19 @@ import { authAPI, getUser } from "../services/api";
 export default function Navbar({ title }) {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userRefresh, setUserRefresh] = useState(0);
   const menuRef = useRef(null);
   const currentUser = getUser();
+
+  // Listen for storage changes to update profile image
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUserRefresh((prev) => prev + 1);
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+  }, []);
 
   const userName = useMemo(() => {
     if (!currentUser) {
@@ -67,7 +78,7 @@ export default function Navbar({ title }) {
   };
 
   const handleProfile = () => {
-    navigate("/admin/settings");
+    navigate("/admin/profile");
     setIsMenuOpen(false);
   };
 
@@ -120,9 +131,17 @@ export default function Navbar({ title }) {
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
           >
-            <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
-              {initials}
-            </div>
+            {currentUser?.profile_image ? (
+              <img
+                src={`http://localhost:8000${currentUser.profile_image}`}
+                alt="Profile"
+                className="h-8 w-8 rounded-full object-cover border border-gray-300"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
+                {initials}
+              </div>
+            )}
             <ChevronDown
               size={14}
               className={`text-gray-500 transition-transform ${isMenuOpen ? "rotate-180" : "rotate-0"}`}
