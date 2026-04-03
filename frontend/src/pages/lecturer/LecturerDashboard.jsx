@@ -1,113 +1,121 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Calendar, Users, BookOpen, Clock } from 'lucide-react';
+import { Calendar, Clock, BookOpen, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const LecturerDashboard = () => {
-  const navigate = useNavigate();
+export default function LecturerDashboard() {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+  const stats = [
+    { label: "Today's Classes",  value: "3",  icon: Calendar, bg: "bg-blue-50",   color: "text-blue-600"   },
+    { label: "Total Students",   value: "84", icon: Users,    bg: "bg-green-50",  color: "text-green-600"  },
+    { label: "My Courses",       value: "4",  icon: BookOpen, bg: "bg-purple-50", color: "text-purple-600" },
+    { label: "Hours This Week",  value: "11", icon: Clock,    bg: "bg-orange-50", color: "text-orange-600" },
+  ];
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const todaySchedule = [
+    { time: "08:00 - 10:00", course: "Database Management",  room: "Lab 01", batch: "ICT/21" },
+    { time: "10:30 - 12:30", course: "Software Engineering", room: "Hall A", batch: "ICT/22" },
+    { time: "13:30 - 15:30", course: "Web Technologies",     room: "Lab 02", batch: "ICT/21" },
+  ];
+
+  const quickActions = [
+    { label: "My Timetable",    desc: "View class schedule",     icon: Calendar, path: "/lecturer/timetable",    hover: "hover:border-blue-400 hover:bg-blue-50"   },
+    { label: "My Availability", desc: "Set available time slots", icon: Clock,   path: "/lecturer/availability", hover: "hover:border-teal-400 hover:bg-teal-50"   },
+    { label: "My Courses",      desc: "View assigned courses",    icon: BookOpen, path: "/lecturer/courses",      hover: "hover:border-purple-400 hover:bg-purple-50" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lecturer Dashboard</h1>
-            <p className="text-sm text-gray-600">Welcome back, {user.first_name} {user.last_name}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6">
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Today's Classes</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+      {/* Welcome */}
+      <div className="bg-gradient-to-r from-teal-600 to-teal-500 
+                      rounded-xl p-6 text-white">
+        <h2 className="text-xl font-bold">
+          Welcome back, {user.first_name || "Lecturer"}! 👋
+        </h2>
+        <p className="text-teal-100 text-sm mt-1">
+          You have {todaySchedule.length} classes scheduled for today.
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label}
+              className="bg-white rounded-xl p-5 border border-gray-200
+                         shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.value}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.bg}`}>
+                  <Icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
               </div>
-              <Calendar className="text-blue-600" size={40} />
             </div>
-          </div>
+          );
+        })}
+      </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Users className="text-green-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Courses</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <BookOpen className="text-purple-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Hours This Week</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Clock className="text-orange-600" size={40} />
-            </div>
-          </div>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link key={action.path} to={action.path}
+                className={`p-4 border-2 border-gray-200 rounded-xl
+                           transition-all text-left ${action.hover}`}>
+                <Icon className="mb-2 w-5 h-5 text-gray-600" />
+                <h4 className="font-semibold text-gray-800 text-sm">
+                  {action.label}
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">{action.desc}</p>
+              </Link>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left">
-              <Calendar className="text-blue-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">View Schedule</h3>
-              <p className="text-sm text-gray-600">Check your teaching schedule</p>
-            </button>
-
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-600 hover:bg-green-50 transition-all text-left">
-              <Users className="text-green-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">My Students</h3>
-              <p className="text-sm text-gray-600">View student lists</p>
-            </button>
-
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-all text-left">
-              <BookOpen className="text-purple-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">My Courses</h3>
-              <p className="text-sm text-gray-600">Manage your courses</p>
-            </button>
-          </div>
+      {/* Today's Schedule */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">Today's Schedule</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Your classes for today</p>
         </div>
-
-        {/* Today's Schedule */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Today's Schedule</h2>
-          <p className="text-gray-600">No classes scheduled for today.</p>
+        <div className="divide-y divide-gray-50">
+          {todaySchedule.map((item, i) => (
+            <div key={i}
+              className="px-6 py-4 flex items-center justify-between 
+                         hover:bg-gray-50 transition">
+              <div className="flex items-center gap-4">
+                <p className="text-xs text-gray-400 min-w-[110px]">
+                  {item.time}
+                </p>
+                <div className="w-1 h-10 bg-teal-400 rounded-full"></div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    {item.course}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {item.room} • {item.batch}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs bg-teal-50 text-teal-600 
+                               px-3 py-1 rounded-full font-medium">
+                Upcoming
+              </span>
+            </div>
+          ))}
         </div>
-      </main>
+      </div>
+
     </div>
   );
-};
-
-export default LecturerDashboard;
+}
