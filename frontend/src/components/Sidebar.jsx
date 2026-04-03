@@ -1,6 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   BarChart3,
+  BookOpen,
   Boxes,
   CalendarDays,
   ChevronDown,
@@ -25,6 +27,27 @@ const subItemClass = ({ isActive }) =>
   }`;
 
 export default function Sidebar() {
+  const location = useLocation();
+  const isUsersRoute = location.pathname.startsWith("/admin/users");
+  const isAcademicRoute = [
+    "/admin/faculties",
+    "/admin/departments",
+    "/admin/courses",
+    "/admin/batches",
+  ].includes(location.pathname);
+
+  const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
+  const [isAcademicOpen, setIsAcademicOpen] = useState(isAcademicRoute);
+
+  useEffect(() => {
+    if (isUsersRoute) {
+      setIsUsersOpen(true);
+    }
+    if (isAcademicRoute) {
+      setIsAcademicOpen(true);
+    }
+  }, [isUsersRoute, isAcademicRoute]);
+
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
       <div className="h-20 px-4 border-b border-gray-200 flex items-center gap-3">
@@ -50,54 +73,75 @@ export default function Sidebar() {
         </NavLink>
 
         <div className="pt-2">
-          <div className="flex items-center justify-between px-3 py-2 text-sm text-gray-500">
+          <button
+            type="button"
+            onClick={() => setIsUsersOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+          >
             <div className="flex items-center gap-3">
               <Users size={16} />
               <span>Users</span>
             </div>
-            <ChevronDown size={14} />
-          </div>
-          <div className="space-y-1 px-6">
-            <NavLink to="/admin/users" end className={subItemClass}>
-              All Users
-            </NavLink>
-            <NavLink to="/admin/users/admins" className={subItemClass}>
-              Admins
-            </NavLink>
-            <NavLink to="/admin/users/schedulers" className={subItemClass}>
-              Schedulers
-            </NavLink>
-            <NavLink to="/admin/users/lecturers" className={subItemClass}>
-              Lecturers
-            </NavLink>
-            <NavLink to="/admin/users/students" className={subItemClass}>
-              Students
-            </NavLink>
-            <NavLink to="/admin/users/resource-managers" className={subItemClass}>
-              Resource Managers
-            </NavLink>
-          </div>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${isUsersOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+          {isUsersOpen && (
+            <div className="space-y-1 px-6">
+              <NavLink to="/admin/users" end className={subItemClass}>
+                All Users
+              </NavLink>
+              <NavLink to="/admin/users/admins" className={subItemClass}>
+                Admins
+              </NavLink>
+              <NavLink to="/admin/users/schedulers" className={subItemClass}>
+                Schedulers
+              </NavLink>
+              <NavLink to="/admin/users/lecturers" className={subItemClass}>
+                Lecturers
+              </NavLink>
+              <NavLink to="/admin/users/students" className={subItemClass}>
+                Students
+              </NavLink>
+              <NavLink to="/admin/users/resource-managers" className={subItemClass}>
+                Resource Managers
+              </NavLink>
+            </div>
+          )}
         </div>
 
         <div className="pt-2">
-          <div className="flex items-center justify-between px-3 py-2 text-sm text-gray-500">
-            <span>Academic Data</span>
-            <ChevronDown size={14} />
-          </div>
-          <div className="space-y-1 px-6">
-            <NavLink to="/admin/faculties" className={subItemClass}>
-              Faculties
-            </NavLink>
-            <NavLink to="/admin/departments" className={subItemClass}>
-              Departments
-            </NavLink>
-            <NavLink to="/admin/courses" className={subItemClass}>
-              Courses
-            </NavLink>
-            <NavLink to="/admin/batches" className={subItemClass}>
-              Batches
-            </NavLink>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsAcademicOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen size={16} />
+              <span>Academic Data</span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${isAcademicOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+          {isAcademicOpen && (
+            <div className="space-y-1 px-6">
+              <NavLink to="/admin/faculties" className={subItemClass}>
+                Faculties
+              </NavLink>
+              <NavLink to="/admin/departments" className={subItemClass}>
+                Departments
+              </NavLink>
+              <NavLink to="/admin/courses" className={subItemClass}>
+                Courses
+              </NavLink>
+              <NavLink to="/admin/batches" className={subItemClass}>
+                Batches
+              </NavLink>
+            </div>
+          )}
         </div>
 
         <NavLink to="/admin/resources" className={navItemClass}>

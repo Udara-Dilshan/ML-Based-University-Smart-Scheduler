@@ -1,13 +1,84 @@
-import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, ChevronDown, LogOut, Mail, Search, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authAPI } from "../services/api";
+import { authAPI, getUser } from "../services/api";
 
 export default function Navbar({ title }) {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const currentUser = getUser();
+
+  const userName = useMemo(() => {
+    if (!currentUser) {
+      return "Super Admin";
+    }
+
+    const fullName = [currentUser.first_name, currentUser.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    if (fullName) {
+      return fullName;
+    }
+
+    return currentUser.username || "Super Admin";
+  }, [currentUser]);
+
+  const userEmail = currentUser?.email || "admin@university.edu";
+
+  const initials = useMemo(() => {
+    const parts = userName.split(" ").filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return "SA";
+  }, [userName]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const handleLogout = () => {
     authAPI.logout();
     navigate("/");
+  };
+
+  const handleProfile = () => {
+    navigate("/admin/settings");
+    setIsMenuOpen(false);
+  };
+
+  const handleSettings = () => {
+    navigate("/admin/settings");
+    setIsMenuOpen(false);
+  };
+
+  const handleEmail = () => {
+    window.location.href = `mailto:${userEmail}`;
+    setIsMenuOpen(false);
   };
 
   return (
@@ -40,12 +111,72 @@ export default function Navbar({ title }) {
           <LogOut size={14} />
           Logout
         </button>
-        <button className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
-            SA
-          </div>
-          <ChevronDown size={14} className="text-gray-500" />
-        </button>
+
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-gray-100"
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+          >
+            <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
+              {initials}
+            </div>
+            <ChevronDown
+              size={14}
+              className={`text-gray-500 transition-transform ${isMenuOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+
+          {isMenuOpen && (
+            <div
+              className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-lg z-30"
+              role="menu"
+            >
+              <div className="border-b border-gray-100 px-4 py-3">
+                <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+              </div>
+
+              <div className="p-2">
+                <button
+                  type="button"
+                  onClick={handleProfile}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                >
+                  <User size={15} />
+                  Profile
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSettings}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                >
+                  <Settings size={15} />
+                  Settings
+                </button>
+
+                
+              </div>
+
+              <div className="border-t border-gray-100 p-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                  role="menuitem"
+                >
+                  <LogOut size={15} />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
