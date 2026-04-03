@@ -16,16 +16,20 @@ router = APIRouter(
 class FacultyBase(BaseModel):
     name: str = Field(min_length=1)
     code: str = Field(min_length=1)
+    dean_name: Optional[str] = None
 
 
 class FacultyUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
+    dean_name: Optional[str] = None
 
 
-class FacultyOut(FacultyBase):
+class FacultyOut(BaseModel):
     faculty_id: int
+    name: str
     code: Optional[str] = None
+    dean_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -103,7 +107,11 @@ def create_faculty(payload: FacultyBase, db: Session = Depends(get_db)):
     if duplicate:
         raise HTTPException(status_code=409, detail="Faculty name or code already exists")
 
-    item = Faculty(name=payload.name.strip(), code=payload.code.strip().upper())
+    item = Faculty(
+        name=payload.name.strip(),
+        code=payload.code.strip().upper(),
+        dean_name=payload.dean_name.strip() if payload.dean_name else None
+    )
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -126,6 +134,8 @@ def update_faculty(faculty_id: int, payload: FacultyUpdate, db: Session = Depend
         data["code"] = data["code"].strip().upper()
     if "name" in data:
         data["name"] = data["name"].strip()
+    if "dean_name" in data and data["dean_name"]:
+        data["dean_name"] = data["dean_name"].strip()
 
     if "name" in data or "code" in data:
         duplicate_query = db.query(Faculty).filter(Faculty.faculty_id != faculty_id)

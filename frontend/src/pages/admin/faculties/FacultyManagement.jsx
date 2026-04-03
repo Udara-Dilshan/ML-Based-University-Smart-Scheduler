@@ -6,6 +6,7 @@ import { academicAPI } from "../../../services/api";
 const initialForm = {
   name: "",
   code: "",
+  dean_name: "",
 };
 
 export default function FacultyManagement() {
@@ -49,6 +50,7 @@ export default function FacultyManagement() {
     setForm({
       name: faculty.name || "",
       code: faculty.code || "",
+      dean_name: faculty.dean_name || "",
     });
     setModalError("");
     setIsModalOpen(true);
@@ -78,6 +80,7 @@ export default function FacultyManagement() {
     const payload = {
       name: form.name.trim(),
       code: form.code.trim().toUpperCase(),
+      dean_name: form.dean_name.trim() || null,
     };
 
     try {
@@ -132,20 +135,21 @@ export default function FacultyManagement() {
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Faculty</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Dean Name</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={3}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>
                   Loading faculties...
                 </td>
               </tr>
             )}
             {!loading && faculties.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={3}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>
                   No faculties found.
                 </td>
               </tr>
@@ -153,8 +157,9 @@ export default function FacultyManagement() {
             {!loading &&
               faculties.map((faculty) => (
                 <tr key={faculty.faculty_id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 text-sm text-gray-700">{faculty.code}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{faculty.code || "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{faculty.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{faculty.dean_name || "-"}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
@@ -199,6 +204,13 @@ export default function FacultyManagement() {
             value={form.code}
             onChange={handleChange}
             placeholder="Faculty Code"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <input
+            name="dean_name"
+            value={form.dean_name}
+            onChange={handleChange}
+            placeholder="Dean Name (Optional)"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
         </div>

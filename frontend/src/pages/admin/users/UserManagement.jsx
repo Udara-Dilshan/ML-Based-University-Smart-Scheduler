@@ -395,6 +395,31 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     return "-";
   };
 
+  const userDetails = (user) => {
+    const details = [];
+    
+    if (user.contact_number) {
+      details.push(`📞 ${user.contact_number}`);
+    }
+    
+    if (user.role === "Student") {
+      const reg = user.student_profile?.reg_no || "-";
+      const batch = user.student_profile?.batch_id || "-";
+      details.push(`🎓 Reg: ${reg}, Batch: ${batch}`);
+    } else if (user.role === "Lecturer") {
+      const staff = user.lecturer_profile?.staff_id || "-";
+      const dept = user.lecturer_profile?.dept_id || "-";
+      details.push(`👨‍🏫 Staff: ${staff}, Dept: ${dept}`);
+      if (user.lecturer_profile?.designation) {
+        details.push(`📋 ${user.lecturer_profile.designation}`);
+      }
+    } else if (user.role === "ResourceManager") {
+      details.push(`🔧 Section: ${user.resource_manager_profile?.assigned_section || "-"}`);
+    }
+    
+    return details.length > 0 ? details : ["-"];
+  };
+
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
@@ -453,7 +478,15 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                   {showRoleColumn && (
                     <td className="px-4 py-3 text-sm text-gray-700">{user.role}</td>
                   )}
-                  <td className="px-4 py-3 text-sm text-gray-700">{roleDetail(user)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <div className="space-y-1">
+                      {userDetails(user).map((detail, idx) => (
+                        <div key={idx} className="text-xs text-gray-600">
+                          {detail}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
