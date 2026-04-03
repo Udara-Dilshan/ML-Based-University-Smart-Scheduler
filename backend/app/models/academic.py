@@ -23,9 +23,13 @@ class Module(Base):
     __tablename__ = "modules"
     module_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     dept_id = Column(Integer, ForeignKey("departments.dept_id"))
+    degree_id = Column(Integer, ForeignKey("degrees.degree_id"), nullable=False)
+    batch_id = Column(Integer, ForeignKey("batches.batch_id"), nullable=False)
     name = Column(String(255), nullable=False)
     code = Column(String(50), unique=True, nullable=False)
-    credits = Column(Integer, default=2)
+    credits = Column(Integer, nullable=False)
+    lecture_hours_per_week = Column(Integer, nullable=False)
+    is_active = Column(Integer, nullable=True, default=1)
     department = relationship("Department", back_populates="modules")
 
 
