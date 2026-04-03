@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.academic import Batch, Department, Faculty, Module
+from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
 router = APIRouter(
@@ -164,7 +165,7 @@ def delete_faculty(faculty_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Faculty not found")
     db.delete(item)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete faculty because it is linked to other records. Delete dependent departments first.")
 
 
 @router.post("/departments", response_model=DepartmentOut, status_code=status.HTTP_201_CREATED)
@@ -242,7 +243,7 @@ def delete_department(dept_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Department not found")
     db.delete(item)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete department because it is linked to other records. Delete dependent courses or batches first.")
 
 
 @router.post("/modules", response_model=ModuleOut, status_code=status.HTTP_201_CREATED)
@@ -317,7 +318,7 @@ def delete_module(module_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Course not found")
     db.delete(item)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete course because it is linked to other records.")
 
 
 @router.post("/batches", response_model=BatchOut, status_code=status.HTTP_201_CREATED)
@@ -395,4 +396,4 @@ def delete_batch(batch_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Batch not found")
     db.delete(item)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete batch because it is linked to other records.")

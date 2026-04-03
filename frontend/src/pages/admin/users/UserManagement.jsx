@@ -369,6 +369,11 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   };
 
   const handleDelete = async (userId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this user? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await deleteUser(userId);

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..database.connection import get_db
 from ..models.lecturer_availability import LecturerAvailability
+from ..utils.db_errors import commit_delete_or_raise
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/availability", tags=["availability"])
@@ -36,5 +37,5 @@ def delete_availability(avail_id: int, db: Session = Depends(get_db)):
     if not db_avail:
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(db_avail)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete availability because it is linked to other records.")
     return {"message": "Deleted"}

@@ -5,6 +5,7 @@ from app.database.connection import get_db
 from app.models.academic import Batch, Department
 from app.models.profiles import Lecturer, ResourceManager, Student
 from app.models.user import User, UserRole
+from app.utils.db_errors import commit_delete_or_raise
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.utils.auth import hash_password
 from app.utils.dependencies import require_admin_user
@@ -355,7 +356,7 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     db.delete(user)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete user because it is linked to other records.")
 
 
 @router.post("/upload-image")

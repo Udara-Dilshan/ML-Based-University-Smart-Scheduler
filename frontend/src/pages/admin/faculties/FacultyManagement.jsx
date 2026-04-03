@@ -101,6 +101,11 @@ export default function FacultyManagement() {
   };
 
   const handleDelete = async (facultyId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this faculty? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await academicAPI.deleteFaculty(facultyId);

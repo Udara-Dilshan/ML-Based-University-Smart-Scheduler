@@ -118,6 +118,11 @@ export default function Courses() {
   };
 
   const handleDelete = async (moduleId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this course? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await academicAPI.deleteModule(moduleId);

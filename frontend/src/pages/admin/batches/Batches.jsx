@@ -109,6 +109,11 @@ export default function Batches() {
   };
 
   const handleDelete = async (batchId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this batch? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await academicAPI.deleteBatch(batchId);

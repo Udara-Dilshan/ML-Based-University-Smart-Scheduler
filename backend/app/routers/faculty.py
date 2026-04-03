@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.models.faculty import Faculty
 from app.schemas.faculty import FacultyCreate, FacultyUpdate
+from app.utils.db_errors import commit_delete_or_raise
 
 router = APIRouter(prefix="/faculties", tags=["faculties"])
 
@@ -38,5 +39,5 @@ def delete_faculty(faculty_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Faculty not found")
 
     db.delete(faculty)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete faculty because it is linked to other records.")
     return {"message": "Faculty deleted"}

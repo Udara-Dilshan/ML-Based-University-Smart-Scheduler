@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.resource import Resource
+from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
 router = APIRouter(
@@ -153,4 +154,4 @@ def delete_resource(resource_id: int, db: Session = Depends(get_db)):
     if not db_res:
         raise HTTPException(status_code=404, detail="Resource not found")
     db.delete(db_res)
-    db.commit()
+    commit_delete_or_raise(db, "Cannot delete resource because it is linked to other records.")

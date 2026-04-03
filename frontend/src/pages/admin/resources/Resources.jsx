@@ -113,6 +113,11 @@ export default function Resources() {
   };
 
   const handleDelete = async (resourceId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this resource? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await resourceAPI.deleteResource(resourceId);

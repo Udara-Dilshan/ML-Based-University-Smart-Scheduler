@@ -112,6 +112,11 @@ export default function Departments() {
   };
 
   const handleDelete = async (deptId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this department? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setError("");
       await academicAPI.deleteDepartment(deptId);
