@@ -23,6 +23,7 @@ export default function Courses() {
   const [form, setForm] = useState(initialForm);
   const [facultyFilter, setFacultyFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [batchFilter, setBatchFilter] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -175,6 +176,23 @@ export default function Courses() {
       ? departments.filter((department) => department.faculty_id === Number(facultyFilter))
       : departments;
 
+  const batchesForFilter = batches.filter((batch) => {
+    const batchDegree = degrees.find((degree) => degree.degree_id === batch.degree_id);
+
+    if (departmentFilter) {
+      return batchDegree?.dept_id === Number(departmentFilter);
+    }
+
+    if (facultyFilter) {
+      const batchDepartment = batchDegree
+        ? departments.find((department) => department.dept_id === batchDegree.dept_id)
+        : null;
+      return batchDepartment?.faculty_id === Number(facultyFilter);
+    }
+
+    return true;
+  });
+
   const filteredCourses = courses.filter((course) => {
     const byFaculty =
       !facultyFilter ||
@@ -187,7 +205,9 @@ export default function Courses() {
     const byDepartment =
       !departmentFilter || course.dept_id === Number(departmentFilter);
 
-    return byFaculty && byDepartment;
+    const byBatch = !batchFilter || course.batch_id === Number(batchFilter);
+
+    return byFaculty && byDepartment && byBatch;
   });
 
   const handleSubmit = async () => {
@@ -269,12 +289,13 @@ export default function Courses() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
         <select
           value={facultyFilter}
           onChange={(event) => {
             setFacultyFilter(event.target.value);
             setDepartmentFilter("");
+            setBatchFilter("");
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
@@ -288,13 +309,29 @@ export default function Courses() {
 
         <select
           value={departmentFilter}
-          onChange={(event) => setDepartmentFilter(event.target.value)}
+          onChange={(event) => {
+            setDepartmentFilter(event.target.value);
+            setBatchFilter("");
+          }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
           <option value="">Filter by Department</option>
           {departmentsForFilter.map((department) => (
             <option key={department.dept_id} value={department.dept_id}>
               {department.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={batchFilter}
+          onChange={(event) => setBatchFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">Filter by Batch</option>
+          {batchesForFilter.map((batch) => (
+            <option key={batch.batch_id} value={batch.batch_id}>
+              {batch.batch_code || batch.name}
             </option>
           ))}
         </select>
@@ -306,8 +343,9 @@ export default function Courses() {
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Course</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Faculty</th>
+              {/* <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Faculty</th> */}
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Department</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Batch</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Credits</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
@@ -332,11 +370,14 @@ export default function Courses() {
                 <tr key={course.module_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-700">{course.code}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{course.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  {/* <td className="px-4 py-3 text-sm text-gray-700">
                     {course.department?.faculty?.name || "-"}
-                  </td>
+                  </td> */}
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {course.department?.name || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {batches.find((batch) => batch.batch_id === course.batch_id)?.batch_code || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{course.credits}</td>
                   <td className="px-4 py-3">
