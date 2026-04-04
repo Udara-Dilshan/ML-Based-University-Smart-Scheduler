@@ -12,11 +12,11 @@ class Student(Base):
 
     @property
     def registration_number(self):
-        return self.index_number
+        return None
 
     @registration_number.setter
     def registration_number(self, value):
-        self.index_number = value
+        return
 
     user = relationship("User", back_populates="student_profile")
 

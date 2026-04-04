@@ -383,15 +383,37 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     }
   };
 
+  const getDepartmentNameById = (deptId) => {
+    if (deptId === undefined || deptId === null || deptId === "") {
+      return "-";
+    }
+
+    const department = departments.find((item) => String(item.dept_id) === String(deptId));
+    return department?.name || String(deptId);
+  };
+
+  const getBatchLabelById = (batchId) => {
+    if (batchId === undefined || batchId === null || batchId === "") {
+      return "-";
+    }
+
+    const batch = batches.find((item) => String(item.batch_id) === String(batchId));
+    if (!batch) {
+      return String(batchId);
+    }
+
+    return batch.batch_code || batch.name || String(batchId);
+  };
+
   const roleDetail = (user) => {
     if (user.role === "Student") {
       const reg = user.student_profile?.reg_no || "-";
-      const batch = user.student_profile?.batch_id || "-";
+      const batch = getBatchLabelById(user.student_profile?.batch_id);
       return `Reg: ${reg}, Batch: ${batch}`;
     }
     if (user.role === "Lecturer") {
       const staff = user.lecturer_profile?.staff_id || "-";
-      const dept = user.lecturer_profile?.dept_id || "-";
+      const dept = getDepartmentNameById(user.lecturer_profile?.dept_id);
       return `Staff: ${staff}, Dept: ${dept}`;
     }
     if (user.role === "ResourceManager") {
@@ -409,11 +431,11 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     
     if (user.role === "Student") {
       const reg = user.student_profile?.reg_no || "-";
-      const batch = user.student_profile?.batch_id || "-";
+      const batch = getBatchLabelById(user.student_profile?.batch_id);
       details.push(`🎓 Reg: ${reg}, Batch: ${batch}`);
     } else if (user.role === "Lecturer") {
       const staff = user.lecturer_profile?.staff_id || "-";
-      const dept = user.lecturer_profile?.dept_id || "-";
+      const dept = getDepartmentNameById(user.lecturer_profile?.dept_id);
       details.push(`👨‍🏫 Staff: ${staff}, Dept: ${dept}`);
       if (user.lecturer_profile?.designation) {
         details.push(`📋 ${user.lecturer_profile.designation}`);
@@ -692,14 +714,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
               onChange={(e) => handleProfileFieldChange("student_profile", "reg_no", e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
             />
-            <input
-              placeholder="Registration Number (optional)"
-              value={form.student_profile.registration_number}
-              onChange={(e) =>
-                handleProfileFieldChange("student_profile", "registration_number", e.target.value)
-              }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
+            
             <select
               value={form.student_profile.batch_id}
               onChange={(e) =>
