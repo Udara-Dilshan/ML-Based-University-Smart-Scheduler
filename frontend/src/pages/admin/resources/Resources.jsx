@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
-import { academicAPI, resourceAPI } from "../../../services/api";
+import { academicAPI, resourceAPI, settingsAPI } from "../../../services/api";
 
 const initialForm = {
   name: "",
@@ -11,18 +11,6 @@ const initialForm = {
   faculty_id: "",
   location: "",
 };
-
-const resourceTypes = ["Lecture Hall", "Lab", "Auditorium", "Ground"];
-const commonFacilities = [
-  "AC",
-  "Projector",
-  "Smart Board",
-  "Whiteboard",
-  "PA System",
-  "Wi-Fi",
-  "Computers",
-  "Other",
-];
 
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -39,6 +27,9 @@ const getFirstNonEmptyValue = (row, keys) => {
 export default function Resources() {
   const [resources, setResources] = useState([]);
   const [faculties, setFaculties] = useState([]);
+  const [resourceTypes, setResourceTypes] = useState([]);
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [facilityOptions, setFacilityOptions] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -58,16 +49,68 @@ export default function Resources() {
     [editId]
   );
 
-  const loadResources = async () => {
+  const hasOtherFacilityOption = useMemo(
+    () => facilityOptions.some((item) => normalizeText(item) === "other"),
+    [facilityOptions]
+  );
+
+  const otherFacilityLabel = useMemo(
+    () => facilityOptions.find((item) => normalizeText(item) === "other") || "Other",
+    [facilityOptions]
+  );
+
+  const renderedFacilities = useMemo(() => {
+    if (hasOtherFacilityOption) {
+      return facilityOptions;
+    }
+    if (selectedFacilities.some((item) => normalizeText(item) === "other") || otherFacility.trim()) {
+      return [...facilityOptions, otherFacilityLabel];
+    }
+    return facilityOptions;
+  }, [facilityOptions, hasOtherFacilityOption, selectedFacilities, otherFacility, otherFacilityLabel]);
+
+  const renderedResourceTypes = useMemo(() => {
+    if (!form.type || resourceTypes.includes(form.type)) {
+      return resourceTypes;
+    }
+    return [...resourceTypes, form.type];
+  }, [resourceTypes, form.type]);
+
+  const renderedLocations = useMemo(() => {
+    if (!form.location || locationOptions.includes(form.location)) {
+      return locationOptions;
+    }
+    return [...locationOptions, form.location];
+  }, [locationOptions, form.location]);
+
+  const loadData = async () => {
     try {
       setLoading(true);
       setError("");
-      const [resourceData, facultyData] = await Promise.all([
+      const [resourceData, facultyData, settingsData] = await Promise.all([
         resourceAPI.getResources(),
         academicAPI.getFaculties(),
+        settingsAPI.getSystemSettings(),
       ]);
       setResources(resourceData);
       setFaculties(facultyData);
+
+      const allSettings = settingsData || [];
+      setResourceTypes(
+        allSettings
+          .filter((item) => item.category === "RESOURCE_TYPES")
+          .map((item) => item.value)
+      );
+      setLocationOptions(
+        allSettings
+          .filter((item) => item.category === "LOCATIONS")
+          .map((item) => item.value)
+      );
+      setFacilityOptions(
+        allSettings
+          .filter((item) => item.category === "FACILITIES")
+          .map((item) => item.value)
+      );
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load resources");
     } finally {
@@ -76,7 +119,7 @@ export default function Resources() {
   };
 
   useEffect(() => {
-    loadResources();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -107,14 +150,14 @@ export default function Resources() {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    const commonMap = new Map(commonFacilities.map((item) => [item.toLowerCase(), item]));
+    const commonMap = new Map(facilityOptions.map((item) => [item.toLowerCase(), item]));
     const matchedCommon = [];
     const customFacilities = [];
 
     facilitiesList.forEach((item) => {
       const normalized = item.toLowerCase();
       const matched = commonMap.get(normalized);
-      if (matched && matched !== "Other") {
+      if (matched && normalizeText(matched) !== "other") {
         matchedCommon.push(matched);
       } else {
         customFacilities.push(item);
@@ -122,7 +165,7 @@ export default function Resources() {
     });
 
     if (customFacilities.length) {
-      matchedCommon.push("Other");
+      matchedCommon.push(otherFacilityLabel);
     }
 
     setEditId(resource.resource_id);
@@ -159,7 +202,7 @@ export default function Resources() {
     }));
   };
 
-  const toggleFacility = (facility) => {
+  const handleFacilityChange = (facility) => {
     setSelectedFacilities((prev) => {
       if (prev.includes(facility)) {
         return prev.filter((item) => item !== facility);
@@ -167,7 +210,7 @@ export default function Resources() {
       return [...prev, facility];
     });
 
-    if (facility === "Other" && selectedFacilities.includes("Other")) {
+    if (normalizeText(facility) === "other" && selectedFacilities.some((item) => normalizeText(item) === "other")) {
       setOtherFacility("");
     }
   };
@@ -180,8 +223,10 @@ export default function Resources() {
     }
 
     const facilitiesPayload = [
-      ...selectedFacilities.filter((item) => item !== "Other"),
-      ...(selectedFacilities.includes("Other") && otherFacility.trim() ? [otherFacility.trim()] : []),
+      ...selectedFacilities.filter((item) => normalizeText(item) !== "other"),
+      ...(selectedFacilities.some((item) => normalizeText(item) === "other") && otherFacility.trim()
+        ? [otherFacility.trim()]
+        : []),
     ].join(", ");
 
     const payload = {
@@ -201,7 +246,7 @@ export default function Resources() {
       } else {
         await resourceAPI.createResource(payload);
       }
-      await loadResources();
+      await loadData();
       closeModal();
     } catch (err) {
       setModalError(err.response?.data?.detail || "Failed to save resource");
@@ -219,7 +264,7 @@ export default function Resources() {
     try {
       setError("");
       await resourceAPI.deleteResource(resourceId);
-      await loadResources();
+      await loadData();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to delete resource");
     }
@@ -329,7 +374,7 @@ export default function Resources() {
         }
       });
 
-      await loadResources();
+      await loadData();
 
       const baseMessage = `Created ${createdCount} resource record(s)`;
       const validationPart = validationErrors.length
@@ -496,7 +541,7 @@ export default function Resources() {
             onChange={handleChange}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
-            {resourceTypes.map((type) => (
+            {renderedResourceTypes.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
@@ -528,12 +573,12 @@ export default function Resources() {
           <div className="rounded-lg border border-gray-200 p-3">
             <p className="mb-2 text-sm font-medium text-gray-700">Facilities</p>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              {commonFacilities.map((facility) => (
+              {renderedFacilities.map((facility) => (
                 <label key={facility} className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={selectedFacilities.includes(facility)}
-                    onChange={() => toggleFacility(facility)}
+                    onChange={() => handleFacilityChange(facility)}
                   />
                   {facility}
                 </label>
@@ -550,13 +595,19 @@ export default function Resources() {
             )}
           </div>
 
-          <input
+          <select
             name="location"
             value={form.location}
             onChange={handleChange}
-            placeholder="Location"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          />
+          >
+            <option value="">Select Location</option>
+            {renderedLocations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
