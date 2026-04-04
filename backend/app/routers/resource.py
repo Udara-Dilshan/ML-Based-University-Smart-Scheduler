@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.resource import Resource
+from ..models.academic import Faculty
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -69,7 +70,10 @@ def _to_resource_response(item: Resource) -> dict:
         "name": item.name,
         "capacity": item.capacity,
         "type": _display_resource_type(item.type),
+        "facilities": item.facilities,
         "location": item.location,
+        "faculty_id": item.faculty_id,
+        "faculty_name": item.faculty.name if item.faculty else None,
     }
 
 
@@ -77,6 +81,8 @@ class ResourceBase(BaseModel):
     name: str = Field(min_length=1)
     capacity: int = Field(gt=0)
     type: str = Field(min_length=1)
+    faculty_id: int
+    facilities: Optional[str] = None
     location: Optional[str] = None
 
 
@@ -84,11 +90,14 @@ class ResourceUpdate(BaseModel):
     name: Optional[str] = None
     capacity: Optional[int] = Field(default=None, gt=0)
     type: Optional[str] = None
+    faculty_id: Optional[int] = None
+    facilities: Optional[str] = None
     location: Optional[str] = None
 
 
 class ResourceOut(ResourceBase):
     resource_id: int
+    faculty_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -100,10 +109,16 @@ def create_resource(resource: ResourceBase, db: Session = Depends(get_db)):
     if duplicate:
         raise HTTPException(status_code=409, detail="Resource name already exists")
 
+    faculty = db.query(Faculty).filter(Faculty.faculty_id == resource.faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+
     db_resource = Resource(
         name=resource.name.strip(),
         capacity=resource.capacity,
         type=_normalize_resource_type(resource.type),
+        faculty_id=resource.faculty_id,
+        facilities=(resource.facilities or "").strip() or None,
         location=(resource.location or "").strip() or None,
     )
     db.add(db_resource)
@@ -139,6 +154,14 @@ def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = De
 
     if "location" in data:
         data["location"] = (data["location"] or "").strip() or None
+
+    if "facilities" in data:
+        data["facilities"] = (data["facilities"] or "").strip() or None
+
+    if "faculty_id" in data and data["faculty_id"] is not None:
+        faculty = db.query(Faculty).filter(Faculty.faculty_id == data["faculty_id"]).first()
+        if not faculty:
+            raise HTTPException(status_code=404, detail="Faculty not found")
 
     for key, value in data.items():
         setattr(db_resource, key, value)
