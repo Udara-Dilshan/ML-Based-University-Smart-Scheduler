@@ -1,0 +1,3 @@
+resource_name,resource_type,capacity,faculty_code,faculty_name,facilities,location
+TLH 1,Lecture Hall,120,FOT,Faculty of Technological Studies,"AC, Projector, Smart Board",Tec Building
+Lab C1,Lab,45,FOT,Faculty of Technological Studies,"Computers, Wi-Fi",C Block

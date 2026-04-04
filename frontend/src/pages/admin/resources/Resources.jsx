@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
 import { academicAPI, resourceAPI } from "../../../services/api";
@@ -23,6 +24,18 @@ const commonFacilities = [
   "Other",
 ];
 
+const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
+
+const getFirstNonEmptyValue = (row, keys) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+};
+
 export default function Resources() {
   const [resources, setResources] = useState([]);
   const [faculties, setFaculties] = useState([]);
@@ -35,6 +48,10 @@ export default function Resources() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFacilities, setSelectedFacilities] = useState([]);
   const [otherFacility, setOtherFacility] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
 
   const modalTitle = useMemo(
     () => (editId ? "Edit Resource" : "Add Resource"),
@@ -61,6 +78,19 @@ export default function Resources() {
   useEffect(() => {
     loadResources();
   }, []);
+
+  useEffect(() => {
+    if (!uploadMessage && !uploadError) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setUploadMessage("");
+      setUploadError("");
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [uploadMessage, uploadError]);
 
   const openCreateModal = () => {
     setEditId(null);
@@ -195,18 +225,188 @@ export default function Resources() {
     }
   };
 
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      setUploadError("Select an Excel or CSV file before uploading");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadError("");
+      setUploadMessage("");
+
+      const fileBuffer = await uploadFile.arrayBuffer();
+      const workbook = XLSX.read(fileBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!rows.length) {
+        setUploadError("The uploaded file is empty");
+        return;
+      }
+
+      const payloads = [];
+      const validationErrors = [];
+
+      rows.forEach((row, index) => {
+        const rowNumber = index + 2;
+        const name = String(getFirstNonEmptyValue(row, ["resource_name", "name"])).trim();
+        const type = String(getFirstNonEmptyValue(row, ["resource_type", "type"])).trim();
+        const capacityValue = getFirstNonEmptyValue(row, ["capacity"]);
+        const location = String(getFirstNonEmptyValue(row, ["location", "building"])).trim();
+        const facilities = String(getFirstNonEmptyValue(row, ["facilities"])).trim();
+        const facultyIdValue = getFirstNonEmptyValue(row, ["faculty_id"]);
+        const facultyCode = String(getFirstNonEmptyValue(row, ["faculty_code"])).trim();
+        const facultyName = String(getFirstNonEmptyValue(row, ["faculty_name"])).trim();
+
+        if (!name || !type) {
+          validationErrors.push(`Row ${rowNumber}: resource_name and resource_type are required`);
+          return;
+        }
+
+        const capacity = Number(capacityValue);
+        if (!Number.isFinite(capacity) || capacity <= 0) {
+          validationErrors.push(`Row ${rowNumber}: capacity must be a positive number`);
+          return;
+        }
+
+        let faculty = null;
+        const parsedFacultyId = Number(facultyIdValue);
+        if (Number.isFinite(parsedFacultyId) && parsedFacultyId > 0) {
+          faculty = faculties.find((item) => item.faculty_id === parsedFacultyId) || null;
+        }
+
+        if (!faculty && facultyCode) {
+          const normalizedCode = normalizeText(facultyCode);
+          faculty = faculties.find((item) => normalizeText(item.code) === normalizedCode) || null;
+        }
+
+        if (!faculty && facultyName) {
+          const normalizedName = normalizeText(facultyName);
+          faculty = faculties.find((item) => normalizeText(item.name) === normalizedName) || null;
+        }
+
+        if (!faculty) {
+          validationErrors.push(
+            `Row ${rowNumber}: faculty_id, faculty_code or faculty_name is required and must match`
+          );
+          return;
+        }
+
+        payloads.push({
+          rowNumber,
+          payload: {
+            name,
+            type,
+            capacity,
+            faculty_id: faculty.faculty_id,
+            facilities: facilities || null,
+            location: location || null,
+          },
+        });
+      });
+
+      if (!payloads.length) {
+        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        return;
+      }
+
+      const createResults = await Promise.allSettled(
+        payloads.map((item) => resourceAPI.createResource(item.payload))
+      );
+
+      const failedRows = [];
+      let createdCount = 0;
+
+      createResults.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          createdCount += 1;
+        } else {
+          const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+          failedRows.push(`Row ${payloads[index].rowNumber}: ${detail}`);
+        }
+      });
+
+      await loadResources();
+
+      const baseMessage = `Created ${createdCount} resource record(s)`;
+      const validationPart = validationErrors.length
+        ? ` | ${validationErrors.length} row(s) skipped during validation`
+        : "";
+      const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
+      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+
+      if (validationErrors.length || failedRows.length) {
+        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      }
+
+      setUploadFile(null);
+    } catch (uploadException) {
+      setUploadError(uploadException.message || "Failed to process upload file");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">Resources</h1>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Add Resource
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/resource_upload_sample.csv"
+            download
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            Download CSV Template
+          </a>
+
+          <label className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            {uploadFile ? uploadFile.name : "Choose Excel File"}
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(event) => {
+                setUploadFile(event.target.files?.[0] || null);
+                setUploadError("");
+                setUploadMessage("");
+              }}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleBulkUpload}
+            disabled={!uploadFile || uploading}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? "Uploading..." : "Upload Excel"}
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Add Resource
+          </button>
+        </div>
       </div>
+
+      {uploadMessage && (
+        <div className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {uploadMessage}
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {uploadError}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
