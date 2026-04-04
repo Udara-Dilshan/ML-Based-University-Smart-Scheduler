@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
 import { academicAPI } from "../../../services/api";
@@ -15,6 +16,18 @@ const roleOptions = [
 ];
 
 const sectionOptions = ["Transport", "Events"];
+
+const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
+
+const getFirstNonEmptyValue = (row, keys) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+};
 
 const createInitialForm = (role = "Student") => ({
   first_name: "",
@@ -54,8 +67,16 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentBatchFilter, setStudentBatchFilter] = useState("");
+  const [studentStatusFilter, setStudentStatusFilter] = useState("all");
   const fileInputRef = useRef(null);
 
+  const isStudentManagementView = forcedRole === "Student";
   const selectedRole = forcedRole || form.role;
   const showRoleColumn = !forcedRole;
   const modalTitle = useMemo(() => (editId ? "Edit User" : "Add User"), [editId]);
@@ -108,6 +129,19 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     loadUsers();
     loadLookups();
   }, [loadUsers, loadLookups]);
+
+  useEffect(() => {
+    if (!uploadMessage && !uploadError) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setUploadMessage("");
+      setUploadError("");
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [uploadMessage, uploadError]);
 
   const closeModal = (force = false) => {
     if (saving && !force) {
@@ -447,18 +481,305 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     return details.length > 0 ? details : ["-"];
   };
 
+  const filteredUsers = useMemo(() => {
+    if (!isStudentManagementView) {
+      return users;
+    }
+
+    const query = normalizeText(studentSearch);
+
+    return users.filter((user) => {
+      if (studentStatusFilter === "active" && !user.is_active) {
+        return false;
+      }
+      if (studentStatusFilter === "inactive" && user.is_active) {
+        return false;
+      }
+
+      const userBatchId = String(user.student_profile?.batch_id || "");
+      if (studentBatchFilter && userBatchId !== String(studentBatchFilter)) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+      const email = user.email || "";
+      const regNo = user.student_profile?.reg_no || "";
+      const batchLabel = getBatchLabelById(user.student_profile?.batch_id);
+
+      return [fullName, email, regNo, batchLabel].some((value) =>
+        normalizeText(value).includes(query)
+      );
+    });
+  }, [
+    isStudentManagementView,
+    users,
+    studentStatusFilter,
+    studentBatchFilter,
+    studentSearch,
+    batches,
+  ]);
+
+  const handleExportStudents = () => {
+    if (!filteredUsers.length) {
+      setUploadError("No students to export for current filters");
+      return;
+    }
+
+    const exportRows = filteredUsers.map((user) => ({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      contact_number: user.contact_number || "",
+      reg_no: user.student_profile?.reg_no || "",
+      batch: getBatchLabelById(user.student_profile?.batch_id),
+      status: user.is_active ? "Active" : "Inactive",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+    XLSX.writeFile(workbook, "students_export.xlsx");
+  };
+
+  const handleStudentBulkUpload = async () => {
+    if (!uploadFile) {
+      setUploadError("Select an Excel or CSV file before uploading");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadError("");
+      setUploadMessage("");
+
+      const fileBuffer = await uploadFile.arrayBuffer();
+      const workbook = XLSX.read(fileBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!rows.length) {
+        setUploadError("The uploaded file is empty");
+        return;
+      }
+
+      const payloads = [];
+      const validationErrors = [];
+
+      rows.forEach((row, index) => {
+        const rowNumber = index + 2;
+        const firstName = String(getFirstNonEmptyValue(row, ["first_name", "firstname"])).trim();
+        const lastName = String(getFirstNonEmptyValue(row, ["last_name", "lastname"])).trim();
+        const email = String(getFirstNonEmptyValue(row, ["email"])).trim();
+        const password = String(getFirstNonEmptyValue(row, ["password"])).trim();
+        const contactNumber = String(getFirstNonEmptyValue(row, ["contact_number", "phone"])).trim();
+        const regNo = String(getFirstNonEmptyValue(row, ["reg_no", "registration_no", "index_no"])).trim();
+        const registrationNumber = String(
+          getFirstNonEmptyValue(row, ["registration_number", "registration_number_full"])
+        ).trim();
+        const activeValue = String(getFirstNonEmptyValue(row, ["is_active", "active"])).trim();
+
+        const batchIdValue = getFirstNonEmptyValue(row, ["batch_id"]);
+        const batchCode = String(getFirstNonEmptyValue(row, ["batch_code"])).trim();
+        const batchName = String(getFirstNonEmptyValue(row, ["batch_name", "batch"])).trim();
+
+        if (!firstName || !lastName || !email || !password || !regNo) {
+          validationErrors.push(
+            `Row ${rowNumber}: first_name, last_name, email, password and reg_no are required`
+          );
+          return;
+        }
+
+        let batch = null;
+        const parsedBatchId = Number(batchIdValue);
+        if (Number.isFinite(parsedBatchId) && parsedBatchId > 0) {
+          batch = batches.find((item) => item.batch_id === parsedBatchId) || null;
+        }
+
+        if (!batch && batchCode) {
+          const normalizedCode = normalizeText(batchCode);
+          batch = batches.find((item) => normalizeText(item.batch_code || item.name) === normalizedCode) || null;
+        }
+
+        if (!batch && batchName) {
+          const normalizedName = normalizeText(batchName);
+          batch = batches.find((item) => normalizeText(item.batch_code || item.name) === normalizedName) || null;
+        }
+
+        if (!batch) {
+          validationErrors.push(
+            `Row ${rowNumber}: batch_id, batch_code or batch_name is required and must match`
+          );
+          return;
+        }
+
+        const isActive = ["false", "0", "no", "inactive"].includes(normalizeText(activeValue))
+          ? false
+          : true;
+
+        payloads.push({
+          rowNumber,
+          payload: {
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+            role: "Student",
+            is_active: isActive,
+            contact_number: contactNumber || null,
+            student_profile: {
+              reg_no: regNo,
+              registration_number: registrationNumber || null,
+              batch_id: Number(batch.batch_id),
+            },
+          },
+        });
+      });
+
+      if (!payloads.length) {
+        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        return;
+      }
+
+      const createResults = await Promise.allSettled(
+        payloads.map((item) => createUser(item.payload))
+      );
+
+      const failedRows = [];
+      let createdCount = 0;
+
+      createResults.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          createdCount += 1;
+        } else {
+          failedRows.push(
+            `Row ${payloads[index].rowNumber}: ${readApiError(result.reason, "Failed to create")}`
+          );
+        }
+      });
+
+      await loadUsers();
+
+      const baseMessage = `Created ${createdCount} student record(s)`;
+      const validationPart = validationErrors.length
+        ? ` | ${validationErrors.length} row(s) skipped during validation`
+        : "";
+      const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
+      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+
+      if (validationErrors.length || failedRows.length) {
+        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      }
+
+      setUploadFile(null);
+    } catch (uploadException) {
+      setUploadError(readApiError(uploadException, "Failed to process upload file"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">{titleOverride}</h1>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Add User
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {isStudentManagementView && (
+            <>
+              <a
+                href="/student_upload_sample.csv"
+                download
+                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+              >
+                Download CSV Template
+              </a>
+              <label className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {uploadFile ? uploadFile.name : "Choose Excel File"}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(event) => {
+                    setUploadFile(event.target.files?.[0] || null);
+                    setUploadError("");
+                    setUploadMessage("");
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleStudentBulkUpload}
+                disabled={!uploadFile || uploading}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {uploading ? "Uploading..." : "Upload Excel"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportStudents}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Export Students
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Add User
+          </button>
+        </div>
       </div>
+
+      {isStudentManagementView && (
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+          <input
+            value={studentSearch}
+            onChange={(event) => setStudentSearch(event.target.value)}
+            placeholder="Search name, email, reg no, batch"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <select
+            value={studentBatchFilter}
+            onChange={(event) => setStudentBatchFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Batches</option>
+            {batches.map((batch) => (
+              <option key={batch.batch_id} value={batch.batch_id}>
+                {batch.batch_code || batch.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={studentStatusFilter}
+            onChange={(event) => setStudentStatusFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      )}
+
+      {uploadMessage && (
+        <div className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {uploadMessage}
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {uploadError}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -488,7 +809,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                 </td>
               </tr>
             )}
-            {!loading && users.length === 0 && (
+            {!loading && filteredUsers.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={showRoleColumn ? 6 : 5}>
                   No users found.
@@ -496,7 +817,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
               </tr>
             )}
             {!loading &&
-              users.map((user) => (
+              filteredUsers.map((user) => (
                 <tr key={user.user_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-800">
                     {user.first_name} {user.last_name}
