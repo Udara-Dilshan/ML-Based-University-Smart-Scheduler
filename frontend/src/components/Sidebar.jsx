@@ -173,6 +173,10 @@ export default function Sidebar() {
           <BarChart3 size={16} />
           Reports & Analytics
         </NavLink>
+         <NavLink to="/admin/settings" className={navItemClass}>
+          <BarChart3 size={16} />
+          Settings
+        </NavLink>
       </nav>
 
       <div className="border-t border-gray-200 p-4">

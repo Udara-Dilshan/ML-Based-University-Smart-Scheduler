@@ -12,6 +12,7 @@ from app.models.profiles import Student, Lecturer
 from app.models.academic import Faculty, Department, Module, Batch
 from app.models.resource import Resource
 from app.models.lecturer_availability import LecturerAvailability
+from app.models.settings import SystemConstraint, SystemSetting
 
 config = context.config
 if config.config_file_name is not None:

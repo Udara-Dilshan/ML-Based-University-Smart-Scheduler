@@ -185,6 +185,44 @@ export const resourceAPI = {
   },
 };
 
+export const settingsAPI = {
+  getSystemConstraints: async ({ scope = "all", batchId } = {}) => {
+    const params = { scope };
+    if (batchId !== undefined && batchId !== null && batchId !== "") {
+      params.batch_id = batchId;
+    }
+    const response = await api.get("/settings/system-constraints", { params });
+    return response.data;
+  },
+  createSystemConstraint: async (payload) => {
+    const response = await api.post("/settings/system-constraints", payload);
+    return response.data;
+  },
+  updateSystemConstraint: async (id, payload) => {
+    const response = await api.put(`/settings/system-constraints/${id}`, payload);
+    return response.data;
+  },
+  deleteSystemConstraint: async (id) => {
+    await api.delete(`/settings/system-constraints/${id}`);
+  },
+  getSystemSettings: async (category) => {
+    const params = category ? { category } : undefined;
+    const response = await api.get("/settings/system-settings", { params });
+    return response.data;
+  },
+  createSystemSetting: async (payload) => {
+    const response = await api.post("/settings/system-settings", payload);
+    return response.data;
+  },
+  updateSystemSetting: async (id, payload) => {
+    const response = await api.put(`/settings/system-settings/${id}`, payload);
+    return response.data;
+  },
+  deleteSystemSetting: async (id) => {
+    await api.delete(`/settings/system-settings/${id}`);
+  },
+};
+
 export const setAuthToken = (token) => {
   localStorage.setItem("token", token);
 };
