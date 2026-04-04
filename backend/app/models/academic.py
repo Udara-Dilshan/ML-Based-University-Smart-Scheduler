@@ -15,7 +15,7 @@ class Department(Base):
     dept_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     faculty_id = Column(Integer, ForeignKey("faculties.faculty_id"))
     name = Column(String(255), nullable=False)
-    code = synonym("name")
+    code = Column(String(50), unique=True, nullable=False)
     faculty = relationship("Faculty", back_populates="departments")
     modules = relationship("Module", back_populates="department", cascade="all, delete-orphan")
 

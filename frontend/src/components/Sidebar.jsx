@@ -148,14 +148,14 @@ export default function Sidebar() {
               <NavLink to="/admin/departments" className={subItemClass}>
                 Departments
               </NavLink>
-              <NavLink to="/admin/courses" className={subItemClass}>
-                Courses
-              </NavLink>
               <NavLink to="/admin/degrees" className={subItemClass}>
                 Degrees
               </NavLink>
               <NavLink to="/admin/batches" className={subItemClass}>
                 Batches
+              </NavLink>
+               <NavLink to="/admin/courses" className={subItemClass}>
+                Courses
               </NavLink>
             </div>
           )}
