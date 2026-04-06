@@ -36,6 +36,11 @@ class Module(Base):
         back_populates="module",
         cascade="all, delete-orphan",
     )
+    lecturer_assignments = relationship(
+        "LecturerModuleAssignment",
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
 
 
 class Degree(Base):
@@ -87,6 +92,11 @@ class Batch(Base):
     academic_year = synonym("current_semester")
     degree = relationship("Degree", back_populates="batches")
     active_terms = relationship("BatchActiveTerm", back_populates="batch", cascade="all, delete-orphan")
+    lecturer_assignments = relationship(
+        "LecturerModuleAssignment",
+        back_populates="batch",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def department(self):
@@ -107,3 +117,22 @@ class BatchActiveTerm(Base):
     is_active = Column(Boolean, nullable=False, default=True)
 
     batch = relationship("Batch", back_populates="active_terms")
+
+
+class LecturerModuleAssignment(Base):
+    __tablename__ = "lecturer_module_assignments"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "module_id", name="uq_lecturer_module_assignments_batch_module"),
+        Index("ix_lecturer_module_assignments_batch_id", "batch_id"),
+        Index("ix_lecturer_module_assignments_lecturer_user_id", "lecturer_user_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    batch_id = Column(Integer, ForeignKey("batches.batch_id", ondelete="CASCADE"), nullable=False)
+    module_id = Column(Integer, ForeignKey("modules.module_id", ondelete="CASCADE"), nullable=False)
+    lecturer_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    batch = relationship("Batch", back_populates="lecturer_assignments")
+    module = relationship("Module", back_populates="lecturer_assignments")
+    lecturer = relationship("User")

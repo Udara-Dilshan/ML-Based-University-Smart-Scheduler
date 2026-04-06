@@ -184,6 +184,20 @@ export const academicAPI = {
     const response = await api.get("/academic/degree-semester-modules", { params });
     return response.data;
   },
+  getLecturerAllocationLecturers: async () => {
+    const response = await api.get("/academic/lecturer-allocations/lecturers");
+    return response.data;
+  },
+  getLecturerAllocationActiveModules: async (batchId) => {
+    const response = await api.get("/academic/lecturer-allocations/active-modules", {
+      params: { batch_id: batchId },
+    });
+    return response.data;
+  },
+  assignLecturerToModule: async (payload) => {
+    const response = await api.put("/academic/lecturer-allocations/assign", payload);
+    return response.data;
+  },
 };
 
 export const resourceAPI = {

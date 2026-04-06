@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, Module
+from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, LecturerModuleAssignment, Module
+from ..models.user import User
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -225,6 +226,72 @@ class BatchActiveTermOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LecturerOptionOut(BaseModel):
+    user_id: int
+    full_name: str
+    email: str
+    dept_id: Optional[int] = None
+
+
+class LecturerAllocationModuleOut(BaseModel):
+    module_id: int
+    code: str
+    name: str
+    credits: int
+    lecture_hours_per_week: int
+    assigned_lecturer_user_id: Optional[int] = None
+    assigned_lecturer_name: Optional[str] = None
+
+
+class LecturerAllocationBatchModulesOut(BaseModel):
+    batch_id: int
+    batch_code: str
+    degree_id: int
+    degree_name: str
+    semester_name: str
+    semester_number: int
+    modules: List[LecturerAllocationModuleOut]
+
+
+class LecturerModuleAssignmentSave(BaseModel):
+    batch_id: int
+    module_id: int
+    lecturer_user_id: int
+
+
+class LecturerModuleAssignmentOut(BaseModel):
+    id: int
+    batch_id: int
+    module_id: int
+    lecturer_user_id: int
+    lecturer_name: str
+    is_active: bool
+
+
+def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str]:
+    active_term = (
+        db.query(BatchActiveTerm)
+        .filter(
+            BatchActiveTerm.batch_id == batch.batch_id,
+            BatchActiveTerm.is_active.is_(True),
+        )
+        .order_by(BatchActiveTerm.id.desc())
+        .first()
+    )
+
+    if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
+        semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
+        semester_name = active_term.semester_name
+    else:
+        semester_number = batch.current_semester
+        semester_name = _semester_label(semester_number)
+
+    if batch.degree:
+        _validate_degree_semester(batch.degree, semester_number)
+
+    return semester_number, semester_name
 
 
 class BatchOut(BatchBase):
@@ -801,6 +868,178 @@ def assign_or_update_batch_active_term(
     db.commit()
     db.refresh(term)
     return term
+
+
+@router.get("/lecturer-allocations/lecturers", response_model=List[LecturerOptionOut])
+def get_lecturer_options(db: Session = Depends(get_db)):
+    lecturers = (
+        db.query(User)
+        .filter(User.role.in_(["LECTURER", "Lecturer"]))
+        .order_by(User.first_name.asc(), User.last_name.asc())
+        .all()
+    )
+
+    return [
+        {
+            "user_id": lecturer.user_id,
+            "full_name": f"{lecturer.first_name} {lecturer.last_name}".strip(),
+            "email": lecturer.email,
+            "dept_id": int(lecturer.lecturer_profile.department)
+            if lecturer.lecturer_profile and lecturer.lecturer_profile.department is not None
+            and str(lecturer.lecturer_profile.department).strip().isdigit()
+            else None,
+        }
+        for lecturer in lecturers
+    ]
+
+
+@router.get("/lecturer-allocations/active-modules", response_model=LecturerAllocationBatchModulesOut)
+def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    if not batch.degree:
+        raise HTTPException(status_code=404, detail="Degree not found for selected batch")
+
+    semester_number, semester_name = _resolve_batch_semester(batch, db)
+
+    modules = (
+        db.query(Module)
+        .join(DegreeSemesterModule, DegreeSemesterModule.module_id == Module.module_id)
+        .filter(
+            Module.batch_id == batch.batch_id,
+            DegreeSemesterModule.degree_id == batch.degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+        )
+        .order_by(Module.name.asc())
+        .all()
+    )
+
+    module_ids = [module.module_id for module in modules]
+    assignments = []
+    if module_ids:
+        assignments = (
+            db.query(LecturerModuleAssignment)
+            .filter(
+                LecturerModuleAssignment.batch_id == batch.batch_id,
+                LecturerModuleAssignment.module_id.in_(module_ids),
+                LecturerModuleAssignment.is_active.is_(True),
+            )
+            .all()
+        )
+
+    assignment_by_module_id = {item.module_id: item for item in assignments}
+    lecturer_ids = [item.lecturer_user_id for item in assignments]
+    lecturer_by_id = {}
+    if lecturer_ids:
+        lecturer_rows = db.query(User).filter(User.user_id.in_(lecturer_ids)).all()
+        lecturer_by_id = {item.user_id: item for item in lecturer_rows}
+
+    return {
+        "batch_id": batch.batch_id,
+        "batch_code": batch.batch_code,
+        "degree_id": batch.degree_id,
+        "degree_name": batch.degree.name,
+        "semester_name": semester_name,
+        "semester_number": semester_number,
+        "modules": [
+            {
+                "module_id": module.module_id,
+                "code": module.code,
+                "name": module.name,
+                "credits": module.credits,
+                "lecture_hours_per_week": module.lecture_hours_per_week,
+                "assigned_lecturer_user_id": assignment_by_module_id[module.module_id].lecturer_user_id
+                if module.module_id in assignment_by_module_id
+                else None,
+                "assigned_lecturer_name": (
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].first_name} "
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].last_name}"
+                ).strip()
+                if module.module_id in assignment_by_module_id
+                and assignment_by_module_id[module.module_id].lecturer_user_id in lecturer_by_id
+                else None,
+            }
+            for module in modules
+        ],
+    }
+
+
+@router.put("/lecturer-allocations/assign", response_model=LecturerModuleAssignmentOut)
+def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session = Depends(get_db)):
+    batch = db.query(Batch).filter(Batch.batch_id == payload.batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    module = db.query(Module).filter(Module.module_id == payload.module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    if module.batch_id != payload.batch_id:
+        raise HTTPException(status_code=422, detail="Selected module does not belong to selected batch")
+
+    lecturer = db.query(User).filter(User.user_id == payload.lecturer_user_id).first()
+    if not lecturer:
+        raise HTTPException(status_code=404, detail="Lecturer not found")
+    if lecturer.role not in {"LECTURER", "Lecturer"}:
+        raise HTTPException(status_code=422, detail="Selected user is not a lecturer")
+
+    lecturer_dept_id = None
+    if lecturer.lecturer_profile and lecturer.lecturer_profile.department is not None:
+        raw_dept = str(lecturer.lecturer_profile.department).strip()
+        if raw_dept.isdigit():
+            lecturer_dept_id = int(raw_dept)
+
+    if lecturer_dept_id is None:
+        raise HTTPException(status_code=422, detail="Selected lecturer has no department configured")
+    if batch.degree and lecturer_dept_id != batch.degree.dept_id:
+        raise HTTPException(status_code=422, detail="Selected lecturer does not belong to this batch's department")
+
+    semester_number, _ = _resolve_batch_semester(batch, db)
+    is_active_module = (
+        db.query(DegreeSemesterModule)
+        .filter(
+            DegreeSemesterModule.degree_id == batch.degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+            DegreeSemesterModule.module_id == payload.module_id,
+        )
+        .first()
+    )
+    if not is_active_module:
+        raise HTTPException(status_code=422, detail="Selected module is not active for current semester")
+
+    item = (
+        db.query(LecturerModuleAssignment)
+        .filter(
+            LecturerModuleAssignment.batch_id == payload.batch_id,
+            LecturerModuleAssignment.module_id == payload.module_id,
+        )
+        .first()
+    )
+
+    if not item:
+        item = LecturerModuleAssignment(
+            batch_id=payload.batch_id,
+            module_id=payload.module_id,
+            lecturer_user_id=payload.lecturer_user_id,
+            is_active=True,
+        )
+        db.add(item)
+    else:
+        item.lecturer_user_id = payload.lecturer_user_id
+        item.is_active = True
+
+    db.commit()
+    db.refresh(item)
+
+    return {
+        "id": item.id,
+        "batch_id": item.batch_id,
+        "module_id": item.module_id,
+        "lecturer_user_id": item.lecturer_user_id,
+        "lecturer_name": f"{lecturer.first_name} {lecturer.last_name}".strip(),
+        "is_active": item.is_active,
+    }
 
 
 @router.put("/batches/{batch_id}", response_model=BatchOut)
