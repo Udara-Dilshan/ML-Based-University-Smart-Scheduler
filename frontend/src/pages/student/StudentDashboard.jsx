@@ -1,113 +1,75 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Calendar, BookOpen, FileText, Clock } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { MapPin, Users, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 
-const StudentDashboard = () => {
-  const navigate = useNavigate();
+const todayClasses = [
+  { time: "09:00 - 10:30", status: "Ongoing",  statusColor: "bg-green-100 text-green-700",  subject: "Advanced Algorithms",          room: "Lab 302",           lecturer: "Dr. Alan Grant"  },
+  { time: "11:00 - 12:30", status: "Upcoming", statusColor: "bg-blue-100 text-blue-700",    subject: "Database Management Systems",  room: "Hall B",            lecturer: "Prof. Sarah Lee" },
+  { time: "14:00 - 15:30", status: "Upcoming", statusColor: "bg-blue-100 text-blue-700",    subject: "Software Engineering Project", room: "Discussion Room 2", lecturer: "Team Alpha"      },
+];
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+const notifications = [
+  { icon: CheckCircle, color: "text-green-500",  title: "Assignment Due", desc: "System Design essay due tomorrow at 11:59 PM", time: "Just now" },
+  { icon: AlertCircle, color: "text-orange-500", title: "Library Alert",  desc: "Book 'Intro to AI' is overdue by 2 days.",     time: "5h ago"   },
+  { icon: TrendingUp,  color: "text-blue-500",   title: "Grade Posted",   desc: "Midterm results for Web Dev are now available.",time: "1d ago"   },
+];
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
+export default function StudentDashboard() {
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Student Dashboard</h1>
-            <p className="text-sm text-gray-600">Welcome back, {user.first_name} {user.last_name}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-6">
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Today's Classes</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Calendar className="text-blue-600" size={40} />
-            </div>
+        {/* Today Classes */}
+        <div className="col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Today's Classes</h3>
+            <Link to="/student/timetable" className="text-xs text-blue-600 hover:underline">
+              View full schedule
+            </Link>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Enrolled Courses</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+          <div className="divide-y divide-gray-50">
+            {todayClasses.map((cls, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-xs text-gray-500">{cls.time}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls.statusColor}`}>
+                    {cls.status}
+                  </span>
+                </div>
+                <p className="font-medium text-gray-900 text-sm">{cls.subject}</p>
+                <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                  <span className="flex items-center gap-1"><MapPin size={11} />{cls.room}</span>
+                  <span className="flex items-center gap-1"><Users size={11} />{cls.lecturer}</span>
+                </div>
               </div>
-              <BookOpen className="text-green-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Assignments</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <FileText className="text-orange-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Upcoming</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Clock className="text-purple-600" size={40} />
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left">
-              <Calendar className="text-blue-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">View Schedule</h3>
-              <p className="text-sm text-gray-600">Check your class schedule</p>
-            </button>
-
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-600 hover:bg-green-50 transition-all text-left">
-              <BookOpen className="text-green-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">My Courses</h3>
-              <p className="text-sm text-gray-600">View enrolled courses</p>
-            </button>
-
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-orange-600 hover:bg-orange-50 transition-all text-left">
-              <FileText className="text-orange-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">Assignments</h3>
-              <p className="text-sm text-gray-600">View and submit assignments</p>
-            </button>
+        {/* Notifications */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Notifications</h3>
+            <button className="text-xs text-blue-600">Mark all read</button>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {notifications.map((n, i) => {
+              const Icon = n.icon;
+              return (
+                <div key={i} className="px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <Icon size={16} className={`mt-0.5 flex-shrink-0 ${n.color}`} />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{n.desc}</p>
+                      <p className="text-xs text-gray-400 mt-1">{n.time}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        {/* Today's Schedule */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Today's Schedule</h2>
-          <p className="text-gray-600">No classes scheduled for today.</p>
-        </div>
-      </main>
+      </div>
     </div>
   );
-};
-
-export default StudentDashboard;
+}

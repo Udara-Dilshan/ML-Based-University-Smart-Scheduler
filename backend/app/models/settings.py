@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Index
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
@@ -19,9 +19,15 @@ class SystemSetting(Base):
     __tablename__ = "system_settings"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    category = Column(String(100), nullable=False, index=True)
-    value = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False, index=True)
+    value = Column(String(191), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("category", "value", name="uq_system_settings_category_value"),
+        Index(
+            "uq_system_settings_category_value",
+            "category",
+            "value",
+            unique=True,
+            mysql_length={"category": 50, "value": 191},
+        ),
     )
