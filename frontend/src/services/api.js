@@ -256,6 +256,13 @@ export const settingsAPI = {
   },
 };
 
+export const lecturerAPI = {
+  getDashboardSummary: async () => {
+    const response = await api.get("/api/dashboard/lecturer-summary");
+    return response.data;
+  },
+};
+
 export const setAuthToken = (token) => {
   localStorage.setItem("token", token);
 };

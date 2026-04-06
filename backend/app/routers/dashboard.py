@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy import distinct, func
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Module
+from ..models.academic import Batch, LecturerModuleAssignment, Module
 from ..models.resource import Resource
 from ..models.timetable import TimetableSession
 from ..models.user import User, UserRole
-from ..utils.dependencies import require_admin_user
+from ..utils.dependencies import require_admin_user, require_roles
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -40,6 +41,19 @@ def normalize_day(value: Optional[str]) -> Optional[str]:
     if token in DAY_MAP:
         return DAY_MAP[token]
     return DAY_MAP.get(token[:3])
+
+
+def _time_to_minutes(value: Optional[str]) -> int:
+    if not value:
+        return 0
+    token = value.strip()
+    try:
+        hour_token, minute_token = token.split(":", maxsplit=1)
+        hour = int(hour_token)
+        minute = int(minute_token)
+        return (hour * 60) + minute
+    except (ValueError, AttributeError):
+        return 0
 
 
 @router.get("/stats")
@@ -130,4 +144,105 @@ def get_dashboard_stats(
         },
         "weekly_activity": weekly_activity,
         "resource_usage": resource_usage,
+    }
+
+
+@router.get("/lecturer-summary")
+def get_lecturer_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.LECTURER)),
+):
+    lecturer_id = current_user.user_id
+
+    assignment_rows = (
+        db.query(LecturerModuleAssignment)
+        .filter(
+            LecturerModuleAssignment.lecturer_user_id == lecturer_id,
+            LecturerModuleAssignment.is_active.is_(True),
+        )
+        .all()
+    )
+
+    my_courses = len(assignment_rows)
+    batch_ids = sorted({item.batch_id for item in assignment_rows})
+
+    total_students = 0
+    if batch_ids:
+        total_students = (
+            db.query(func.coalesce(func.sum(Batch.student_count), 0))
+            .filter(Batch.batch_id.in_(batch_ids))
+            .scalar()
+            or 0
+        )
+
+    assigned_hours = 0
+    if assignment_rows:
+        assigned_hours = (
+            db.query(func.coalesce(func.sum(Module.lecture_hours_per_week), 0))
+            .join(LecturerModuleAssignment, LecturerModuleAssignment.module_id == Module.module_id)
+            .filter(
+                LecturerModuleAssignment.lecturer_user_id == lecturer_id,
+                LecturerModuleAssignment.is_active.is_(True),
+            )
+            .scalar()
+            or 0
+        )
+
+    timetable_rows = (
+        db.query(TimetableSession, Module, Batch, Resource)
+        .join(Module, Module.module_id == TimetableSession.module_id)
+        .join(Batch, Batch.batch_id == TimetableSession.batch_id)
+        .join(Resource, Resource.resource_id == TimetableSession.resource_id)
+        .filter(TimetableSession.lecturer_id == lecturer_id)
+        .all()
+    )
+
+    today_name = DAY_ORDER[datetime.now().weekday()]
+    today_schedule = []
+    today_classes = 0
+    total_timetable_minutes = 0
+
+    for session, module, batch, resource in timetable_rows:
+        start_minutes = _time_to_minutes(session.start_time)
+        end_minutes = _time_to_minutes(session.end_time)
+        duration = max(0, end_minutes - start_minutes)
+        total_timetable_minutes += duration
+
+        day_name = normalize_day(session.day_of_week)
+        if day_name != today_name:
+            continue
+
+        today_classes += 1
+        today_schedule.append(
+            {
+                "time": f"{session.start_time} - {session.end_time}",
+                "start_time": session.start_time,
+                "course": module.name,
+                "room": resource.name,
+                "batch": batch.batch_code,
+            }
+        )
+
+    today_schedule.sort(key=lambda item: _time_to_minutes(item.get("start_time")))
+    today_schedule = [
+        {
+            "time": item["time"],
+            "course": item["course"],
+            "room": item["room"],
+            "batch": item["batch"],
+        }
+        for item in today_schedule
+    ]
+
+    timetable_hours = round(total_timetable_minutes / 60, 1)
+    hours_this_week = timetable_hours if timetable_hours > 0 else assigned_hours
+
+    return {
+        "cards": {
+            "today_classes": today_classes,
+            "total_students": int(total_students),
+            "my_courses": my_courses,
+            "hours_this_week": hours_this_week,
+        },
+        "today_schedule": today_schedule,
     }
