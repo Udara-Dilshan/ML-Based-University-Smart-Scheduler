@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship, synonym
 from app.database.connection import Base
 
@@ -31,6 +31,11 @@ class Module(Base):
     lecture_hours_per_week = Column(Integer, nullable=False)
     is_active = Column(Integer, nullable=True, default=1)
     department = relationship("Department", back_populates="modules")
+    degree_semester_mappings = relationship(
+        "DegreeSemesterModule",
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
 
 
 class Degree(Base):
@@ -42,6 +47,32 @@ class Degree(Base):
     duration_years = Column(Integer, nullable=False)
     department = relationship("Department")
     batches = relationship("Batch", back_populates="degree", cascade="all, delete-orphan")
+    semester_modules = relationship(
+        "DegreeSemesterModule",
+        back_populates="degree",
+        cascade="all, delete-orphan",
+    )
+
+
+class DegreeSemesterModule(Base):
+    __tablename__ = "degree_semester_modules"
+    __table_args__ = (
+        UniqueConstraint(
+            "degree_id",
+            "semester_number",
+            "module_id",
+            name="uq_degree_semester_module",
+        ),
+        Index("ix_degree_semester_modules_degree_semester", "degree_id", "semester_number"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    degree_id = Column(Integer, ForeignKey("degrees.degree_id", ondelete="CASCADE"), nullable=False)
+    semester_number = Column(Integer, nullable=False)
+    module_id = Column(Integer, ForeignKey("modules.module_id", ondelete="CASCADE"), nullable=False)
+
+    degree = relationship("Degree", back_populates="semester_modules")
+    module = relationship("Module", back_populates="degree_semester_mappings")
 
 
 class Batch(Base):

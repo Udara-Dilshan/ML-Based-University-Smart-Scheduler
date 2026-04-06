@@ -165,6 +165,21 @@ export const academicAPI = {
   deleteDegree: async (id) => {
     await api.delete(`/academic/degrees/${id}`);
   },
+  getDegreeSemesterModuleSelection: async (degreeId, semesterNumber) => {
+    const response = await api.get("/academic/degree-semester-modules/selection", {
+      params: { degree_id: degreeId, semester_number: semesterNumber },
+    });
+    return response.data;
+  },
+  saveDegreeSemesterModules: async (payload) => {
+    const response = await api.put("/academic/degree-semester-modules", payload);
+    return response.data;
+  },
+  getDegreeSemesterModules: async (degreeId) => {
+    const params = degreeId ? { degree_id: degreeId } : undefined;
+    const response = await api.get("/academic/degree-semester-modules", { params });
+    return response.data;
+  },
 };
 
 export const resourceAPI = {

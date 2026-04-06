@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, Degree, Department, Faculty, Module
+from ..models.academic import Batch, Degree, DegreeSemesterModule, Department, Faculty, Module
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -121,6 +121,65 @@ class DegreeOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DegreeSemesterModuleOptionOut(BaseModel):
+    module_id: int
+    code: str
+    name: str
+    credits: int
+    lecture_hours_per_week: int
+    assigned: bool
+
+
+class DegreeSemesterModuleSelectionOut(BaseModel):
+    degree_id: int
+    degree_name: str
+    degree_code: str
+    semester_number: int
+    semester_label: str
+    modules: List[DegreeSemesterModuleOptionOut]
+
+
+class DegreeSemesterModuleSave(BaseModel):
+    degree_id: int
+    semester_number: int = Field(ge=1, le=10)
+    module_ids: List[int] = Field(default_factory=list)
+
+
+class DegreeSemesterModuleSaveOut(BaseModel):
+    degree_id: int
+    semester_number: int
+    saved_count: int
+
+
+class DegreeSemesterModuleRowOut(BaseModel):
+    id: int
+    degree_id: int
+    degree_name: str
+    degree_code: str
+    semester_number: int
+    semester_label: str
+    module_id: int
+    module_code: str
+    module_name: str
+    credits: int
+    lecture_hours_per_week: int
+
+
+def _semester_label(semester_number: int) -> str:
+    year = ((semester_number - 1) // 2) + 1
+    semester = 1 if semester_number % 2 == 1 else 2
+    return f"Year {year} Semester {semester}"
+
+
+def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
+    max_semester = max(1, degree.duration_years) * 2
+    if semester_number > max_semester:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Selected semester is out of range for this degree. Maximum allowed is Year {degree.duration_years} Semester 2.",
+        )
 
 
 class BatchOut(BatchBase):
@@ -410,6 +469,145 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
 @router.get("/modules", response_model=List[ModuleOut])
 def get_modules(db: Session = Depends(get_db)):
     return db.query(Module).order_by(Module.name.asc()).all()
+
+
+@router.get("/degree-semester-modules/selection", response_model=DegreeSemesterModuleSelectionOut)
+def get_degree_semester_module_selection(
+    degree_id: int,
+    semester_number: int = 1,
+    db: Session = Depends(get_db),
+):
+    degree = db.query(Degree).filter(Degree.degree_id == degree_id).first()
+    if not degree:
+        raise HTTPException(status_code=404, detail="Degree not found")
+
+    _validate_degree_semester(degree, semester_number)
+
+    modules = (
+        db.query(Module)
+        .filter(Module.degree_id == degree_id)
+        .order_by(Module.name.asc())
+        .all()
+    )
+
+    assigned_module_ids = {
+        item.module_id
+        for item in db.query(DegreeSemesterModule)
+        .filter(
+            DegreeSemesterModule.degree_id == degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+        )
+        .all()
+    }
+
+    return {
+        "degree_id": degree.degree_id,
+        "degree_name": degree.name,
+        "degree_code": degree.code,
+        "semester_number": semester_number,
+        "semester_label": _semester_label(semester_number),
+        "modules": [
+            {
+                "module_id": module.module_id,
+                "code": module.code,
+                "name": module.name,
+                "credits": module.credits,
+                "lecture_hours_per_week": module.lecture_hours_per_week,
+                "assigned": module.module_id in assigned_module_ids,
+            }
+            for module in modules
+        ],
+    }
+
+
+@router.put("/degree-semester-modules", response_model=DegreeSemesterModuleSaveOut)
+def save_degree_semester_modules(payload: DegreeSemesterModuleSave, db: Session = Depends(get_db)):
+    degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
+    if not degree:
+        raise HTTPException(status_code=404, detail="Degree not found")
+
+    _validate_degree_semester(degree, payload.semester_number)
+
+    unique_module_ids = sorted(set(payload.module_ids))
+
+    if unique_module_ids:
+        modules = (
+            db.query(Module)
+            .filter(Module.module_id.in_(unique_module_ids))
+            .all()
+        )
+        if len(modules) != len(unique_module_ids):
+            raise HTTPException(status_code=404, detail="One or more selected modules were not found")
+
+        for module in modules:
+            if module.degree_id != payload.degree_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Module '{module.code}' does not belong to the selected degree",
+                )
+
+    db.query(DegreeSemesterModule).filter(
+        DegreeSemesterModule.degree_id == payload.degree_id,
+        DegreeSemesterModule.semester_number == payload.semester_number,
+    ).delete(synchronize_session=False)
+
+    for module_id in unique_module_ids:
+        db.add(
+            DegreeSemesterModule(
+                degree_id=payload.degree_id,
+                semester_number=payload.semester_number,
+                module_id=module_id,
+            )
+        )
+
+    db.commit()
+
+    return {
+        "degree_id": payload.degree_id,
+        "semester_number": payload.semester_number,
+        "saved_count": len(unique_module_ids),
+    }
+
+
+@router.get("/degree-semester-modules", response_model=List[DegreeSemesterModuleRowOut])
+def get_degree_semester_modules(
+    degree_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(DegreeSemesterModule, Module, Degree)
+        .join(Module, Module.module_id == DegreeSemesterModule.module_id)
+        .join(Degree, Degree.degree_id == DegreeSemesterModule.degree_id)
+    )
+
+    if degree_id is not None:
+        query = query.filter(DegreeSemesterModule.degree_id == degree_id)
+
+    rows = (
+        query.order_by(
+            Degree.name.asc(),
+            DegreeSemesterModule.semester_number.asc(),
+            Module.code.asc(),
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": mapping.id,
+            "degree_id": degree.degree_id,
+            "degree_name": degree.name,
+            "degree_code": degree.code,
+            "semester_number": mapping.semester_number,
+            "semester_label": _semester_label(mapping.semester_number),
+            "module_id": module.module_id,
+            "module_code": module.code,
+            "module_name": module.name,
+            "credits": module.credits,
+            "lecture_hours_per_week": module.lecture_hours_per_week,
+        }
+        for mapping, module, degree in rows
+    ]
 
 
 @router.put("/modules/{module_id}", response_model=ModuleOut)
