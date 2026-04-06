@@ -261,6 +261,10 @@ export const lecturerAPI = {
     const response = await api.get("/api/dashboard/lecturer-summary");
     return response.data;
   },
+  getCourses: async () => {
+    const response = await api.get("/api/dashboard/lecturer-courses");
+    return response.data;
+  },
 };
 
 export const setAuthToken = (token) => {

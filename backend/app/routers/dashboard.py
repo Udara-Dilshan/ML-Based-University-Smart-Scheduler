@@ -246,3 +246,52 @@ def get_lecturer_dashboard_summary(
         },
         "today_schedule": today_schedule,
     }
+
+
+@router.get("/lecturer-courses")
+def get_lecturer_courses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.LECTURER)),
+):
+    lecturer_id = current_user.user_id
+
+    assignments = (
+        db.query(LecturerModuleAssignment, Module, Batch)
+        .join(Module, Module.module_id == LecturerModuleAssignment.module_id)
+        .join(Batch, Batch.batch_id == LecturerModuleAssignment.batch_id)
+        .filter(
+            LecturerModuleAssignment.lecturer_user_id == lecturer_id,
+            LecturerModuleAssignment.is_active.is_(True),
+        )
+        .order_by(Batch.batch_code.asc(), Module.code.asc())
+        .all()
+    )
+
+    courses = []
+    total_students = 0
+    total_hours = 0
+
+    for assignment, module, batch in assignments:
+        total_students += int(batch.student_count or 0)
+        total_hours += int(module.lecture_hours_per_week or 0)
+        courses.append(
+            {
+                "assignment_id": assignment.id,
+                "module_id": module.module_id,
+                "module_code": module.code,
+                "module_name": module.name,
+                "batch_id": batch.batch_id,
+                "batch_code": batch.batch_code,
+                "students": int(batch.student_count or 0),
+                "hours_per_week": int(module.lecture_hours_per_week or 0),
+            }
+        )
+
+    return {
+        "cards": {
+            "total_courses": len(courses),
+            "total_students": total_students,
+            "weekly_hours": total_hours,
+        },
+        "courses": courses,
+    }
