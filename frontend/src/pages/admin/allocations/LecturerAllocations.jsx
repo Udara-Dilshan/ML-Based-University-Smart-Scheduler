@@ -37,6 +37,14 @@ export default function LecturerAllocations() {
     [filteredBatches, selectedBatchId]
   );
 
+  const departmentLecturers = useMemo(() => {
+    const deptId = selectedBatch?.degree?.dept_id;
+    if (!deptId) {
+      return [];
+    }
+    return lecturers.filter((lecturer) => Number(lecturer.dept_id) === Number(deptId));
+  }, [lecturers, selectedBatch]);
+
   const loadInitial = async () => {
     try {
       setLoading(true);
@@ -324,7 +332,7 @@ export default function LecturerAllocations() {
                       className="w-full min-w-[260px] rounded-md border border-gray-300 px-2 py-1.5 text-xs outline-none focus:border-blue-500"
                     >
                       <option value="">Select lecturer</option>
-                      {lecturers.map((lecturer) => (
+                      {departmentLecturers.map((lecturer) => (
                         <option key={lecturer.user_id} value={lecturer.user_id}>
                           {lecturer.full_name}
                         </option>

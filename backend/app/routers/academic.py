@@ -62,7 +62,6 @@ class ModuleBase(BaseModel):
     code: str = Field(min_length=1)
     dept_id: int
     degree_id: int
-    batch_id: int
     credits: int = Field(gt=0)
     lecture_hours_per_week: int = Field(gt=0)
 
@@ -72,7 +71,6 @@ class ModuleUpdate(BaseModel):
     code: Optional[str] = None
     dept_id: Optional[int] = None
     degree_id: Optional[int] = None
-    batch_id: Optional[int] = None
     credits: Optional[int] = Field(default=None, gt=0)
     lecture_hours_per_week: Optional[int] = Field(default=None, gt=0)
 
@@ -554,12 +552,6 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
     if degree.dept_id != payload.dept_id:
         raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
-    batch = db.query(Batch).filter(Batch.batch_id == payload.batch_id).first()
-    if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found")
-    if batch.degree_id != payload.degree_id:
-        raise HTTPException(status_code=422, detail="Selected batch does not belong to selected degree")
-
     duplicate = db.query(Module).filter((Module.code == payload.code) | (Module.name == payload.name))
     if duplicate.first():
         raise HTTPException(status_code=409, detail="Course name or code already exists")
@@ -569,7 +561,6 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
         code=payload.code.strip().upper(),
         dept_id=payload.dept_id,
         degree_id=payload.degree_id,
-        batch_id=payload.batch_id,
         credits=payload.credits,
         lecture_hours_per_week=payload.lecture_hours_per_week,
     )
@@ -745,21 +736,11 @@ def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(g
         if not degree:
             raise HTTPException(status_code=404, detail="Degree not found")
 
-    if "batch_id" in data:
-        batch = db.query(Batch).filter(Batch.batch_id == data["batch_id"]).first()
-        if not batch:
-            raise HTTPException(status_code=404, detail="Batch not found")
-
     effective_dept = data.get("dept_id", item.dept_id)
     effective_degree = data.get("degree_id", item.degree_id)
-    effective_batch = data.get("batch_id", item.batch_id)
     degree = db.query(Degree).filter(Degree.degree_id == effective_degree).first()
     if degree and degree.dept_id != effective_dept:
         raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
-
-    batch = db.query(Batch).filter(Batch.batch_id == effective_batch).first()
-    if batch and batch.degree_id != effective_degree:
-        raise HTTPException(status_code=422, detail="Selected batch does not belong to selected degree")
 
     if "code" in data:
         duplicate = db.query(Module).filter(
@@ -908,7 +889,6 @@ def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db)):
         db.query(Module)
         .join(DegreeSemesterModule, DegreeSemesterModule.module_id == Module.module_id)
         .filter(
-            Module.batch_id == batch.batch_id,
             DegreeSemesterModule.degree_id == batch.degree_id,
             DegreeSemesterModule.semester_number == semester_number,
         )
@@ -975,7 +955,7 @@ def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session
     module = db.query(Module).filter(Module.module_id == payload.module_id).first()
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
-    if module.batch_id != payload.batch_id:
+    if module.degree_id != batch.degree_id:
         raise HTTPException(status_code=422, detail="Selected module does not belong to selected batch")
 
     lecturer = db.query(User).filter(User.user_id == payload.lecturer_user_id).first()
