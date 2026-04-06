@@ -63,7 +63,11 @@ const semesterNumberFromLabel = (semesterName) => {
 export default function Batches() {
   const [batches, setBatches] = useState([]);
   const [degrees, setDegrees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [faculties, setFaculties] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [facultyFilter, setFacultyFilter] = useState("");
+  const [degreeFilter, setDegreeFilter] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,16 +92,49 @@ export default function Batches() {
     [selectedModalDegree]
   );
 
+  const degreesForFilter = useMemo(() => {
+    if (!facultyFilter) {
+      return degrees;
+    }
+
+    const departmentIds = new Set(
+      departments
+        .filter((department) => department.faculty_id === Number(facultyFilter))
+        .map((department) => department.dept_id)
+    );
+
+    return degrees.filter((degree) => departmentIds.has(degree.dept_id));
+  }, [degrees, departments, facultyFilter]);
+
+  const filteredBatches = useMemo(() => {
+    return batches.filter((batch) => {
+      const degree = degrees.find((item) => item.degree_id === batch.degree_id);
+      const byFaculty =
+        !facultyFilter ||
+        departments.some(
+          (department) =>
+            department.dept_id === degree?.dept_id &&
+            department.faculty_id === Number(facultyFilter)
+        );
+      const byDegree = !degreeFilter || batch.degree_id === Number(degreeFilter);
+      return byFaculty && byDegree;
+    });
+  }, [batches, degrees, departments, facultyFilter, degreeFilter]);
+
   const loadData = async () => {
     try {
       setLoading(true);
       setError("");
-      const [batchData, deptData] = await Promise.all([
+      const [batchData, degreeData, departmentData, facultyData] = await Promise.all([
         academicAPI.getBatches(),
         academicAPI.getDegrees(),
+        academicAPI.getDepartments(),
+        academicAPI.getFaculties(),
       ]);
       setBatches(batchData);
-      setDegrees(deptData);
+      setDegrees(degreeData);
+      setDepartments(departmentData);
+      setFaculties(facultyData);
 
       const termFormDefaults = {};
       batchData.forEach((batch) => {
@@ -143,6 +180,18 @@ export default function Batches() {
 
     return () => window.clearTimeout(timeoutId);
   }, [termMessage]);
+
+  useEffect(() => {
+    if (!degreeFilter) {
+      return;
+    }
+    const stillValid = degreesForFilter.some(
+      (degree) => degree.degree_id === Number(degreeFilter)
+    );
+    if (!stillValid) {
+      setDegreeFilter("");
+    }
+  }, [degreeFilter, degreesForFilter]);
 
   const openCreateModal = () => {
     setEditId(null);
@@ -336,7 +385,12 @@ export default function Batches() {
         const degreeCode = String(getFirstNonEmptyValue(row, ["degree_code"])).trim();
         const degreeName = String(getFirstNonEmptyValue(row, ["degree_name", "degree"])).trim();
         const studentCountValue = getFirstNonEmptyValue(row, ["student_count"]);
-        const semesterValue = getFirstNonEmptyValue(row, ["current_semester", "semester"]);
+        const semesterValue = String(
+          getFirstNonEmptyValue(row, ["current_semester", "semester", "semester_name"])
+        ).trim();
+        const academicYear = String(
+          getFirstNonEmptyValue(row, ["academic_year", "year"])
+        ).trim();
 
         if (!batchCode) {
           validationErrors.push(`Row ${rowNumber}: batch_code is required`);
@@ -349,13 +403,18 @@ export default function Batches() {
         }
 
         const studentCount = Number(studentCountValue);
-        const currentSemester = Number(semesterValue);
         if (!Number.isFinite(studentCount) || studentCount < 0) {
           validationErrors.push(`Row ${rowNumber}: student_count must be 0 or more`);
           return;
         }
-        if (!Number.isFinite(currentSemester) || currentSemester <= 0) {
-          validationErrors.push(`Row ${rowNumber}: current_semester must be greater than 0`);
+        if (!semesterValue) {
+          validationErrors.push(
+            `Row ${rowNumber}: current_semester is required (e.g. 'Year 1 Semester 1' or 1)`
+          );
+          return;
+        }
+        if (!academicYear) {
+          validationErrors.push(`Row ${rowNumber}: academic_year is required (e.g. 2025/2026)`);
           return;
         }
 
@@ -384,13 +443,47 @@ export default function Batches() {
 
         const degree = degreeMatches[0];
 
+        let currentSemester = NaN;
+        let semesterName = "";
+        const parsedFromLabel = semesterNumberFromLabel(semesterValue);
+
+        if (Number.isFinite(parsedFromLabel)) {
+          currentSemester = parsedFromLabel;
+          semesterName = semesterLabelFromNumber(parsedFromLabel);
+        } else {
+          const parsedFromNumber = Number(semesterValue);
+          if (Number.isFinite(parsedFromNumber) && parsedFromNumber > 0) {
+            currentSemester = parsedFromNumber;
+            semesterName = semesterLabelFromNumber(parsedFromNumber);
+          }
+        }
+
+        if (!Number.isFinite(currentSemester) || currentSemester <= 0 || !semesterName) {
+          validationErrors.push(
+            `Row ${rowNumber}: current_semester must be a valid label like 'Year 1 Semester 1' or a positive semester number`
+          );
+          return;
+        }
+
+        const allowedSemesterNames = buildSemesterOptions(degree.duration_years || 5);
+        if (!allowedSemesterNames.includes(semesterName)) {
+          validationErrors.push(
+            `Row ${rowNumber}: semester '${semesterName}' is out of range for degree '${degree.code}'`
+          );
+          return;
+        }
+
         payloads.push({
           rowNumber,
-          payload: {
+          createPayload: {
             batch_code: batchCode,
             degree_id: degree.degree_id,
             student_count: studentCount,
             current_semester: currentSemester,
+          },
+          termPayload: {
+            semester_name: semesterName,
+            academic_year: academicYear,
           },
         });
       });
@@ -401,7 +494,11 @@ export default function Batches() {
       }
 
       const createResults = await Promise.allSettled(
-        payloads.map((item) => academicAPI.createBatch(item.payload))
+        payloads.map(async (item) => {
+          const created = await academicAPI.createBatch(item.createPayload);
+          await academicAPI.assignBatchActiveTerm(created.batch_id, item.termPayload);
+          return created;
+        })
       );
 
       const failedRows = [];
@@ -438,11 +535,11 @@ export default function Batches() {
   };
 
   const downloadDisplayedResults = () => {
-    if (!batches.length) {
+    if (!filteredBatches.length) {
       return;
     }
 
-    const exportRows = batches.map((batch) => ({
+    const exportRows = filteredBatches.map((batch) => ({
       batch_code: batch.batch_code || batch.name || "",
       degree: batch.degree ? `${batch.degree.code} - ${batch.degree.name}` : "",
       student_count: batch.student_count ?? "",
@@ -526,12 +623,43 @@ export default function Batches() {
         </div>
       )}
 
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-2">
+        <select
+          value={facultyFilter}
+          onChange={(event) => {
+            setFacultyFilter(event.target.value);
+            setDegreeFilter("");
+          }}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">Filter by Faculty</option>
+          {faculties.map((faculty) => (
+            <option key={faculty.faculty_id} value={faculty.faculty_id}>
+              {faculty.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={degreeFilter}
+          onChange={(event) => setDegreeFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">Filter by Degree</option>
+          {degreesForFilter.map((degree) => (
+            <option key={degree.degree_id} value={degree.degree_id}>
+              {degree.code} - {degree.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-sm text-gray-600">Showing {batches.length} result(s)</p>
+        <p className="text-sm text-gray-600">Showing {filteredBatches.length} result(s)</p>
         <button
           type="button"
           onClick={downloadDisplayedResults}
-          disabled={!batches.length}
+          disabled={!filteredBatches.length}
           className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Export Displayed Results
@@ -559,7 +687,7 @@ export default function Batches() {
                 </td>
               </tr>
             )}
-            {!loading && batches.length === 0 && (
+            {!loading && filteredBatches.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
                   No batches found.
@@ -567,7 +695,7 @@ export default function Batches() {
               </tr>
             )}
             {!loading &&
-              batches.map((batch) => {
+              filteredBatches.map((batch) => {
                 const semesterOptions = buildSemesterOptions(batch.degree?.duration_years || 5);
                 const formState = activeTermFormByBatch[batch.batch_id] || {
                   semester_name: "",
