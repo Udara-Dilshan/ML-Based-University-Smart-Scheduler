@@ -295,6 +295,22 @@ export const lecturerAPI = {
     const response = await api.get("/api/dashboard/lecturer-courses");
     return response.data;
   },
+  getAvailability: async (lecturerId) => {
+    const response = await api.get(`/availability/${lecturerId}`);
+    return response.data;
+  },
+  syncAvailability: async (payload) => {
+    const response = await api.post("/availability/sync", payload);
+    return response.data;
+  },
+  getWorkingConstraints: async () => {
+    const response = await api.get("/api/dashboard/lecturer-working-constraints");
+    return response.data;
+  },
+  getTimetable: async () => {
+    const response = await api.get("/timetable/");
+    return response.data;
+  },
 };
 
 export const setAuthToken = (token) => {

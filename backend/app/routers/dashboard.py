@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.academic import Batch, LecturerModuleAssignment, Module
 from ..models.resource import Resource
+from ..models.settings import SystemConstraint
 from ..models.timetable import TimetableSession
 from ..models.user import User, UserRole
 from ..utils.dependencies import require_admin_user, require_roles
@@ -13,6 +14,7 @@ from ..utils.dependencies import require_admin_user, require_roles
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+DAY_FULL_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 DAY_MAP = {
     "mon": "Mon",
     "monday": "Mon",
@@ -32,6 +34,10 @@ DAY_MAP = {
     "sun": "Sun",
     "sunday": "Sun",
 }
+
+WORKING_HOURS_START_KEY = "working_hours_start"
+WORKING_HOURS_END_KEY = "working_hours_end"
+WORKING_DAYS_MASK_KEY = "working_days_mask"
 
 
 def normalize_day(value: Optional[str]) -> Optional[str]:
@@ -54,6 +60,21 @@ def _time_to_minutes(value: Optional[str]) -> int:
         return (hour * 60) + minute
     except (ValueError, AttributeError):
         return 0
+
+
+def _minutes_to_hhmm(value: int) -> str:
+    safe_minutes = max(0, int(value or 0))
+    hours = safe_minutes // 60
+    minutes = safe_minutes % 60
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def _decode_working_days(mask: int) -> list[str]:
+    days = []
+    for index, day in enumerate(DAY_FULL_ORDER):
+        if (int(mask or 0) & (1 << index)) != 0:
+            days.append(day)
+    return days
 
 
 @router.get("/stats")
@@ -294,4 +315,27 @@ def get_lecturer_courses(
             "weekly_hours": total_hours,
         },
         "courses": courses,
+    }
+
+
+@router.get("/lecturer-working-constraints")
+def get_lecturer_working_constraints(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.LECTURER, UserRole.SUPER_ADMIN)),
+):
+    rows = db.query(SystemConstraint).filter(SystemConstraint.batch_id.is_(None)).all()
+    by_name = {row.name: row.value for row in rows}
+
+    start_minutes = int(by_name.get(WORKING_HOURS_START_KEY, 480))
+    end_minutes = int(by_name.get(WORKING_HOURS_END_KEY, 1020))
+    days_mask = int(by_name.get(WORKING_DAYS_MASK_KEY, 31))
+
+    working_days = _decode_working_days(days_mask)
+    if not working_days:
+        working_days = DAY_FULL_ORDER[:5]
+
+    return {
+        "working_hours_start": _minutes_to_hhmm(start_minutes),
+        "working_hours_end": _minutes_to_hhmm(end_minutes),
+        "working_days": working_days,
     }
