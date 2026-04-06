@@ -1,22 +1,27 @@
 import sys
-from os.path import realpath, dirname
+from os.path import dirname, realpath
+
 sys.path.insert(0, dirname(dirname(realpath(__file__))))
 
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+
 from alembic import context
 from app.database.connection import Base
-from app.models.user import User
-from app.models.profiles import Student, Lecturer
-from app.models.academic import Faculty, Department, Module, Batch
-from app.models.resource import Resource
+from app.models.academic import Batch, Department, Faculty, Module
 from app.models.lecturer_availability import LecturerAvailability
+from app.models.profiles import Lecturer, Student
+from app.models.resource import Resource
 from app.models.settings import SystemConstraint, SystemSetting
+from app.models.user import User
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+from app.database.connection import DATABASE_URL
+
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 target_metadata = Base.metadata
 
@@ -45,4 +50,5 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
+    run_migrations_online()else:
     run_migrations_online()
