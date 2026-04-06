@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 import { Clock, Save, Check } from "lucide-react";
 import { getUser, lecturerAPI } from "../../services/api";
 
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const timeSlots = [
-  "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00",
-  "11:00 - 12:00", "13:00 - 14:00", "14:00 - 15:00",
-  "15:00 - 16:00", "16:00 - 17:00",
-];
+const DEFAULT_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const DAY_TO_BACKEND = {
   Monday: "MONDAY",
@@ -29,6 +24,40 @@ const BACKEND_TO_DAY = {
   SUNDAY: "Sunday",
 };
 
+const parseMinutes = (value) => {
+  if (!value) {
+    return 0;
+  }
+  const token = String(value).trim();
+  const [hourToken, minuteToken] = token.split(":");
+  const hour = Number.parseInt(hourToken, 10);
+  const minute = Number.parseInt(minuteToken, 10);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return 0;
+  }
+  return (hour * 60) + minute;
+};
+
+const minutesToTime = (value) => {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
+const generateTimeSlots = (startTime, endTime) => {
+  const start = parseMinutes(startTime);
+  const end = parseMinutes(endTime);
+  const rows = [];
+
+  for (let marker = start; marker < end; marker += 60) {
+    const slotStart = minutesToTime(marker);
+    const slotEnd = minutesToTime(Math.min(marker + 60, end));
+    rows.push(`${slotStart} - ${slotEnd}`);
+  }
+
+  return rows;
+};
+
 export default function LecturerAvailability() {
   const user = getUser();
   const lecturerId = user?.user_id;
@@ -38,6 +67,13 @@ export default function LecturerAvailability() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [days, setDays] = useState(DEFAULT_DAYS);
+  const [timeSlots, setTimeSlots] = useState(generateTimeSlots("08:00", "17:00"));
+  const [constraints, setConstraints] = useState({
+    working_hours_start: "08:00",
+    working_hours_end: "17:00",
+    working_days: DEFAULT_DAYS,
+  });
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingSlot, setPendingSlot] = useState(null);
   const [reasonInput, setReasonInput] = useState("");
@@ -72,10 +108,30 @@ export default function LecturerAvailability() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const rows = await lecturerAPI.getAvailability(lecturerId);
+        const [workingConstraints, rows] = await Promise.all([
+          lecturerAPI.getWorkingConstraints(),
+          lecturerAPI.getAvailability(lecturerId),
+        ]);
         if (!isMounted) {
           return;
         }
+
+        const configuredDays = Array.isArray(workingConstraints?.working_days)
+          && workingConstraints.working_days.length
+          ? workingConstraints.working_days
+          : DEFAULT_DAYS;
+
+        const configuredStart = workingConstraints?.working_hours_start || "08:00";
+        const configuredEnd = workingConstraints?.working_hours_end || "17:00";
+        const configuredSlots = generateTimeSlots(configuredStart, configuredEnd);
+
+        setConstraints({
+          working_hours_start: configuredStart,
+          working_hours_end: configuredEnd,
+          working_days: configuredDays,
+        });
+        setDays(configuredDays);
+        setTimeSlots(configuredSlots.length ? configuredSlots : generateTimeSlots("08:00", "17:00"));
 
         const nextState = {};
         (rows || []).forEach((item) => {
@@ -226,7 +282,7 @@ export default function LecturerAvailability() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Weekly Schedule - Set Unavailable Slots</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Click on time slots to mark when you are Unavailable (e.g., for meetings, visiting lectures, personal commitments). Standard working hours (08:00 - 17:00) are marked as available by default.
+            Click on time slots to mark when you are Unavailable (e.g., for meetings, visiting lectures, personal commitments). Working window is {constraints.working_hours_start} - {constraints.working_hours_end} for {constraints.working_days.join(", ")}.
           </p>
           <p className="text-xs text-gray-600 mt-2">🟢 Available  🔴 Unavailable</p>
         </div>

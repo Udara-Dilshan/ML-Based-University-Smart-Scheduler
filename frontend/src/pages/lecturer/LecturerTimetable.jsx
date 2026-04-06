@@ -64,7 +64,13 @@ const generateTimeRows = (startTime, endTime) => {
   const rows = [];
 
   for (let marker = start; marker < end; marker += 60) {
-    rows.push(minutesToTime(marker));
+    const slotStart = minutesToTime(marker);
+    const slotEnd = minutesToTime(Math.min(marker + 60, end));
+    rows.push({
+      start: slotStart,
+      end: slotEnd,
+      label: `${slotStart} - ${slotEnd}`,
+    });
   }
 
   return rows;
@@ -75,8 +81,13 @@ export default function LecturerTimetable() {
   const lecturerId = currentUser?.user_id;
 
   const [days, setDays] = useState(DEFAULT_DAYS);
-  const [times, setTimes] = useState(generateTimeRows("08:00", "17:00"));
+  const [timeSlots, setTimeSlots] = useState(generateTimeRows("08:00", "17:00"));
   const [sessions, setSessions] = useState([]);
+  const [constraints, setConstraints] = useState({
+    working_hours_start: "08:00",
+    working_hours_end: "17:00",
+    working_days: DEFAULT_DAYS,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -100,13 +111,18 @@ export default function LecturerTimetable() {
         const configuredDays = Array.isArray(constraints?.working_days) && constraints.working_days.length
           ? constraints.working_days
           : DEFAULT_DAYS;
+        setConstraints({
+          working_hours_start: constraints?.working_hours_start || "08:00",
+          working_hours_end: constraints?.working_hours_end || "17:00",
+          working_days: configuredDays,
+        });
         setDays(configuredDays);
 
         const configuredTimes = generateTimeRows(
           constraints?.working_hours_start || "08:00",
           constraints?.working_hours_end || "17:00"
         );
-        setTimes(configuredTimes.length ? configuredTimes : generateTimeRows("08:00", "17:00"));
+        setTimeSlots(configuredTimes.length ? configuredTimes : generateTimeRows("08:00", "17:00"));
 
         const filtered = (allSessions || []).filter(
           (item) => Number(item.lecturer_id) === Number(lecturerId)
@@ -160,7 +176,7 @@ export default function LecturerTimetable() {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-200 px-4 py-2 rounded-lg">
           <Calendar size={16} />
-          Dynamic by System Constraints
+          {constraints.working_hours_start} - {constraints.working_hours_end} • {constraints.working_days.map((day) => DAY_SHORT[day] || day).join(", ")}
         </div>
       </div>
 
@@ -186,13 +202,13 @@ export default function LecturerTimetable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {times.map((time) => (
-                <tr key={time} className="hover:bg-gray-50 transition">
+              {timeSlots.map((timeSlot) => (
+                <tr key={timeSlot.label} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-3 text-xs text-gray-400 font-medium whitespace-nowrap">
-                    {time}
+                    {timeSlot.label}
                   </td>
                   {days.map((day, index) => {
-                    const session = sessionMap.get(`${day}__${time}`);
+                    const session = sessionMap.get(`${day}__${timeSlot.start}`);
                     const colorClass = CARD_COLORS[index % CARD_COLORS.length];
 
                     return (
