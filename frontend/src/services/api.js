@@ -147,6 +147,10 @@ export const academicAPI = {
     const response = await api.put(`/academic/batches/${id}`, payload);
     return response.data;
   },
+  assignBatchActiveTerm: async (batchId, payload) => {
+    const response = await api.put(`/academic/batches/${batchId}/active-term`, payload);
+    return response.data;
+  },
   deleteBatch: async (id) => {
     await api.delete(`/academic/batches/${id}`);
   },

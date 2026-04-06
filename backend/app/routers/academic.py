@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, Degree, DegreeSemesterModule, Department, Faculty, Module
+from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, Module
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -173,6 +173,12 @@ def _semester_label(semester_number: int) -> str:
     return f"Year {year} Semester {semester}"
 
 
+SEMESTER_NAME_TO_NUMBER = {
+    _semester_label(number): number
+    for number in range(1, 11)
+}
+
+
 def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
     max_semester = max(1, degree.duration_years) * 2
     if semester_number > max_semester:
@@ -180,6 +186,45 @@ def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
             status_code=422,
             detail=f"Selected semester is out of range for this degree. Maximum allowed is Year {degree.duration_years} Semester 2.",
         )
+
+
+def _validate_batch_active_term(batch: Batch, semester_name: str, academic_year: str) -> int:
+    normalized_semester_name = semester_name.strip()
+    if normalized_semester_name not in SEMESTER_NAME_TO_NUMBER:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid semester_name. Use values like 'Year 1 Semester 1'.",
+        )
+
+    semester_number = SEMESTER_NAME_TO_NUMBER[normalized_semester_name]
+    degree_duration_years = batch.degree.duration_years if batch.degree else 5
+    max_semester = max(1, degree_duration_years) * 2
+    if semester_number > max_semester:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Selected semester is out of range for this batch's degree. Maximum allowed is Year {degree_duration_years} Semester 2.",
+        )
+
+    if not academic_year.strip():
+        raise HTTPException(status_code=422, detail="academic_year is required")
+
+    return semester_number
+
+
+class BatchActiveTermSave(BaseModel):
+    semester_name: str = Field(min_length=1)
+    academic_year: str = Field(min_length=4, max_length=20)
+
+
+class BatchActiveTermOut(BaseModel):
+    id: int
+    batch_id: int
+    semester_name: str
+    academic_year: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
 
 
 class BatchOut(BatchBase):
@@ -190,6 +235,7 @@ class BatchOut(BatchBase):
     name: str
     academic_year: int
     degree: Optional[DegreeOut] = None
+    active_term: Optional[BatchActiveTermOut] = None
 
     class Config:
         from_attributes = True
@@ -703,7 +749,58 @@ def create_batch(payload: BatchBase, db: Session = Depends(get_db)):
 
 @router.get("/batches", response_model=List[BatchOut])
 def get_batches(db: Session = Depends(get_db)):
-    return db.query(Batch).order_by(Batch.batch_id.desc()).all()
+    batches = db.query(Batch).order_by(Batch.batch_id.desc()).all()
+    active_terms = db.query(BatchActiveTerm).filter(BatchActiveTerm.is_active.is_(True)).all()
+    active_term_by_batch_id = {term.batch_id: term for term in active_terms}
+
+    for batch in batches:
+        setattr(batch, "active_term", active_term_by_batch_id.get(batch.batch_id))
+
+    return batches
+
+
+@router.put("/batches/{batch_id}/active-term", response_model=BatchActiveTermOut)
+def assign_or_update_batch_active_term(
+    batch_id: int,
+    payload: BatchActiveTermSave,
+    db: Session = Depends(get_db),
+):
+    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    semester_name = payload.semester_name.strip()
+    academic_year = payload.academic_year.strip()
+    semester_number = _validate_batch_active_term(batch, semester_name, academic_year)
+
+    db.query(BatchActiveTerm).filter(
+        BatchActiveTerm.batch_id == batch_id,
+        BatchActiveTerm.is_active.is_(True),
+    ).update({BatchActiveTerm.is_active: False}, synchronize_session=False)
+
+    term = db.query(BatchActiveTerm).filter(
+        BatchActiveTerm.batch_id == batch_id,
+        BatchActiveTerm.semester_name == semester_name,
+        BatchActiveTerm.academic_year == academic_year,
+    ).first()
+
+    if term:
+        term.is_active = True
+    else:
+        term = BatchActiveTerm(
+            batch_id=batch_id,
+            semester_name=semester_name,
+            academic_year=academic_year,
+            is_active=True,
+        )
+        db.add(term)
+
+    # Keep legacy integer semester in sync for existing scheduler logic.
+    batch.current_semester = semester_number
+
+    db.commit()
+    db.refresh(term)
+    return term
 
 
 @router.put("/batches/{batch_id}", response_model=BatchOut)

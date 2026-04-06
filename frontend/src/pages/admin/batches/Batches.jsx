@@ -8,7 +8,8 @@ const initialForm = {
   batch_code: "",
   degree_id: "",
   student_count: "",
-  current_semester: "",
+  current_semester_name: "",
+  academic_year: "",
 };
 
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
@@ -21,6 +22,42 @@ const getFirstNonEmptyValue = (row, keys) => {
     }
   }
   return "";
+};
+
+const buildSemesterOptions = (durationYears = 5) => {
+  const totalSemesters = Math.max(1, Number(durationYears) || 5) * 2;
+  return Array.from({ length: totalSemesters }, (_, index) => {
+    const semesterNumber = index + 1;
+    const year = Math.ceil(semesterNumber / 2);
+    const semester = semesterNumber % 2 === 0 ? 2 : 1;
+    return `Year ${year} Semester ${semester}`;
+  });
+};
+
+const semesterLabelFromNumber = (semesterNumber) => {
+  const value = Number(semesterNumber);
+  if (!Number.isFinite(value) || value <= 0) {
+    return "";
+  }
+  const year = Math.ceil(value / 2);
+  const semester = value % 2 === 0 ? 2 : 1;
+  return `Year ${year} Semester ${semester}`;
+};
+
+const semesterNumberFromLabel = (semesterName) => {
+  const value = String(semesterName || "").trim();
+  const match = value.match(/^Year\s+(\d+)\s+Semester\s+(1|2)$/i);
+  if (!match) {
+    return NaN;
+  }
+
+  const year = Number(match[1]);
+  const semester = Number(match[2]);
+  if (!Number.isFinite(year) || year <= 0) {
+    return NaN;
+  }
+
+  return ((year - 1) * 2) + semester;
 };
 
 export default function Batches() {
@@ -37,8 +74,19 @@ export default function Batches() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [activeTermFormByBatch, setActiveTermFormByBatch] = useState({});
+  const [assigningBatchIds, setAssigningBatchIds] = useState({});
+  const [termMessage, setTermMessage] = useState("");
 
   const modalTitle = useMemo(() => (editId ? "Edit Batch" : "Add Batch"), [editId]);
+  const selectedModalDegree = useMemo(
+    () => degrees.find((degree) => degree.degree_id === Number(form.degree_id)) || null,
+    [degrees, form.degree_id]
+  );
+  const modalSemesterOptions = useMemo(
+    () => buildSemesterOptions(selectedModalDegree?.duration_years || 5),
+    [selectedModalDegree]
+  );
 
   const loadData = async () => {
     try {
@@ -50,6 +98,16 @@ export default function Batches() {
       ]);
       setBatches(batchData);
       setDegrees(deptData);
+
+      const termFormDefaults = {};
+      batchData.forEach((batch) => {
+        termFormDefaults[batch.batch_id] = {
+          semester_name:
+            batch.active_term?.semester_name || semesterLabelFromNumber(batch.current_semester),
+          academic_year: batch.active_term?.academic_year || "",
+        };
+      });
+      setActiveTermFormByBatch(termFormDefaults);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load batches");
     } finally {
@@ -74,6 +132,18 @@ export default function Batches() {
     return () => window.clearTimeout(timeoutId);
   }, [uploadMessage, uploadError]);
 
+  useEffect(() => {
+    if (!termMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setTermMessage("");
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [termMessage]);
+
   const openCreateModal = () => {
     setEditId(null);
     setForm(initialForm);
@@ -87,7 +157,9 @@ export default function Batches() {
       batch_code: batch.batch_code || batch.name || "",
       degree_id: batch.degree_id ? String(batch.degree_id) : "",
       student_count: batch.student_count ?? "",
-      current_semester: batch.current_semester ?? batch.academic_year ?? "",
+      current_semester_name:
+        batch.active_term?.semester_name || semesterLabelFromNumber(batch.current_semester),
+      academic_year: batch.active_term?.academic_year || "",
     });
     setModalError("");
     setIsModalOpen(true);
@@ -105,26 +177,48 @@ export default function Batches() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => {
+      if (name === "degree_id") {
+        const nextDegree = degrees.find((degree) => degree.degree_id === Number(value));
+        const nextOptions = buildSemesterOptions(nextDegree?.duration_years || 5);
+        const nextSemester = nextOptions.includes(prev.current_semester_name)
+          ? prev.current_semester_name
+          : "";
+
+        return {
+          ...prev,
+          degree_id: value,
+          current_semester_name: nextSemester,
+        };
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   };
 
   const handleSubmit = async () => {
-    if (!form.batch_code.trim() || !form.degree_id || !form.current_semester || form.student_count === "") {
-      setModalError("Batch code, degree, student count and current semester are required");
+    if (
+      !form.batch_code.trim() ||
+      !form.degree_id ||
+      !form.current_semester_name ||
+      !form.academic_year.trim() ||
+      form.student_count === ""
+    ) {
+      setModalError("Batch code, degree, student count, current semester and academic year are required");
       return;
     }
 
     const studentCount = Number(form.student_count);
-    const currentSemester = Number(form.current_semester);
+    const currentSemester = semesterNumberFromLabel(form.current_semester_name);
     if (!Number.isFinite(studentCount) || studentCount < 0) {
       setModalError("Student count must be 0 or more");
       return;
     }
     if (!Number.isFinite(currentSemester) || currentSemester <= 0) {
-      setModalError("Current semester must be greater than 0");
+      setModalError("Select a valid current semester");
       return;
     }
 
@@ -138,15 +232,23 @@ export default function Batches() {
     try {
       setSaving(true);
       setModalError("");
+      let savedBatch;
       if (editId) {
-        await academicAPI.updateBatch(editId, payload);
+        savedBatch = await academicAPI.updateBatch(editId, payload);
       } else {
-        await academicAPI.createBatch(payload);
+        savedBatch = await academicAPI.createBatch(payload);
       }
+
+      await academicAPI.assignBatchActiveTerm(savedBatch.batch_id, {
+        semester_name: form.current_semester_name,
+        academic_year: form.academic_year.trim(),
+      });
+
+      setTermMessage(`Batch and active term saved for ${savedBatch.batch_code || savedBatch.name}`);
       await loadData();
       closeModal();
     } catch (err) {
-      setModalError(err.response?.data?.detail || "Failed to save batch");
+      setModalError(err.response?.data?.detail || "Failed to save batch and active term");
     } finally {
       setSaving(false);
     }
@@ -164,6 +266,42 @@ export default function Batches() {
       await loadData();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to delete batch");
+    }
+  };
+
+  const handleActiveTermChange = (batchId, field, value) => {
+    setActiveTermFormByBatch((prev) => ({
+      ...prev,
+      [batchId]: {
+        ...(prev[batchId] || { semester_name: "", academic_year: "" }),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleAssignOrUpdateTerm = async (batch) => {
+    const values = activeTermFormByBatch[batch.batch_id] || {};
+    const semesterName = String(values.semester_name || "").trim();
+    const academicYear = String(values.academic_year || "").trim();
+
+    if (!semesterName || !academicYear) {
+      setError("Current semester and academic year are required to assign active term");
+      return;
+    }
+
+    try {
+      setError("");
+      setAssigningBatchIds((prev) => ({ ...prev, [batch.batch_id]: true }));
+      await academicAPI.assignBatchActiveTerm(batch.batch_id, {
+        semester_name: semesterName,
+        academic_year: academicYear,
+      });
+      setTermMessage(`Active term saved for ${batch.batch_code || batch.name}`);
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to assign active term");
+    } finally {
+      setAssigningBatchIds((prev) => ({ ...prev, [batch.batch_id]: false }));
     }
   };
 
@@ -308,7 +446,8 @@ export default function Batches() {
       batch_code: batch.batch_code || batch.name || "",
       degree: batch.degree ? `${batch.degree.code} - ${batch.degree.name}` : "",
       student_count: batch.student_count ?? "",
-      current_semester: batch.current_semester ?? batch.academic_year ?? "",
+      current_semester: batch.active_term?.semester_name || semesterLabelFromNumber(batch.current_semester),
+      academic_year: batch.active_term?.academic_year || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
@@ -375,6 +514,12 @@ export default function Batches() {
         </div>
       )}
 
+      {termMessage && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          {termMessage}
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -400,34 +545,82 @@ export default function Batches() {
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Batch Code</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Degree</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Students</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Semester</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Current Semester</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Academic Year</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Term Setup</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
                   Loading batches...
                 </td>
               </tr>
             )}
             {!loading && batches.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
                   No batches found.
                 </td>
               </tr>
             )}
             {!loading &&
-              batches.map((batch) => (
+              batches.map((batch) => {
+                const semesterOptions = buildSemesterOptions(batch.degree?.duration_years || 5);
+                const formState = activeTermFormByBatch[batch.batch_id] || {
+                  semester_name: "",
+                  academic_year: "",
+                };
+
+                return (
                 <tr key={batch.batch_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-800">{batch.batch_code || batch.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {batch.degree ? `${batch.degree.code} - ${batch.degree.name}` : "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{batch.student_count ?? "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{batch.current_semester ?? batch.academic_year ?? "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <select
+                      value={formState.semester_name || ""}
+                      onChange={(event) =>
+                        handleActiveTermChange(batch.batch_id, "semester_name", event.target.value)
+                      }
+                      className="w-full min-w-[190px] rounded-md border border-gray-300 px-2 py-1.5 text-xs outline-none focus:border-blue-500"
+                    >
+                      <option value="">Select semester</option>
+                      {semesterOptions.map((semesterName) => (
+                        <option key={semesterName} value={semesterName}>
+                          {semesterName}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <input
+                      value={formState.academic_year || ""}
+                      onChange={(event) =>
+                        handleActiveTermChange(batch.batch_id, "academic_year", event.target.value)
+                      }
+                      placeholder="2025/2026"
+                      className="w-full min-w-[130px] rounded-md border border-gray-300 px-2 py-1.5 text-xs outline-none focus:border-blue-500"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleAssignOrUpdateTerm(batch)}
+                      disabled={Boolean(assigningBatchIds[batch.batch_id])}
+                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {assigningBatchIds[batch.batch_id]
+                        ? "Saving..."
+                        : batch.active_term
+                          ? "Update"
+                          : "Assign"}
+                    </button>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
@@ -447,7 +640,8 @@ export default function Batches() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -476,13 +670,24 @@ export default function Batches() {
             placeholder="Student Count"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
-          <input
-            name="current_semester"
-            type="number"
-            min="1"
-            value={form.current_semester}
+          <select
+            name="current_semester_name"
+            value={form.current_semester_name}
             onChange={handleChange}
-            placeholder="Current Semester"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">Select Current Semester</option>
+            {modalSemesterOptions.map((semesterName) => (
+              <option key={semesterName} value={semesterName}>
+                {semesterName}
+              </option>
+            ))}
+          </select>
+          <input
+            name="academic_year"
+            value={form.academic_year}
+            onChange={handleChange}
+            placeholder="Academic Year (e.g. 2025/2026)"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <select
