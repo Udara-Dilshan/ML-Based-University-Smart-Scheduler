@@ -1,7 +1,10 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
+from app.models.academic import Department
 from app.models.user import User, UserRole
 from app.models.profiles import Student
 from app.schemas.user import (
@@ -33,7 +36,31 @@ def _to_app_role(role: str | None) -> str | None:
     return role
 
 
-def _serialize_auth_user(user: User) -> dict:
+def _parse_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
+    lecturer_profile = None
+    if user.lecturer_profile:
+        dept_id = _parse_int(user.lecturer_profile.department)
+        department_name = None
+        if db is not None and dept_id is not None:
+            department = db.query(Department).filter(Department.dept_id == dept_id).first()
+            department_name = department.name if department else None
+
+        lecturer_profile = {
+            "staff_id": user.lecturer_profile.employee_id,
+            "dept_id": dept_id,
+            "department_name": department_name,
+            "designation": None,
+        }
+
     return {
         "user_id": user.user_id,
         "email": user.email,
@@ -45,7 +72,7 @@ def _serialize_auth_user(user: User) -> dict:
         "contact_number": user.contact_number,
         "profile_image": user.profile_image,
         "student_profile": None,
-        "lecturer_profile": None,
+        "lecturer_profile": lecturer_profile,
         "resource_manager_profile": None,
     }
 
@@ -69,7 +96,7 @@ def login(request: UserLoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": _serialize_auth_user(user),
+        "user": _serialize_auth_user(user, db),
     }
 
 
@@ -123,13 +150,40 @@ def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": _serialize_auth_user(user),
+        "user": _serialize_auth_user(user, db),
     }
 
 
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    return _serialize_auth_user(current_user)
+def get_me(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return _serialize_auth_user(current_user, db)
+
+
+class UpdateMeRequest(BaseModel):
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    contact_number: Optional[str] = Field(default=None, max_length=20)
+
+
+@router.put("/me", response_model=UserResponse)
+def update_me(
+    request: UpdateMeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = request.model_dump(exclude_unset=True)
+
+    if "first_name" in data:
+        current_user.first_name = data["first_name"].strip()
+    if "last_name" in data:
+        current_user.last_name = data["last_name"].strip()
+    if "contact_number" in data:
+        contact_number = data["contact_number"].strip()
+        current_user.contact_number = contact_number or None
+
+    db.commit()
+    db.refresh(current_user)
+    return _serialize_auth_user(current_user, db)
 
 
 class ChangePasswordRequest(BaseModel):

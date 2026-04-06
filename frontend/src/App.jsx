@@ -32,6 +32,7 @@ import LecturerTimetable from "./pages/lecturer/LecturerTimetable";
 import LecturerAvailability from "./pages/lecturer/LecturerAvailability";
 import LecturerCourses from "./pages/lecturer/LecturerCourses";
 import LecturerProfile from "./pages/lecturer/LecturerProfile";
+import LecturerSettings from "./pages/lecturer/LecturerSettings";
 
 function App() {
   return (
@@ -87,6 +88,7 @@ function App() {
             <Route path="/lecturer/availability" element={<LecturerAvailability />} />
             <Route path="/lecturer/courses"      element={<LecturerCourses />}      />
             <Route path="/lecturer/profile"      element={<LecturerProfile />}      />
+            <Route path="/lecturer/settings"     element={<LecturerSettings />}     />
           </Route>
         </Route>
 

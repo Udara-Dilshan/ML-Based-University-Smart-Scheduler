@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, LogOut, Mail, Search, Settings, User } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Search, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { authAPI, getUser } from "../services/api";
 
@@ -9,6 +9,7 @@ export default function Navbar({ title }) {
   const [userRefresh, setUserRefresh] = useState(0);
   const menuRef = useRef(null);
   const currentUser = getUser();
+  const isLecturer = currentUser?.role === "Lecturer";
 
   // Listen for storage changes to update profile image
   useEffect(() => {
@@ -78,12 +79,12 @@ export default function Navbar({ title }) {
   };
 
   const handleProfile = () => {
-    navigate("/admin/profile");
+    navigate(isLecturer ? "/lecturer/profile" : "/admin/profile");
     setIsMenuOpen(false);
   };
 
   const handleSettings = () => {
-    navigate("/admin/settings");
+    navigate(isLecturer ? "/lecturer/settings" : "/admin/settings");
     setIsMenuOpen(false);
   };
 
@@ -179,7 +180,6 @@ export default function Navbar({ title }) {
                   Settings
                 </button>
 
-                
               </div>
 
               <div className="border-t border-gray-100 p-2">
