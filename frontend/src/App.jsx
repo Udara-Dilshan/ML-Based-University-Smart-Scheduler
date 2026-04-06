@@ -18,6 +18,7 @@ import Departments from "./pages/admin/departments/Departments";
 import Batches from "./pages/admin/batches/Batches";
 import Degrees from "./pages/admin/degrees/Degrees";
 import DegreeSemesterModules from "./pages/admin/curriculum/DegreeSemesterModules";
+import LecturerAllocations from "./pages/admin/allocations/LecturerAllocations";
 
 // Other portals
 import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
@@ -75,6 +76,7 @@ function App() {
           <Route path="/admin/batches"     element={<Batches />} />
           <Route path="/admin/degrees"     element={<Degrees />} />
           <Route path="/admin/curriculum/degree-semester-modules" element={<DegreeSemesterModules />} />
+          <Route path="/admin/lecturer-allocations" element={<LecturerAllocations />} />
         </Route>
 
         {/* Scheduler */}
