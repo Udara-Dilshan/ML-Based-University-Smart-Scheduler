@@ -5,7 +5,7 @@ from app.database.connection import Base
 class Faculty(Base):
     __tablename__ = "faculties"
     faculty_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String(255), unique=True, nullable=False)
+    name = Column(String(191), unique=True, nullable=False)
     code = Column(String(50), unique=True, nullable=False)
     dean_name = Column(String(100), nullable=True)
     departments = relationship("Department", back_populates="faculty", cascade="all, delete-orphan")
