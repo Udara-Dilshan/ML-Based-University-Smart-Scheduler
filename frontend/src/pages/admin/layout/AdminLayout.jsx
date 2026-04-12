@@ -19,7 +19,9 @@ const pageTitles = {
 "/admin/departments":"Departments",
 "/admin/courses":"Courses",
 "/admin/degrees":"Degrees",
-"/admin/batches":"Batches"
+"/admin/batches":"Batches",
+"/admin/curriculum/degree-semester-modules":"Degree Semester Modules",
+"/admin/lecturer-allocations":"Lecturer Allocations"
 }
 
 export default function AdminLayout({ children }) {

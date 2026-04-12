@@ -1,4 +1,4 @@
-course_code,course_name,faculty_name,department_name,degree_code,batch_code,credits,lecture_hours_per_week
-ICT 1101,Cloud Foundations,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,ICT 2025/2026,3,3
-ICT 2202,Database Systems,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,ICT 21,2,2
-ICT 3303,Software Architecture,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,ICT 21,3,2
+course_code,course_name,faculty_name,department_name,degree_code,credits,lecture_hours_per_week
+ICT 1101,Cloud Foundations,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,3,3
+ICT 2202,Database Systems,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,2,2
+ICT 3303,Software Architecture,Faculty of Technological Studies,Department of Information and Communication Technology,ICT,3,2

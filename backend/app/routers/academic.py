@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, Degree, Department, Faculty, Module
+from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, LecturerModuleAssignment, Module
+from ..models.user import User
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -61,7 +62,6 @@ class ModuleBase(BaseModel):
     code: str = Field(min_length=1)
     dept_id: int
     degree_id: int
-    batch_id: int
     credits: int = Field(gt=0)
     lecture_hours_per_week: int = Field(gt=0)
 
@@ -71,7 +71,6 @@ class ModuleUpdate(BaseModel):
     code: Optional[str] = None
     dept_id: Optional[int] = None
     degree_id: Optional[int] = None
-    batch_id: Optional[int] = None
     credits: Optional[int] = Field(default=None, gt=0)
     lecture_hours_per_week: Optional[int] = Field(default=None, gt=0)
 
@@ -123,6 +122,176 @@ class DegreeOut(BaseModel):
         from_attributes = True
 
 
+class DegreeSemesterModuleOptionOut(BaseModel):
+    module_id: int
+    code: str
+    name: str
+    credits: int
+    lecture_hours_per_week: int
+    assigned: bool
+
+
+class DegreeSemesterModuleSelectionOut(BaseModel):
+    degree_id: int
+    degree_name: str
+    degree_code: str
+    semester_number: int
+    semester_label: str
+    modules: List[DegreeSemesterModuleOptionOut]
+
+
+class DegreeSemesterModuleSave(BaseModel):
+    degree_id: int
+    semester_number: int = Field(ge=1, le=10)
+    module_ids: List[int] = Field(default_factory=list)
+
+
+class DegreeSemesterModuleSaveOut(BaseModel):
+    degree_id: int
+    semester_number: int
+    saved_count: int
+
+
+class DegreeSemesterModuleRowOut(BaseModel):
+    id: int
+    degree_id: int
+    degree_name: str
+    degree_code: str
+    semester_number: int
+    semester_label: str
+    module_id: int
+    module_code: str
+    module_name: str
+    credits: int
+    lecture_hours_per_week: int
+
+
+def _semester_label(semester_number: int) -> str:
+    year = ((semester_number - 1) // 2) + 1
+    semester = 1 if semester_number % 2 == 1 else 2
+    return f"Year {year} Semester {semester}"
+
+
+SEMESTER_NAME_TO_NUMBER = {
+    _semester_label(number): number
+    for number in range(1, 11)
+}
+
+
+def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
+    max_semester = max(1, degree.duration_years) * 2
+    if semester_number > max_semester:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Selected semester is out of range for this degree. Maximum allowed is Year {degree.duration_years} Semester 2.",
+        )
+
+
+def _validate_batch_active_term(batch: Batch, semester_name: str, academic_year: str) -> int:
+    normalized_semester_name = semester_name.strip()
+    if normalized_semester_name not in SEMESTER_NAME_TO_NUMBER:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid semester_name. Use values like 'Year 1 Semester 1'.",
+        )
+
+    semester_number = SEMESTER_NAME_TO_NUMBER[normalized_semester_name]
+    degree_duration_years = batch.degree.duration_years if batch.degree else 5
+    max_semester = max(1, degree_duration_years) * 2
+    if semester_number > max_semester:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Selected semester is out of range for this batch's degree. Maximum allowed is Year {degree_duration_years} Semester 2.",
+        )
+
+    if not academic_year.strip():
+        raise HTTPException(status_code=422, detail="academic_year is required")
+
+    return semester_number
+
+
+class BatchActiveTermSave(BaseModel):
+    semester_name: str = Field(min_length=1)
+    academic_year: str = Field(min_length=4, max_length=20)
+
+
+class BatchActiveTermOut(BaseModel):
+    id: int
+    batch_id: int
+    semester_name: str
+    academic_year: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LecturerOptionOut(BaseModel):
+    user_id: int
+    full_name: str
+    email: str
+    dept_id: Optional[int] = None
+
+
+class LecturerAllocationModuleOut(BaseModel):
+    module_id: int
+    code: str
+    name: str
+    credits: int
+    lecture_hours_per_week: int
+    assigned_lecturer_user_id: Optional[int] = None
+    assigned_lecturer_name: Optional[str] = None
+
+
+class LecturerAllocationBatchModulesOut(BaseModel):
+    batch_id: int
+    batch_code: str
+    degree_id: int
+    degree_name: str
+    semester_name: str
+    semester_number: int
+    modules: List[LecturerAllocationModuleOut]
+
+
+class LecturerModuleAssignmentSave(BaseModel):
+    batch_id: int
+    module_id: int
+    lecturer_user_id: int
+
+
+class LecturerModuleAssignmentOut(BaseModel):
+    id: int
+    batch_id: int
+    module_id: int
+    lecturer_user_id: int
+    lecturer_name: str
+    is_active: bool
+
+
+def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str]:
+    active_term = (
+        db.query(BatchActiveTerm)
+        .filter(
+            BatchActiveTerm.batch_id == batch.batch_id,
+            BatchActiveTerm.is_active.is_(True),
+        )
+        .order_by(BatchActiveTerm.id.desc())
+        .first()
+    )
+
+    if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
+        semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
+        semester_name = active_term.semester_name
+    else:
+        semester_number = batch.current_semester
+        semester_name = _semester_label(semester_number)
+
+    if batch.degree:
+        _validate_degree_semester(batch.degree, semester_number)
+
+    return semester_number, semester_name
+
+
 class BatchOut(BatchBase):
     batch_id: int
     degree_id: int
@@ -131,6 +300,7 @@ class BatchOut(BatchBase):
     name: str
     academic_year: int
     degree: Optional[DegreeOut] = None
+    active_term: Optional[BatchActiveTermOut] = None
 
     class Config:
         from_attributes = True
@@ -382,12 +552,6 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
     if degree.dept_id != payload.dept_id:
         raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
-    batch = db.query(Batch).filter(Batch.batch_id == payload.batch_id).first()
-    if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found")
-    if batch.degree_id != payload.degree_id:
-        raise HTTPException(status_code=422, detail="Selected batch does not belong to selected degree")
-
     duplicate = db.query(Module).filter((Module.code == payload.code) | (Module.name == payload.name))
     if duplicate.first():
         raise HTTPException(status_code=409, detail="Course name or code already exists")
@@ -397,7 +561,6 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
         code=payload.code.strip().upper(),
         dept_id=payload.dept_id,
         degree_id=payload.degree_id,
-        batch_id=payload.batch_id,
         credits=payload.credits,
         lecture_hours_per_week=payload.lecture_hours_per_week,
     )
@@ -410,6 +573,145 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
 @router.get("/modules", response_model=List[ModuleOut])
 def get_modules(db: Session = Depends(get_db)):
     return db.query(Module).order_by(Module.name.asc()).all()
+
+
+@router.get("/degree-semester-modules/selection", response_model=DegreeSemesterModuleSelectionOut)
+def get_degree_semester_module_selection(
+    degree_id: int,
+    semester_number: int = 1,
+    db: Session = Depends(get_db),
+):
+    degree = db.query(Degree).filter(Degree.degree_id == degree_id).first()
+    if not degree:
+        raise HTTPException(status_code=404, detail="Degree not found")
+
+    _validate_degree_semester(degree, semester_number)
+
+    modules = (
+        db.query(Module)
+        .filter(Module.degree_id == degree_id)
+        .order_by(Module.name.asc())
+        .all()
+    )
+
+    assigned_module_ids = {
+        item.module_id
+        for item in db.query(DegreeSemesterModule)
+        .filter(
+            DegreeSemesterModule.degree_id == degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+        )
+        .all()
+    }
+
+    return {
+        "degree_id": degree.degree_id,
+        "degree_name": degree.name,
+        "degree_code": degree.code,
+        "semester_number": semester_number,
+        "semester_label": _semester_label(semester_number),
+        "modules": [
+            {
+                "module_id": module.module_id,
+                "code": module.code,
+                "name": module.name,
+                "credits": module.credits,
+                "lecture_hours_per_week": module.lecture_hours_per_week,
+                "assigned": module.module_id in assigned_module_ids,
+            }
+            for module in modules
+        ],
+    }
+
+
+@router.put("/degree-semester-modules", response_model=DegreeSemesterModuleSaveOut)
+def save_degree_semester_modules(payload: DegreeSemesterModuleSave, db: Session = Depends(get_db)):
+    degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
+    if not degree:
+        raise HTTPException(status_code=404, detail="Degree not found")
+
+    _validate_degree_semester(degree, payload.semester_number)
+
+    unique_module_ids = sorted(set(payload.module_ids))
+
+    if unique_module_ids:
+        modules = (
+            db.query(Module)
+            .filter(Module.module_id.in_(unique_module_ids))
+            .all()
+        )
+        if len(modules) != len(unique_module_ids):
+            raise HTTPException(status_code=404, detail="One or more selected modules were not found")
+
+        for module in modules:
+            if module.degree_id != payload.degree_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Module '{module.code}' does not belong to the selected degree",
+                )
+
+    db.query(DegreeSemesterModule).filter(
+        DegreeSemesterModule.degree_id == payload.degree_id,
+        DegreeSemesterModule.semester_number == payload.semester_number,
+    ).delete(synchronize_session=False)
+
+    for module_id in unique_module_ids:
+        db.add(
+            DegreeSemesterModule(
+                degree_id=payload.degree_id,
+                semester_number=payload.semester_number,
+                module_id=module_id,
+            )
+        )
+
+    db.commit()
+
+    return {
+        "degree_id": payload.degree_id,
+        "semester_number": payload.semester_number,
+        "saved_count": len(unique_module_ids),
+    }
+
+
+@router.get("/degree-semester-modules", response_model=List[DegreeSemesterModuleRowOut])
+def get_degree_semester_modules(
+    degree_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(DegreeSemesterModule, Module, Degree)
+        .join(Module, Module.module_id == DegreeSemesterModule.module_id)
+        .join(Degree, Degree.degree_id == DegreeSemesterModule.degree_id)
+    )
+
+    if degree_id is not None:
+        query = query.filter(DegreeSemesterModule.degree_id == degree_id)
+
+    rows = (
+        query.order_by(
+            Degree.name.asc(),
+            DegreeSemesterModule.semester_number.asc(),
+            Module.code.asc(),
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": mapping.id,
+            "degree_id": degree.degree_id,
+            "degree_name": degree.name,
+            "degree_code": degree.code,
+            "semester_number": mapping.semester_number,
+            "semester_label": _semester_label(mapping.semester_number),
+            "module_id": module.module_id,
+            "module_code": module.code,
+            "module_name": module.name,
+            "credits": module.credits,
+            "lecture_hours_per_week": module.lecture_hours_per_week,
+        }
+        for mapping, module, degree in rows
+    ]
 
 
 @router.put("/modules/{module_id}", response_model=ModuleOut)
@@ -434,21 +736,11 @@ def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(g
         if not degree:
             raise HTTPException(status_code=404, detail="Degree not found")
 
-    if "batch_id" in data:
-        batch = db.query(Batch).filter(Batch.batch_id == data["batch_id"]).first()
-        if not batch:
-            raise HTTPException(status_code=404, detail="Batch not found")
-
     effective_dept = data.get("dept_id", item.dept_id)
     effective_degree = data.get("degree_id", item.degree_id)
-    effective_batch = data.get("batch_id", item.batch_id)
     degree = db.query(Degree).filter(Degree.degree_id == effective_degree).first()
     if degree and degree.dept_id != effective_dept:
         raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
-
-    batch = db.query(Batch).filter(Batch.batch_id == effective_batch).first()
-    if batch and batch.degree_id != effective_degree:
-        raise HTTPException(status_code=422, detail="Selected batch does not belong to selected degree")
 
     if "code" in data:
         duplicate = db.query(Module).filter(
@@ -505,7 +797,229 @@ def create_batch(payload: BatchBase, db: Session = Depends(get_db)):
 
 @router.get("/batches", response_model=List[BatchOut])
 def get_batches(db: Session = Depends(get_db)):
-    return db.query(Batch).order_by(Batch.batch_id.desc()).all()
+    batches = db.query(Batch).order_by(Batch.batch_id.desc()).all()
+    active_terms = db.query(BatchActiveTerm).filter(BatchActiveTerm.is_active.is_(True)).all()
+    active_term_by_batch_id = {term.batch_id: term for term in active_terms}
+
+    for batch in batches:
+        setattr(batch, "active_term", active_term_by_batch_id.get(batch.batch_id))
+
+    return batches
+
+
+@router.put("/batches/{batch_id}/active-term", response_model=BatchActiveTermOut)
+def assign_or_update_batch_active_term(
+    batch_id: int,
+    payload: BatchActiveTermSave,
+    db: Session = Depends(get_db),
+):
+    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    semester_name = payload.semester_name.strip()
+    academic_year = payload.academic_year.strip()
+    semester_number = _validate_batch_active_term(batch, semester_name, academic_year)
+
+    db.query(BatchActiveTerm).filter(
+        BatchActiveTerm.batch_id == batch_id,
+        BatchActiveTerm.is_active.is_(True),
+    ).update({BatchActiveTerm.is_active: False}, synchronize_session=False)
+
+    term = db.query(BatchActiveTerm).filter(
+        BatchActiveTerm.batch_id == batch_id,
+        BatchActiveTerm.semester_name == semester_name,
+        BatchActiveTerm.academic_year == academic_year,
+    ).first()
+
+    if term:
+        term.is_active = True
+    else:
+        term = BatchActiveTerm(
+            batch_id=batch_id,
+            semester_name=semester_name,
+            academic_year=academic_year,
+            is_active=True,
+        )
+        db.add(term)
+
+    # Keep legacy integer semester in sync for existing scheduler logic.
+    batch.current_semester = semester_number
+
+    db.commit()
+    db.refresh(term)
+    return term
+
+
+@router.get("/lecturer-allocations/lecturers", response_model=List[LecturerOptionOut])
+def get_lecturer_options(db: Session = Depends(get_db)):
+    lecturers = (
+        db.query(User)
+        .filter(User.role.in_(["LECTURER", "Lecturer"]))
+        .order_by(User.first_name.asc(), User.last_name.asc())
+        .all()
+    )
+
+    return [
+        {
+            "user_id": lecturer.user_id,
+            "full_name": f"{lecturer.first_name} {lecturer.last_name}".strip(),
+            "email": lecturer.email,
+            "dept_id": int(lecturer.lecturer_profile.department)
+            if lecturer.lecturer_profile and lecturer.lecturer_profile.department is not None
+            and str(lecturer.lecturer_profile.department).strip().isdigit()
+            else None,
+        }
+        for lecturer in lecturers
+    ]
+
+
+@router.get("/lecturer-allocations/active-modules", response_model=LecturerAllocationBatchModulesOut)
+def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    if not batch.degree:
+        raise HTTPException(status_code=404, detail="Degree not found for selected batch")
+
+    semester_number, semester_name = _resolve_batch_semester(batch, db)
+
+    modules = (
+        db.query(Module)
+        .join(DegreeSemesterModule, DegreeSemesterModule.module_id == Module.module_id)
+        .filter(
+            DegreeSemesterModule.degree_id == batch.degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+        )
+        .order_by(Module.name.asc())
+        .all()
+    )
+
+    module_ids = [module.module_id for module in modules]
+    assignments = []
+    if module_ids:
+        assignments = (
+            db.query(LecturerModuleAssignment)
+            .filter(
+                LecturerModuleAssignment.batch_id == batch.batch_id,
+                LecturerModuleAssignment.module_id.in_(module_ids),
+                LecturerModuleAssignment.is_active.is_(True),
+            )
+            .all()
+        )
+
+    assignment_by_module_id = {item.module_id: item for item in assignments}
+    lecturer_ids = [item.lecturer_user_id for item in assignments]
+    lecturer_by_id = {}
+    if lecturer_ids:
+        lecturer_rows = db.query(User).filter(User.user_id.in_(lecturer_ids)).all()
+        lecturer_by_id = {item.user_id: item for item in lecturer_rows}
+
+    return {
+        "batch_id": batch.batch_id,
+        "batch_code": batch.batch_code,
+        "degree_id": batch.degree_id,
+        "degree_name": batch.degree.name,
+        "semester_name": semester_name,
+        "semester_number": semester_number,
+        "modules": [
+            {
+                "module_id": module.module_id,
+                "code": module.code,
+                "name": module.name,
+                "credits": module.credits,
+                "lecture_hours_per_week": module.lecture_hours_per_week,
+                "assigned_lecturer_user_id": assignment_by_module_id[module.module_id].lecturer_user_id
+                if module.module_id in assignment_by_module_id
+                else None,
+                "assigned_lecturer_name": (
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].first_name} "
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].last_name}"
+                ).strip()
+                if module.module_id in assignment_by_module_id
+                and assignment_by_module_id[module.module_id].lecturer_user_id in lecturer_by_id
+                else None,
+            }
+            for module in modules
+        ],
+    }
+
+
+@router.put("/lecturer-allocations/assign", response_model=LecturerModuleAssignmentOut)
+def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session = Depends(get_db)):
+    batch = db.query(Batch).filter(Batch.batch_id == payload.batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    module = db.query(Module).filter(Module.module_id == payload.module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    if module.degree_id != batch.degree_id:
+        raise HTTPException(status_code=422, detail="Selected module does not belong to selected batch")
+
+    lecturer = db.query(User).filter(User.user_id == payload.lecturer_user_id).first()
+    if not lecturer:
+        raise HTTPException(status_code=404, detail="Lecturer not found")
+    if lecturer.role not in {"LECTURER", "Lecturer"}:
+        raise HTTPException(status_code=422, detail="Selected user is not a lecturer")
+
+    lecturer_dept_id = None
+    if lecturer.lecturer_profile and lecturer.lecturer_profile.department is not None:
+        raw_dept = str(lecturer.lecturer_profile.department).strip()
+        if raw_dept.isdigit():
+            lecturer_dept_id = int(raw_dept)
+
+    if lecturer_dept_id is None:
+        raise HTTPException(status_code=422, detail="Selected lecturer has no department configured")
+    if batch.degree and lecturer_dept_id != batch.degree.dept_id:
+        raise HTTPException(status_code=422, detail="Selected lecturer does not belong to this batch's department")
+
+    semester_number, _ = _resolve_batch_semester(batch, db)
+    is_active_module = (
+        db.query(DegreeSemesterModule)
+        .filter(
+            DegreeSemesterModule.degree_id == batch.degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+            DegreeSemesterModule.module_id == payload.module_id,
+        )
+        .first()
+    )
+    if not is_active_module:
+        raise HTTPException(status_code=422, detail="Selected module is not active for current semester")
+
+    item = (
+        db.query(LecturerModuleAssignment)
+        .filter(
+            LecturerModuleAssignment.batch_id == payload.batch_id,
+            LecturerModuleAssignment.module_id == payload.module_id,
+        )
+        .first()
+    )
+
+    if not item:
+        item = LecturerModuleAssignment(
+            batch_id=payload.batch_id,
+            module_id=payload.module_id,
+            lecturer_user_id=payload.lecturer_user_id,
+            is_active=True,
+        )
+        db.add(item)
+    else:
+        item.lecturer_user_id = payload.lecturer_user_id
+        item.is_active = True
+
+    db.commit()
+    db.refresh(item)
+
+    return {
+        "id": item.id,
+        "batch_id": item.batch_id,
+        "module_id": item.module_id,
+        "lecturer_user_id": item.lecturer_user_id,
+        "lecturer_name": f"{lecturer.first_name} {lecturer.last_name}".strip(),
+        "is_active": item.is_active,
+    }
 
 
 @router.put("/batches/{batch_id}", response_model=BatchOut)

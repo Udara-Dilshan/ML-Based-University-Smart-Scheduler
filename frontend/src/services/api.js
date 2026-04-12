@@ -60,6 +60,36 @@ export const authAPI = {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   },
+  updateCurrentUser: async (payload) => {
+    try {
+      const response = await api.put("/api/auth/me", payload);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Failed to update profile" };
+    }
+  },
+  uploadProfileImage: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/api/auth/upload-profile-image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Failed to upload profile image" };
+    }
+  },
+  changePassword: async (payload) => {
+    try {
+      const response = await api.post("/api/auth/change-password", payload);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Failed to change password" };
+    }
+  },
 };
 
 export const userAPI = {
@@ -147,6 +177,10 @@ export const academicAPI = {
     const response = await api.put(`/academic/batches/${id}`, payload);
     return response.data;
   },
+  assignBatchActiveTerm: async (batchId, payload) => {
+    const response = await api.put(`/academic/batches/${batchId}/active-term`, payload);
+    return response.data;
+  },
   deleteBatch: async (id) => {
     await api.delete(`/academic/batches/${id}`);
   },
@@ -164,6 +198,35 @@ export const academicAPI = {
   },
   deleteDegree: async (id) => {
     await api.delete(`/academic/degrees/${id}`);
+  },
+  getDegreeSemesterModuleSelection: async (degreeId, semesterNumber) => {
+    const response = await api.get("/academic/degree-semester-modules/selection", {
+      params: { degree_id: degreeId, semester_number: semesterNumber },
+    });
+    return response.data;
+  },
+  saveDegreeSemesterModules: async (payload) => {
+    const response = await api.put("/academic/degree-semester-modules", payload);
+    return response.data;
+  },
+  getDegreeSemesterModules: async (degreeId) => {
+    const params = degreeId ? { degree_id: degreeId } : undefined;
+    const response = await api.get("/academic/degree-semester-modules", { params });
+    return response.data;
+  },
+  getLecturerAllocationLecturers: async () => {
+    const response = await api.get("/academic/lecturer-allocations/lecturers");
+    return response.data;
+  },
+  getLecturerAllocationActiveModules: async (batchId) => {
+    const response = await api.get("/academic/lecturer-allocations/active-modules", {
+      params: { batch_id: batchId },
+    });
+    return response.data;
+  },
+  assignLecturerToModule: async (payload) => {
+    const response = await api.put("/academic/lecturer-allocations/assign", payload);
+    return response.data;
   },
 };
 
@@ -220,6 +283,33 @@ export const settingsAPI = {
   },
   deleteSystemSetting: async (id) => {
     await api.delete(`/settings/system-settings/${id}`);
+  },
+};
+
+export const lecturerAPI = {
+  getDashboardSummary: async () => {
+    const response = await api.get("/api/dashboard/lecturer-summary");
+    return response.data;
+  },
+  getCourses: async () => {
+    const response = await api.get("/api/dashboard/lecturer-courses");
+    return response.data;
+  },
+  getAvailability: async (lecturerId) => {
+    const response = await api.get(`/availability/${lecturerId}`);
+    return response.data;
+  },
+  syncAvailability: async (payload) => {
+    const response = await api.post("/availability/sync", payload);
+    return response.data;
+  },
+  getWorkingConstraints: async () => {
+    const response = await api.get("/api/dashboard/lecturer-working-constraints");
+    return response.data;
+  },
+  getTimetable: async () => {
+    const response = await api.get("/timetable/");
+    return response.data;
   },
 };
 

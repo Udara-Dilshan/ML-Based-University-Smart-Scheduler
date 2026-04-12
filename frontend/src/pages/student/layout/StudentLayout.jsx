@@ -1,24 +1,26 @@
-import LecturerSidebar from "../../../components/LecturerSidebar";
+import StudentSidebar from "../../../components/StudentSidebar";
 import Navbar from "../../../components/Navbar";
 import { Outlet, useLocation } from "react-router-dom";
 
 const pageTitles = {
-  "/lecturer/dashboard":    "Dashboard",
-  "/lecturer/timetable":    "My Timetable",
-  "/lecturer/availability": "My Availability",
-  "/lecturer/courses":      "My Courses",
-  "/lecturer/profile":      "My Profile",
-  "/lecturer/settings":     "Settings",
+  "/student/dashboard": "Student Dashboard",
+  "/student/courses":   "My Courses",
+  "/student/timetable": "Timetable",
+  "/student/grades":    "Grades & Results",
+  "/student/events":    "Campus Events",
+  "/student/clubs":     "Clubs",
+  "/student/support":   "Support Center",
+  "/student/settings":  "Settings",
 };
 
-export default function LecturerLayout() {
+export default function StudentLayout() {
   const location = useLocation();
-  const title = pageTitles[location.pathname] || "Lecturer Portal";
+  const title = pageTitles[location.pathname] || "Student Portal";
 
   return (
     <div className="flex h-screen bg-[#f5f7fb]">
       <div className="w-64 h-screen fixed left-0 top-0">
-        <LecturerSidebar />
+        <StudentSidebar />
       </div>
       <div className="flex-1 ml-64 flex flex-col">
         <div className="sticky top-0 z-10">

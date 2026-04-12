@@ -10,7 +10,6 @@ const initialForm = {
   faculty_id: "",
   dept_id: "",
   degree_id: "",
-  batch_id: "",
   credits: "",
   lecture_hours_per_week: "",
 };
@@ -32,11 +31,10 @@ export default function Courses() {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [degrees, setDegrees] = useState([]);
-  const [batches, setBatches] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [facultyFilter, setFacultyFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [batchFilter, setBatchFilter] = useState("");
+  const [degreeFilter, setDegreeFilter] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,18 +52,16 @@ export default function Courses() {
     try {
       setLoading(true);
       setError("");
-      const [moduleData, deptData, facultyData, degreeData, batchData] = await Promise.all([
+      const [moduleData, deptData, facultyData, degreeData] = await Promise.all([
         academicAPI.getModules(),
         academicAPI.getDepartments(),
         academicAPI.getFaculties(),
         academicAPI.getDegrees(),
-        academicAPI.getBatches(),
       ]);
       setCourses(moduleData);
       setDepartments(deptData);
       setFaculties(facultyData);
       setDegrees(degreeData);
-      setBatches(batchData);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load courses");
     } finally {
@@ -106,7 +102,6 @@ export default function Courses() {
       faculty_id: department?.faculty_id ? String(department.faculty_id) : "",
       dept_id: course.dept_id ? String(course.dept_id) : "",
       degree_id: course.degree_id ? String(course.degree_id) : "",
-      batch_id: course.batch_id ? String(course.batch_id) : "",
       credits: course.credits ?? "",
       lecture_hours_per_week: course.lecture_hours_per_week ?? "",
     });
@@ -133,7 +128,6 @@ export default function Courses() {
           faculty_id: value,
           dept_id: "",
           degree_id: "",
-          batch_id: "",
         };
       }
 
@@ -142,7 +136,6 @@ export default function Courses() {
           ...prev,
           dept_id: value,
           degree_id: "",
-          batch_id: "",
         };
       }
 
@@ -151,21 +144,6 @@ export default function Courses() {
         return {
           ...prev,
           degree_id: value,
-          dept_id: selectedDegree ? String(selectedDegree.dept_id) : prev.dept_id,
-          batch_id: "",
-        };
-      }
-
-      if (name === "batch_id") {
-        const selectedBatch = batches.find((batch) => batch.batch_id === Number(value));
-        const selectedDegree = selectedBatch
-          ? degrees.find((degree) => degree.degree_id === selectedBatch.degree_id)
-          : null;
-
-        return {
-          ...prev,
-          batch_id: value,
-          degree_id: selectedBatch ? String(selectedBatch.degree_id) : prev.degree_id,
           dept_id: selectedDegree ? String(selectedDegree.dept_id) : prev.dept_id,
         };
       }
@@ -196,28 +174,19 @@ export default function Courses() {
     return true;
   });
 
-  const batchesForSelectedDegree =
-    form.degree_id
-      ? batches.filter((batch) => batch.degree_id === Number(form.degree_id))
-      : batches;
-
   const departmentsForFilter =
     facultyFilter
       ? departments.filter((department) => department.faculty_id === Number(facultyFilter))
       : departments;
 
-  const batchesForFilter = batches.filter((batch) => {
-    const batchDegree = degrees.find((degree) => degree.degree_id === batch.degree_id);
-
+  const degreesForFilter = degrees.filter((degree) => {
     if (departmentFilter) {
-      return batchDegree?.dept_id === Number(departmentFilter);
+      return degree.dept_id === Number(departmentFilter);
     }
 
     if (facultyFilter) {
-      const batchDepartment = batchDegree
-        ? departments.find((department) => department.dept_id === batchDegree.dept_id)
-        : null;
-      return batchDepartment?.faculty_id === Number(facultyFilter);
+      const degreeDepartment = departments.find((department) => department.dept_id === degree.dept_id);
+      return degreeDepartment?.faculty_id === Number(facultyFilter);
     }
 
     return true;
@@ -235,14 +204,14 @@ export default function Courses() {
     const byDepartment =
       !departmentFilter || course.dept_id === Number(departmentFilter);
 
-    const byBatch = !batchFilter || course.batch_id === Number(batchFilter);
+    const byDegree = !degreeFilter || course.degree_id === Number(degreeFilter);
 
-    return byFaculty && byDepartment && byBatch;
+    return byFaculty && byDepartment && byDegree;
   });
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.code.trim() || !form.dept_id || !form.degree_id || !form.batch_id) {
-      setModalError("Course name, code, department, degree and batch are required");
+    if (!form.name.trim() || !form.code.trim() || !form.dept_id || !form.degree_id) {
+      setModalError("Course name, code, department and degree are required");
       return;
     }
 
@@ -263,7 +232,6 @@ export default function Courses() {
       code: form.code.trim().toUpperCase(),
       dept_id: Number(form.dept_id),
       degree_id: Number(form.degree_id),
-      batch_id: Number(form.batch_id),
       credits,
       lecture_hours_per_week: lectureHours,
     };
@@ -338,15 +306,12 @@ export default function Courses() {
         const degreeCode = String(
           getFirstNonEmptyValue(row, ["degree_code", "degree"])
         ).trim();
-        const batchCode = String(
-          getFirstNonEmptyValue(row, ["batch_code", "batch"])
-        ).trim();
         const creditsValue = getFirstNonEmptyValue(row, ["credits"]);
         const lectureHoursValue = getFirstNonEmptyValue(row, ["lecture_hours_per_week", "lecture_hours"]);
 
-        if (!code || !name || !departmentName || !degreeCode || !batchCode) {
+        if (!code || !name || !departmentName || !degreeCode) {
           validationErrors.push(
-            `Row ${rowNumber}: course_code, course_name, department_name, degree_code and batch_code are required`
+            `Row ${rowNumber}: course_code, course_name, department_name and degree_code are required`
           );
           return;
         }
@@ -413,21 +378,6 @@ export default function Courses() {
           return;
         }
 
-        const normalizedBatchCode = normalizeText(batchCode);
-        const batch = batches.find(
-          (item) =>
-            item.degree_id === degree.degree_id &&
-            (normalizeText(item.batch_code) === normalizedBatchCode ||
-              normalizeText(item.name) === normalizedBatchCode)
-        );
-
-        if (!batch) {
-          validationErrors.push(
-            `Row ${rowNumber}: batch '${batchCode}' was not found for degree '${degree.code || degree.name}'`
-          );
-          return;
-        }
-
         payloads.push({
           rowNumber,
           payload: {
@@ -435,7 +385,6 @@ export default function Courses() {
             name,
             dept_id: department.dept_id,
             degree_id: degree.degree_id,
-            batch_id: batch.batch_id,
             credits,
             lecture_hours_per_week: lectureHours,
           },
@@ -491,13 +440,13 @@ export default function Courses() {
 
     const exportRows = filteredCourses.map((course) => {
       const department = departments.find((item) => item.dept_id === course.dept_id);
-      const batch = batches.find((item) => item.batch_id === course.batch_id);
+      const degree = degrees.find((item) => item.degree_id === course.degree_id);
 
       return {
         code: course.code || "",
         course_name: course.name || "",
         department: department?.name || "",
-        batch: batch?.batch_code || batch?.name || "",
+        degree: degree ? `${degree.code} - ${degree.name}` : "",
         credits: course.credits ?? "",
         lecture_hours_per_week: course.lecture_hours_per_week ?? "",
       };
@@ -579,7 +528,7 @@ export default function Courses() {
           onChange={(event) => {
             setFacultyFilter(event.target.value);
             setDepartmentFilter("");
-            setBatchFilter("");
+            setDegreeFilter("");
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
@@ -595,7 +544,7 @@ export default function Courses() {
           value={departmentFilter}
           onChange={(event) => {
             setDepartmentFilter(event.target.value);
-            setBatchFilter("");
+            setDegreeFilter("");
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
@@ -608,14 +557,14 @@ export default function Courses() {
         </select>
 
         <select
-          value={batchFilter}
-          onChange={(event) => setBatchFilter(event.target.value)}
+          value={degreeFilter}
+          onChange={(event) => setDegreeFilter(event.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          <option value="">Filter by Batch</option>
-          {batchesForFilter.map((batch) => (
-            <option key={batch.batch_id} value={batch.batch_id}>
-              {batch.batch_code || batch.name}
+          <option value="">Filter by Degree</option>
+          {degreesForFilter.map((degree) => (
+            <option key={degree.degree_id} value={degree.degree_id}>
+              {degree.code} - {degree.name}
             </option>
           ))}
         </select>
@@ -639,9 +588,8 @@ export default function Courses() {
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Course</th>
-              {/* <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Faculty</th> */}
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Department</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Batch</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Degree</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Credits</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
@@ -666,14 +614,13 @@ export default function Courses() {
                 <tr key={course.module_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-700">{course.code}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{course.name}</td>
-                  {/* <td className="px-4 py-3 text-sm text-gray-700">
-                    {course.department?.faculty?.name || "-"}
-                  </td> */}
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {course.department?.name || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {batches.find((batch) => batch.batch_id === course.batch_id)?.batch_code || "-"}
+                    {degrees.find((degree) => degree.degree_id === course.degree_id)
+                      ? `${degrees.find((degree) => degree.degree_id === course.degree_id).code} - ${degrees.find((degree) => degree.degree_id === course.degree_id).name}`
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{course.credits}</td>
                   <td className="px-4 py-3">
@@ -760,20 +707,6 @@ export default function Courses() {
             {departmentsForSelectedFaculty.map((department) => (
               <option key={department.dept_id} value={department.dept_id}>
                 {department.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="batch_id"
-            value={form.batch_id}
-            onChange={handleChange}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">Select Batch</option>
-            {batchesForSelectedDegree.map((batch) => (
-              <option key={batch.batch_id} value={batch.batch_id}>
-                {batch.batch_code || batch.name}
               </option>
             ))}
           </select>

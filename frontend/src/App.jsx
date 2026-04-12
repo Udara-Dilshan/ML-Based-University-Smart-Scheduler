@@ -3,7 +3,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import StudentSignupPage from "./pages/StudentSignupPage";
 
-// Admin imports
+// Admin
 import Dashboard from "./pages/admin/dashboard/Dashboard";
 import UserManagement from "./pages/admin/users/UserManagement";
 import Timetable from "./pages/admin/timetable/Timetable";
@@ -17,19 +17,32 @@ import Courses from "./pages/admin/courses/Courses";
 import Departments from "./pages/admin/departments/Departments";
 import Batches from "./pages/admin/batches/Batches";
 import Degrees from "./pages/admin/degrees/Degrees";
+import DegreeSemesterModules from "./pages/admin/curriculum/DegreeSemesterModules";
+import LecturerAllocations from "./pages/admin/allocations/LecturerAllocations";
 
 // Other portals
 import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
-import StudentDashboard from "./pages/student/StudentDashboard";
 import ResourceDashboard from "./pages/resource/ResourceDashboard";
 
-// ✅ Lecturer imports - ඔයාගේ නව pages
+// Lecturer
 import LecturerLayout from "./pages/lecturer/layout/LecturerLayout";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerTimetable from "./pages/lecturer/LecturerTimetable";
 import LecturerAvailability from "./pages/lecturer/LecturerAvailability";
 import LecturerCourses from "./pages/lecturer/LecturerCourses";
 import LecturerProfile from "./pages/lecturer/LecturerProfile";
+import LecturerSettings from "./pages/lecturer/LecturerSettings";
+
+// Student
+import StudentLayout from "./pages/student/layout/StudentLayout";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import StudentCourses from "./pages/student/StudentCourses";
+import StudentTimetable from "./pages/student/StudentTimetable";
+import StudentGrades from "./pages/student/StudentGrades";
+import StudentEvents from "./pages/student/StudentEvents";
+import StudentClubs from "./pages/student/StudentClubs";
+import StudentSupport from "./pages/student/StudentSupport";
+import StudentSettings from "./pages/student/StudentSettings";
 
 function App() {
   return (
@@ -38,44 +51,41 @@ function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<StudentSignupPage />} />
 
-        {/* ── Admin Routes ── */}
+        {/* Admin */}
         <Route element={<ProtectedRoute allowedRoles={["SuperAdmin"]} />}>
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/users" element={<UserManagement />} />
           <Route path="/admin/users/admins"
-            element={<UserManagement forcedRole="SuperAdmin" titleOverride="Super Admins" />}
-          />
+            element={<UserManagement forcedRole="SuperAdmin" titleOverride="Super Admins" />} />
           <Route path="/admin/users/schedulers"
-            element={<UserManagement forcedRole="Scheduler" titleOverride="Schedulers" />}
-          />
+            element={<UserManagement forcedRole="Scheduler" titleOverride="Schedulers" />} />
           <Route path="/admin/users/lecturers"
-            element={<UserManagement forcedRole="Lecturer" titleOverride="Lecturers" />}
-          />
+            element={<UserManagement forcedRole="Lecturer" titleOverride="Lecturers" />} />
           <Route path="/admin/users/students"
-            element={<UserManagement forcedRole="Student" titleOverride="Students" />}
-          />
+            element={<UserManagement forcedRole="Student" titleOverride="Students" />} />
           <Route path="/admin/users/resource-managers"
-            element={<UserManagement forcedRole="ResourceManager" titleOverride="Resource Managers" />}
-          />
-          <Route path="/admin/timetable" element={<Timetable />} />
-          <Route path="/admin/resources" element={<Resources />} />
-          <Route path="/admin/requests" element={<Requests />} />
-          <Route path="/admin/reports" element={<Reports />} />
-          <Route path="/admin/settings" element={<Settings />} />
-          <Route path="/admin/profile" element={<Profile />} />
-          <Route path="/admin/faculties" element={<FacultyManagement />} />
-          <Route path="/admin/courses" element={<Courses />} />
+            element={<UserManagement forcedRole="ResourceManager" titleOverride="Resource Managers" />} />
+          <Route path="/admin/timetable"   element={<Timetable />} />
+          <Route path="/admin/resources"   element={<Resources />} />
+          <Route path="/admin/requests"    element={<Requests />} />
+          <Route path="/admin/reports"     element={<Reports />} />
+          <Route path="/admin/settings"    element={<Settings />} />
+          <Route path="/admin/profile"     element={<Profile />} />
+          <Route path="/admin/faculties"   element={<FacultyManagement />} />
+          <Route path="/admin/courses"     element={<Courses />} />
           <Route path="/admin/departments" element={<Departments />} />
-          <Route path="/admin/batches" element={<Batches />} />
-          <Route path="/admin/degrees" element={<Degrees />} />
+          <Route path="/admin/batches"     element={<Batches />} />
+          <Route path="/admin/degrees"     element={<Degrees />} />
+          <Route path="/admin/curriculum/degree-semester-modules" element={<DegreeSemesterModules />} />
+          <Route path="/admin/lecturer-allocations" element={<LecturerAllocations />} />
         </Route>
 
-        {/* ── Scheduler Routes ── */}
+        {/* Scheduler */}
         <Route element={<ProtectedRoute allowedRoles={["Scheduler"]} />}>
           <Route path="/scheduler/dashboard" element={<SchedulerDashboard />} />
         </Route>
 
-        {/* ── Lecturer Routes ✅ ── */}
+        {/* Lecturer */}
         <Route element={<ProtectedRoute allowedRoles={["Lecturer"]} />}>
           <Route element={<LecturerLayout />}>
             <Route path="/lecturer/dashboard"    element={<LecturerDashboard />}    />
@@ -83,15 +93,25 @@ function App() {
             <Route path="/lecturer/availability" element={<LecturerAvailability />} />
             <Route path="/lecturer/courses"      element={<LecturerCourses />}      />
             <Route path="/lecturer/profile"      element={<LecturerProfile />}      />
+            <Route path="/lecturer/settings"     element={<LecturerSettings />}     />
           </Route>
         </Route>
 
-        {/* ── Student Routes ── */}
+        {/* Student */}
         <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route element={<StudentLayout />}>
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/courses"   element={<StudentCourses />}   />
+            <Route path="/student/timetable" element={<StudentTimetable />} />
+            <Route path="/student/grades"    element={<StudentGrades />}    />
+            <Route path="/student/events"    element={<StudentEvents />}    />
+            <Route path="/student/clubs"     element={<StudentClubs />}     />
+            <Route path="/student/support"   element={<StudentSupport />}   />
+            <Route path="/student/settings"  element={<StudentSettings />}  />
+          </Route>
         </Route>
 
-        {/* ── Resource Manager Routes ── */}
+        {/* Resource Manager */}
         <Route element={<ProtectedRoute allowedRoles={["ResourceManager"]} />}>
           <Route path="/resource/dashboard" element={<ResourceDashboard />} />
         </Route>

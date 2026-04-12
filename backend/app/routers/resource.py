@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.resource import Resource
-from ..models.academic import Faculty
+from ..models.academic import Faculty, Department
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -65,6 +65,10 @@ def _display_resource_type(value: str | None) -> str:
 
 
 def _to_resource_response(item: Resource) -> dict:
+    department_items = list(item.departments or [])
+    if not department_items and item.department:
+        department_items = [item.department]
+
     return {
         "resource_id": item.resource_id,
         "name": item.name,
@@ -74,7 +78,39 @@ def _to_resource_response(item: Resource) -> dict:
         "location": item.location,
         "faculty_id": item.faculty_id,
         "faculty_name": item.faculty.name if item.faculty else None,
+        "dept_id": item.dept_id,
+        "department_name": item.department.name if item.department else None,
+        "dept_ids": [department.dept_id for department in department_items],
+        "department_names": [department.name for department in department_items],
     }
+
+
+def _resolve_departments(
+    db: Session,
+    faculty_id: int,
+    dept_ids: List[int],
+) -> List[Department]:
+    if not dept_ids:
+        raise HTTPException(status_code=422, detail="At least one department is required")
+
+    unique_ids: List[int] = []
+    for dept_id in dept_ids:
+        if dept_id not in unique_ids:
+            unique_ids.append(dept_id)
+
+    departments = db.query(Department).filter(Department.dept_id.in_(unique_ids)).all()
+    found_ids = {department.dept_id for department in departments}
+
+    missing = [dept_id for dept_id in unique_ids if dept_id not in found_ids]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Department not found: {missing[0]}")
+
+    invalid = [department for department in departments if department.faculty_id != faculty_id]
+    if invalid:
+        raise HTTPException(status_code=422, detail="Department does not belong to selected faculty")
+
+    departments_by_id = {department.dept_id: department for department in departments}
+    return [departments_by_id[dept_id] for dept_id in unique_ids]
 
 
 class ResourceBase(BaseModel):
@@ -82,6 +118,8 @@ class ResourceBase(BaseModel):
     capacity: int = Field(gt=0)
     type: str = Field(min_length=1)
     faculty_id: int
+    dept_id: Optional[int] = None
+    dept_ids: Optional[List[int]] = None
     facilities: Optional[str] = None
     location: Optional[str] = None
 
@@ -91,6 +129,8 @@ class ResourceUpdate(BaseModel):
     capacity: Optional[int] = Field(default=None, gt=0)
     type: Optional[str] = None
     faculty_id: Optional[int] = None
+    dept_id: Optional[int] = None
+    dept_ids: Optional[List[int]] = None
     facilities: Optional[str] = None
     location: Optional[str] = None
 
@@ -98,6 +138,9 @@ class ResourceUpdate(BaseModel):
 class ResourceOut(ResourceBase):
     resource_id: int
     faculty_name: Optional[str] = None
+    department_name: Optional[str] = None
+    dept_ids: List[int] = Field(default_factory=list)
+    department_names: List[str] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -113,14 +156,22 @@ def create_resource(resource: ResourceBase, db: Session = Depends(get_db)):
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
 
+    requested_dept_ids = list(resource.dept_ids or [])
+    if resource.dept_id is not None and resource.dept_id not in requested_dept_ids:
+        requested_dept_ids.insert(0, resource.dept_id)
+
+    departments = _resolve_departments(db, resource.faculty_id, requested_dept_ids)
+
     db_resource = Resource(
         name=resource.name.strip(),
         capacity=resource.capacity,
         type=_normalize_resource_type(resource.type),
         faculty_id=resource.faculty_id,
+        dept_id=departments[0].dept_id,
         facilities=(resource.facilities or "").strip() or None,
         location=(resource.location or "").strip() or None,
     )
+    db_resource.departments = departments
     db.add(db_resource)
     db.commit()
     db.refresh(db_resource)
@@ -163,8 +214,25 @@ def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = De
         if not faculty:
             raise HTTPException(status_code=404, detail="Faculty not found")
 
+    target_faculty_id = data.get("faculty_id", db_resource.faculty_id)
+    requested_dept_ids = data.pop("dept_ids", None)
+
+    if requested_dept_ids is None and "dept_id" in data and data["dept_id"] is not None:
+        requested_dept_ids = [data["dept_id"]]
+
+    if requested_dept_ids is None:
+        existing_ids = [department.dept_id for department in db_resource.departments]
+        if not existing_ids and db_resource.dept_id is not None:
+            existing_ids = [db_resource.dept_id]
+        requested_dept_ids = existing_ids
+
+    departments = _resolve_departments(db, target_faculty_id, requested_dept_ids)
+    data["dept_id"] = departments[0].dept_id
+
     for key, value in data.items():
         setattr(db_resource, key, value)
+
+    db_resource.departments = departments
 
     db.commit()
     db.refresh(db_resource)

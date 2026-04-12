@@ -38,6 +38,8 @@ export default function Sidebar() {
     "/admin/courses",
     "/admin/degrees",
     "/admin/batches",
+    "/admin/curriculum/degree-semester-modules",
+    "/admin/lecturer-allocations",
   ].includes(location.pathname);
 
   const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
@@ -156,6 +158,12 @@ export default function Sidebar() {
               </NavLink>
                <NavLink to="/admin/courses" className={subItemClass}>
                 Courses
+              </NavLink>
+              <NavLink to="/admin/curriculum/degree-semester-modules" className={subItemClass}>
+                Degree Semester Modules
+              </NavLink>
+              <NavLink to="/admin/lecturer-allocations" className={subItemClass}>
+                Lecturer Allocations
               </NavLink>
             </div>
           )}

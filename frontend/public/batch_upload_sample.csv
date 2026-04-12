@@ -1,4 +1,3 @@
-batch_code,degree_code,degree_name,student_count,current_semester
-ICT-2024-A,BSC-ICT,BSc in Information and Communication Technology,120,1
-MGT-2024-A,BBA-MGT,Bachelor of Business Administration,90,1
-EEE-2024-A,BSC-EEE,BSc in Electrical and Electronic Engineering,80,1
+batch_code,degree_code,degree_name,student_count,current_semester,academic_year
+ICT 23,ICT,Information and communication technology,80,Year 1 Semester 1,2025/2026
+CST 21,CST,Computer science technology,95,Year 4 Semester 2,2025/2026

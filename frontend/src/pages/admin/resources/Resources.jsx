@@ -9,6 +9,7 @@ const initialForm = {
   type: "Lecture Hall",
   capacity: "",
   faculty_id: "",
+  dept_id: "",
   location: "",
 };
 
@@ -27,6 +28,7 @@ const getFirstNonEmptyValue = (row, keys) => {
 export default function Resources() {
   const [resources, setResources] = useState([]);
   const [faculties, setFaculties] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [resourceTypes, setResourceTypes] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
   const [facilityOptions, setFacilityOptions] = useState([]);
@@ -37,6 +39,7 @@ export default function Resources() {
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
   const [selectedFacilities, setSelectedFacilities] = useState([]);
   const [otherFacility, setOtherFacility] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
@@ -83,17 +86,44 @@ export default function Resources() {
     return [...locationOptions, form.location];
   }, [locationOptions, form.location]);
 
+  const filteredDepartments = useMemo(() => {
+    if (!form.faculty_id) {
+      return [];
+    }
+    return departments.filter(
+      (department) => String(department.faculty_id) === String(form.faculty_id)
+    );
+  }, [departments, form.faculty_id]);
+
+  const renderedDepartments = useMemo(() => {
+    if (!form.dept_id) {
+      return filteredDepartments;
+    }
+    const hasCurrent = filteredDepartments.some(
+      (department) => String(department.dept_id) === String(form.dept_id)
+    );
+    if (hasCurrent) {
+      return filteredDepartments;
+    }
+    const currentDepartment = departments.find(
+      (department) => String(department.dept_id) === String(form.dept_id)
+    );
+    return currentDepartment ? [...filteredDepartments, currentDepartment] : filteredDepartments;
+  }, [filteredDepartments, departments, form.dept_id]);
+
   const loadData = async () => {
     try {
       setLoading(true);
       setError("");
-      const [resourceData, facultyData, settingsData] = await Promise.all([
+      const [resourceData, facultyData, departmentData, settingsData] = await Promise.all([
         resourceAPI.getResources(),
         academicAPI.getFaculties(),
+        academicAPI.getDepartments(),
         settingsAPI.getSystemSettings(),
       ]);
       setResources(resourceData);
       setFaculties(facultyData);
+      setDepartments(departmentData);
 
       const allSettings = settingsData || [];
       setResourceTypes(
@@ -138,6 +168,7 @@ export default function Resources() {
   const openCreateModal = () => {
     setEditId(null);
     setForm(initialForm);
+    setSelectedDepartmentIds([]);
     setSelectedFacilities([]);
     setOtherFacility("");
     setModalError("");
@@ -174,8 +205,16 @@ export default function Resources() {
       type: resource.type || "Lecture Hall",
       capacity: resource.capacity ? String(resource.capacity) : "",
       faculty_id: resource.faculty_id ? String(resource.faculty_id) : "",
+      dept_id: resource.dept_id ? String(resource.dept_id) : "",
       location: resource.location || "",
     });
+    const existingDeptIds = (resource.dept_ids || [])
+      .map((id) => String(id))
+      .filter(Boolean);
+    if (!existingDeptIds.length && resource.dept_id) {
+      existingDeptIds.push(String(resource.dept_id));
+    }
+    setSelectedDepartmentIds([...new Set(existingDeptIds)]);
     setSelectedFacilities([...new Set(matchedCommon)]);
     setOtherFacility(customFacilities.join(", "));
     setModalError("");
@@ -189,6 +228,7 @@ export default function Resources() {
     setIsModalOpen(false);
     setEditId(null);
     setForm(initialForm);
+    setSelectedDepartmentIds([]);
     setSelectedFacilities([]);
     setOtherFacility("");
     setModalError("");
@@ -199,7 +239,33 @@ export default function Resources() {
     setForm((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "faculty_id" ? { dept_id: "" } : {}),
     }));
+
+    if (name === "faculty_id") {
+      setSelectedDepartmentIds([]);
+    }
+  };
+
+  const handleDepartmentToggle = (deptId) => {
+    const value = String(deptId);
+    setSelectedDepartmentIds((prev) => {
+      if (prev.includes(value)) {
+        const next = prev.filter((item) => item !== value);
+        setForm((current) => ({
+          ...current,
+          dept_id: next[0] || "",
+        }));
+        return next;
+      }
+
+      const next = [...prev, value];
+      setForm((current) => ({
+        ...current,
+        dept_id: current.dept_id || value,
+      }));
+      return next;
+    });
   };
 
   const handleFacilityChange = (facility) => {
@@ -217,8 +283,15 @@ export default function Resources() {
 
   const handleSubmit = async () => {
     const capacity = Number(form.capacity);
-    if (!form.name.trim() || !form.type.trim() || !form.faculty_id || !Number.isFinite(capacity) || capacity <= 0) {
-      setModalError("Resource name, type, faculty and a valid capacity are required");
+    if (
+      !form.name.trim() ||
+      !form.type.trim() ||
+      !form.faculty_id ||
+      selectedDepartmentIds.length === 0 ||
+      !Number.isFinite(capacity) ||
+      capacity <= 0
+    ) {
+      setModalError("Resource name, type, faculty, at least one department and a valid capacity are required");
       return;
     }
 
@@ -234,6 +307,8 @@ export default function Resources() {
       type: form.type.trim(),
       capacity,
       faculty_id: Number(form.faculty_id),
+      dept_id: Number(selectedDepartmentIds[0]),
+      dept_ids: selectedDepartmentIds.map((id) => Number(id)),
       facilities: facilitiesPayload || null,
       location: form.location.trim() || null,
     };
@@ -305,6 +380,22 @@ export default function Resources() {
         const facultyIdValue = getFirstNonEmptyValue(row, ["faculty_id"]);
         const facultyCode = String(getFirstNonEmptyValue(row, ["faculty_code"])).trim();
         const facultyName = String(getFirstNonEmptyValue(row, ["faculty_name"])).trim();
+        const departmentIdValue = getFirstNonEmptyValue(row, ["dept_id", "department_id"]);
+        const departmentIdsValue = String(
+          getFirstNonEmptyValue(row, ["dept_ids", "department_ids"])
+        ).trim();
+        const departmentCode = String(
+          getFirstNonEmptyValue(row, ["dept_code", "department_code"])
+        ).trim();
+        const departmentCodesValue = String(
+          getFirstNonEmptyValue(row, ["dept_codes", "department_codes"])
+        ).trim();
+        const departmentName = String(
+          getFirstNonEmptyValue(row, ["dept_name", "department_name"])
+        ).trim();
+        const departmentNamesValue = String(
+          getFirstNonEmptyValue(row, ["dept_names", "department_names"])
+        ).trim();
 
         if (!name || !type) {
           validationErrors.push(`Row ${rowNumber}: resource_name and resource_type are required`);
@@ -340,6 +431,58 @@ export default function Resources() {
           return;
         }
 
+        const facultyDepartments = departments.filter(
+          (item) => String(item.faculty_id) === String(faculty.faculty_id)
+        );
+
+        let department = null;
+        const parsedDepartmentId = Number(departmentIdValue);
+        if (Number.isFinite(parsedDepartmentId) && parsedDepartmentId > 0) {
+          department = facultyDepartments.find((item) => item.dept_id === parsedDepartmentId) || null;
+        }
+
+        if (!department && departmentCode) {
+          const normalizedDeptCode = normalizeText(departmentCode);
+          department =
+            facultyDepartments.find((item) => normalizeText(item.code || item.name) === normalizedDeptCode) || null;
+        }
+
+        if (!department && departmentName) {
+          const normalizedDeptName = normalizeText(departmentName);
+          department =
+            facultyDepartments.find((item) => normalizeText(item.name || item.code) === normalizedDeptName) || null;
+        }
+
+        const resolvedDepartments = [];
+        if (department) {
+          resolvedDepartments.push(department);
+        }
+
+        const addDepartmentByMatch = (rawValue, matchBy) => {
+          const tokens = String(rawValue || "")
+            .split(/[|;,]/)
+            .map((token) => token.trim())
+            .filter(Boolean);
+
+          tokens.forEach((token) => {
+            const match = facultyDepartments.find((item) => matchBy(item, token));
+            if (match && !resolvedDepartments.some((item) => item.dept_id === match.dept_id)) {
+              resolvedDepartments.push(match);
+            }
+          });
+        };
+
+        addDepartmentByMatch(departmentIdsValue, (item, token) => item.dept_id === Number(token));
+        addDepartmentByMatch(departmentCodesValue, (item, token) => normalizeText(item.code) === normalizeText(token));
+        addDepartmentByMatch(departmentNamesValue, (item, token) => normalizeText(item.name) === normalizeText(token));
+
+        if (!resolvedDepartments.length) {
+          validationErrors.push(
+            `Row ${rowNumber}: department values are required and must match selected faculty`
+          );
+          return;
+        }
+
         payloads.push({
           rowNumber,
           payload: {
@@ -347,6 +490,8 @@ export default function Resources() {
             type,
             capacity,
             faculty_id: faculty.faculty_id,
+            dept_id: resolvedDepartments[0].dept_id,
+            dept_ids: resolvedDepartments.map((item) => item.dept_id),
             facilities: facilities || null,
             location: location || null,
           },
@@ -466,6 +611,7 @@ export default function Resources() {
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Faculty</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Department</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Facilities</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Capacity</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Location</th>
@@ -475,14 +621,14 @@ export default function Resources() {
           <tbody>
             {loading && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={8}>
                   Loading resources...
                 </td>
               </tr>
             )}
             {!loading && resources.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={8}>
                   No resources found.
                 </td>
               </tr>
@@ -493,6 +639,11 @@ export default function Resources() {
                   <td className="px-4 py-3 text-sm text-gray-800">{resource.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.type}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.faculty_name || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {(resource.department_names || []).length
+                      ? resource.department_names.join(", ")
+                      : resource.department_name || "-"}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.facilities || "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.capacity}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.location || "-"}</td>
@@ -560,6 +711,27 @@ export default function Resources() {
               </option>
             ))}
           </select>
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="mb-2 text-sm font-medium text-gray-700">Departments</p>
+            {!form.faculty_id ? (
+              <p className="text-sm text-gray-500">Select faculty first</p>
+            ) : renderedDepartments.length === 0 ? (
+              <p className="text-sm text-gray-500">No departments available for selected faculty</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                {renderedDepartments.map((department) => (
+                  <label key={department.dept_id} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedDepartmentIds.includes(String(department.dept_id))}
+                      onChange={() => handleDepartmentToggle(department.dept_id)}
+                    />
+                    {department.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           <input
             name="capacity"
             value={form.capacity}
@@ -585,7 +757,7 @@ export default function Resources() {
               ))}
             </div>
 
-            {selectedFacilities.includes("Other") && (
+            {selectedFacilities.some((item) => normalizeText(item) === "other") && (
               <input
                 value={otherFacility}
                 onChange={(event) => setOtherFacility(event.target.value)}
