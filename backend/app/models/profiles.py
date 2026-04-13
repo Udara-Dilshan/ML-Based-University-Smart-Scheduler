@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from ..database.connection import Base
 
@@ -44,6 +44,9 @@ class ResourceManager(Base):
 
     manager_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
-    assigned_section = Column(String(50), nullable=False)
+    assigned_section = Column(
+        Enum("TRANSPORT", "EVENTS", "GENERAL", name="resource_section"),
+        nullable=True,
+    )
 
     user = relationship("User", back_populates="resource_manager_profile")

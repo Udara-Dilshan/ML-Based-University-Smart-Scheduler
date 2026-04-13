@@ -1,7 +1,7 @@
 """add_faculty_code_column
 
 Revision ID: a17c2f9d4b11
-Revises: 6e95aca2133f
+Revises: 7a51c3393add
 Create Date: 2026-04-03 12:20:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "a17c2f9d4b11"
-down_revision: Union[str, Sequence[str], None] = "6e95aca2133f"
+down_revision: Union[str, Sequence[str], None] = "7a51c3393add"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

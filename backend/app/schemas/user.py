@@ -21,10 +21,10 @@ class ResourceManagerProfileInput(BaseModel):
 
 class UserBase(BaseModel):
     email: str
-    first_name: str = Field(min_length=1, max_length=100)
-    last_name: str = Field(min_length=1, max_length=100)
+    first_name: str = Field(min_length=1, max_length=50)
+    last_name: str = Field(min_length=1, max_length=50)
     role: str
-    contact_number: Optional[str] = Field(default=None, max_length=20)
+    contact_number: Optional[str] = Field(default=None, max_length=15)
     profile_image: Optional[str] = Field(default=None, max_length=255)
 
 
@@ -38,10 +38,10 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
-    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
     role: Optional[str] = None
-    contact_number: Optional[str] = Field(default=None, max_length=20)
+    contact_number: Optional[str] = Field(default=None, max_length=15)
     profile_image: Optional[str] = Field(default=None, max_length=255)
     password: Optional[str] = Field(default=None, min_length=6)
     is_active: Optional[bool] = None
@@ -85,8 +85,8 @@ class UserLoginRequest(BaseModel):
 
 
 class StudentSignupRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=100)
-    last_name: str = Field(min_length=1, max_length=100)
+    first_name: str = Field(min_length=1, max_length=50)
+    last_name: str = Field(min_length=1, max_length=50)
     email: str
     registration_number: str = Field(min_length=1, max_length=50)
     batch: str = Field(min_length=1, max_length=50)

@@ -160,9 +160,9 @@ def get_me(db: Session = Depends(get_db), current_user: User = Depends(get_curre
 
 
 class UpdateMeRequest(BaseModel):
-    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    contact_number: Optional[str] = Field(default=None, max_length=20)
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    contact_number: Optional[str] = Field(default=None, max_length=15)
 
 
 @router.put("/me", response_model=UserResponse)

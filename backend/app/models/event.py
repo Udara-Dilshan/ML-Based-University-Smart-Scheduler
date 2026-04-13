@@ -8,9 +8,9 @@ import enum
 
 class RequestStatus(str, enum.Enum):
     """Request status enumeration"""
-    PENDING = "Pending"
-    APPROVED = "Approved"
-    REJECTED = "Rejected"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 class Vehicle(Base):
     """Vehicle model"""
