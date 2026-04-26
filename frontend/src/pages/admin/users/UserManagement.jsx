@@ -17,6 +17,13 @@ const roleOptions = [
 
 const sectionOptions = ["Transport", "Events"];
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const getFirstNonEmptyValue = (row, keys) => {
@@ -71,6 +78,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentBatchFilter, setStudentBatchFilter] = useState("");
   const [studentStatusFilter, setStudentStatusFilter] = useState("all");
@@ -555,6 +563,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -569,6 +578,19 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
 
       const payloads = [];
       const validationErrors = [];
+      const duplicateRows = [];
+      const existingEmailKeys = new Set(
+        users
+          .filter((user) => user.role === "Student")
+          .map((user) => normalizeText(user.email))
+      );
+      const existingRegNoKeys = new Set(
+        users
+          .filter((user) => user.role === "Student")
+          .map((user) => normalizeText(user.student_profile?.reg_no))
+      );
+      const seenEmailKeys = new Set();
+      const seenRegNoKeys = new Set();
 
       rows.forEach((row, index) => {
         const rowNumber = index + 2;
@@ -621,6 +643,22 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
           ? false
           : true;
 
+        const emailKey = normalizeText(email);
+        const regNoKey = normalizeText(regNo);
+
+        if (existingEmailKeys.has(emailKey) || existingRegNoKeys.has(regNoKey)) {
+          duplicateRows.push(`Row ${rowNumber}: student already exists in system (email or reg_no)`);
+          return;
+        }
+
+        if (seenEmailKeys.has(emailKey) || seenRegNoKeys.has(regNoKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate student in upload file (email or reg_no)`);
+          return;
+        }
+
+        seenEmailKeys.add(emailKey);
+        seenRegNoKeys.add(regNoKey);
+
         payloads.push({
           rowNumber,
           payload: {
@@ -641,26 +679,70 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       });
 
       if (!payloads.length) {
-        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new students were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map((item) => createUser(item.payload))
-      );
-
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          failedRows.push(
-            `Row ${payloads[index].rowNumber}: ${readApiError(result.reason, "Failed to create")}`
-          );
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => createUser(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const source = chunk[chunkIndex];
+            failedRows.push(
+              `Row ${source.rowNumber}: ${readApiError(result.reason, "Failed to create")}`
+            );
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadUsers();
 
@@ -668,11 +750,24 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
       const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
 
-      if (validationErrors.length || failedRows.length) {
-        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
       }
 
       setUploadFile(null);
@@ -680,6 +775,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       setUploadError(readApiError(uploadException, "Failed to process upload file"));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -707,6 +803,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                     setUploadFile(event.target.files?.[0] || null);
                     setUploadError("");
                     setUploadMessage("");
+                    setUploadProgress(null);
                   }}
                 />
               </label>
@@ -778,6 +875,12 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       {uploadError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {uploadError}
+        </div>
+      )}
+
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
         </div>
       )}
 
