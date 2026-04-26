@@ -1,7 +1,9 @@
+import time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, OperationalError
 from ..database.connection import get_db
 from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, LecturerModuleAssignment, Module
 from ..models.user import User
@@ -176,6 +178,17 @@ SEMESTER_NAME_TO_NUMBER = {
     _semester_label(number): number
     for number in range(1, 11)
 }
+
+RETRYABLE_MYSQL_ERROR_CODES = {1205, 1213}
+
+
+def _is_retryable_mysql_error(exc: OperationalError) -> bool:
+    original = getattr(exc, "orig", None)
+    if original is None or not getattr(original, "args", None):
+        return False
+
+    code = original.args[0]
+    return isinstance(code, int) and code in RETRYABLE_MYSQL_ERROR_CODES
 
 
 def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
@@ -542,32 +555,51 @@ def delete_department(dept_id: int, db: Session = Depends(get_db)):
 
 @router.post("/modules", response_model=ModuleOut, status_code=status.HTTP_201_CREATED)
 def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
-    department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
-    if not department:
-        raise HTTPException(status_code=404, detail="Department not found")
+    max_retries = 3
 
-    degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
-    if not degree:
-        raise HTTPException(status_code=404, detail="Degree not found")
-    if degree.dept_id != payload.dept_id:
-        raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
+    for attempt in range(max_retries):
+        try:
+            department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
+            if not department:
+                raise HTTPException(status_code=404, detail="Department not found")
 
-    duplicate = db.query(Module).filter((Module.code == payload.code) | (Module.name == payload.name))
-    if duplicate.first():
-        raise HTTPException(status_code=409, detail="Course name or code already exists")
+            degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
+            if not degree:
+                raise HTTPException(status_code=404, detail="Degree not found")
+            if degree.dept_id != payload.dept_id:
+                raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
-    item = Module(
-        name=payload.name.strip(),
-        code=payload.code.strip().upper(),
-        dept_id=payload.dept_id,
-        degree_id=payload.degree_id,
-        credits=payload.credits,
-        lecture_hours_per_week=payload.lecture_hours_per_week,
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
+            duplicate = db.query(Module).filter((Module.code == payload.code) | (Module.name == payload.name))
+            if duplicate.first():
+                raise HTTPException(status_code=409, detail="Course name or code already exists")
+
+            item = Module(
+                name=payload.name.strip(),
+                code=payload.code.strip().upper(),
+                dept_id=payload.dept_id,
+                degree_id=payload.degree_id,
+                credits=payload.credits,
+                lecture_hours_per_week=payload.lecture_hours_per_week,
+            )
+            db.add(item)
+            db.commit()
+            db.refresh(item)
+            return item
+        except HTTPException:
+            db.rollback()
+            raise
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="Course name or code already exists")
+        except OperationalError as exc:
+            db.rollback()
+            if _is_retryable_mysql_error(exc) and attempt < max_retries - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise HTTPException(
+                status_code=503,
+                detail="Temporary database contention while creating course. Please retry.",
+            )
 
 
 @router.get("/modules", response_model=List[ModuleOut])
@@ -813,42 +845,76 @@ def assign_or_update_batch_active_term(
     payload: BatchActiveTermSave,
     db: Session = Depends(get_db),
 ):
-    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
-    if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
     semester_name = payload.semester_name.strip()
     academic_year = payload.academic_year.strip()
-    semester_number = _validate_batch_active_term(batch, semester_name, academic_year)
 
-    db.query(BatchActiveTerm).filter(
-        BatchActiveTerm.batch_id == batch_id,
-        BatchActiveTerm.is_active.is_(True),
-    ).update({BatchActiveTerm.is_active: False}, synchronize_session=False)
+    max_retries = 3
 
-    term = db.query(BatchActiveTerm).filter(
-        BatchActiveTerm.batch_id == batch_id,
-        BatchActiveTerm.semester_name == semester_name,
-        BatchActiveTerm.academic_year == academic_year,
-    ).first()
+    for attempt in range(max_retries):
+        try:
+            batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+            if not batch:
+                raise HTTPException(status_code=404, detail="Batch not found")
 
-    if term:
-        term.is_active = True
-    else:
-        term = BatchActiveTerm(
-            batch_id=batch_id,
-            semester_name=semester_name,
-            academic_year=academic_year,
-            is_active=True,
-        )
-        db.add(term)
+            semester_number = _validate_batch_active_term(batch, semester_name, academic_year)
 
-    # Keep legacy integer semester in sync for existing scheduler logic.
-    batch.current_semester = semester_number
+            current_active_term = (
+                db.query(BatchActiveTerm)
+                .filter(
+                    BatchActiveTerm.batch_id == batch_id,
+                    BatchActiveTerm.is_active.is_(True),
+                )
+                .order_by(BatchActiveTerm.id.desc())
+                .first()
+            )
 
-    db.commit()
-    db.refresh(term)
-    return term
+            term = db.query(BatchActiveTerm).filter(
+                BatchActiveTerm.batch_id == batch_id,
+                BatchActiveTerm.semester_name == semester_name,
+                BatchActiveTerm.academic_year == academic_year,
+            ).first()
+
+            if current_active_term and (not term or current_active_term.id != term.id):
+                current_active_term.is_active = False
+
+            if term:
+                term.is_active = True
+            else:
+                term = BatchActiveTerm(
+                    batch_id=batch_id,
+                    semester_name=semester_name,
+                    academic_year=academic_year,
+                    is_active=True,
+                )
+                db.add(term)
+
+            # Keep legacy integer semester in sync for existing scheduler logic.
+            batch.current_semester = semester_number
+
+            db.commit()
+            db.refresh(term)
+            return term
+        except HTTPException:
+            db.rollback()
+            raise
+        except IntegrityError:
+            db.rollback()
+            if attempt < max_retries - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise HTTPException(
+                status_code=409,
+                detail="Failed to save active term due to a concurrent update. Please retry.",
+            )
+        except OperationalError as exc:
+            db.rollback()
+            if _is_retryable_mysql_error(exc) and attempt < max_retries - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise HTTPException(
+                status_code=503,
+                detail="Temporary database contention while saving active term. Please retry.",
+            )
 
 
 @router.get("/lecturer-allocations/lecturers", response_model=List[LecturerOptionOut])
