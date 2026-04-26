@@ -559,6 +559,9 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
 
     for attempt in range(max_retries):
         try:
+            normalized_code = payload.code.strip().upper()
+            normalized_name = payload.name.strip()
+
             department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
             if not department:
                 raise HTTPException(status_code=404, detail="Department not found")
@@ -569,13 +572,19 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
             if degree.dept_id != payload.dept_id:
                 raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
-            duplicate = db.query(Module).filter((Module.code == payload.code) | (Module.name == payload.name))
+            duplicate = db.query(Module).filter(
+                Module.degree_id == payload.degree_id,
+                (Module.code == normalized_code) | (Module.name == normalized_name),
+            )
             if duplicate.first():
-                raise HTTPException(status_code=409, detail="Course name or code already exists")
+                raise HTTPException(
+                    status_code=409,
+                    detail="Course name or code already exists for the selected degree",
+                )
 
             item = Module(
-                name=payload.name.strip(),
-                code=payload.code.strip().upper(),
+                name=normalized_name,
+                code=normalized_code,
                 dept_id=payload.dept_id,
                 degree_id=payload.degree_id,
                 credits=payload.credits,
@@ -590,7 +599,10 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
             raise
         except IntegrityError:
             db.rollback()
-            raise HTTPException(status_code=409, detail="Course name or code already exists")
+            raise HTTPException(
+                status_code=409,
+                detail="Course name or code already exists for the selected degree",
+            )
         except OperationalError as exc:
             db.rollback()
             if _is_retryable_mysql_error(exc) and attempt < max_retries - 1:
@@ -770,23 +782,27 @@ def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(g
 
     effective_dept = data.get("dept_id", item.dept_id)
     effective_degree = data.get("degree_id", item.degree_id)
+    effective_code = data.get("code", item.code)
+    effective_name = data.get("name", item.name)
     degree = db.query(Degree).filter(Degree.degree_id == effective_degree).first()
     if degree and degree.dept_id != effective_dept:
         raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
-    if "code" in data:
-        duplicate = db.query(Module).filter(
-            Module.code == data["code"], Module.module_id != module_id
-        )
-        if duplicate.first():
-            raise HTTPException(status_code=409, detail="Course code already exists")
+    duplicate_code = db.query(Module).filter(
+        Module.degree_id == effective_degree,
+        Module.code == effective_code,
+        Module.module_id != module_id,
+    )
+    if duplicate_code.first():
+        raise HTTPException(status_code=409, detail="Course code already exists for the selected degree")
 
-    if "name" in data:
-        duplicate = db.query(Module).filter(
-            Module.name == data["name"], Module.module_id != module_id
-        )
-        if duplicate.first():
-            raise HTTPException(status_code=409, detail="Course name already exists")
+    duplicate_name = db.query(Module).filter(
+        Module.degree_id == effective_degree,
+        Module.name == effective_name,
+        Module.module_id != module_id,
+    )
+    if duplicate_name.first():
+        raise HTTPException(status_code=409, detail="Course name already exists for the selected degree")
 
     for key, value in data.items():
         setattr(item, key, value)
