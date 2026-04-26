@@ -1,3 +1,14 @@
 department_code,department_name,faculty_code,faculty_name
-IEEE,Department of Electrical and Electronic Engineering,FOT,Faculty of Technological Studies
-,,,
+DOAS,Department of Animal Science,FOASEA, Faculty of Animal Science & Export Agriculture
+DOEA,Department of Export Agriculture,FOASEA,Faculty of Animal Science & Export Agriculture
+DOFST,Department of Food Science & Technology,FOASEA,Faculty of Animal Science & Export Agriculture
+DOSCT,Department of Science & Technology,FOAS,Faculty of Applied Sciences
+DOCSI,Department of Computer Science & Informatics,FOAS,Faculty of Applied Sciences
+DOAES,Department of Applied Earth Sciences,FOAS,Faculty of Applied Sciences
+DOMS,Department of Management Sciences,FOM,Faculty of Management
+DOPA,Department of Public Administration,FOM,Faculty of Management
+DOELT,Department of English Language Teaching,FOM,Faculty of Management
+DOTS,Department of Tourism Studies,FOM,Faculty of Management
+DOET,Department of Engineering Technology,FOT,Faculty of Technological Studies
+DOBT,Department of Biosystem Technology,FOT,Faculty of Technological Studies
+DOICT,Department of Information & Communication Technology,FOT,Faculty of Technological Studies

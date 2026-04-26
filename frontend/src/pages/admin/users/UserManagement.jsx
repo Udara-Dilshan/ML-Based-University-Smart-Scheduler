@@ -85,6 +85,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const fileInputRef = useRef(null);
 
   const isStudentManagementView = forcedRole === "Student";
+  const isLecturerManagementView = forcedRole === "Lecturer";
   const selectedRole = forcedRole || form.role;
   const showRoleColumn = !forcedRole;
   const modalTitle = useMemo(() => (editId ? "Edit User" : "Add User"), [editId]);
@@ -553,6 +554,29 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     XLSX.writeFile(workbook, "students_export.xlsx");
   };
 
+  const handleExportLecturers = () => {
+    if (!filteredUsers.length) {
+      setUploadError("No lecturers to export");
+      return;
+    }
+
+    const exportRows = filteredUsers.map((user) => ({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      contact_number: user.contact_number || "",
+      staff_id: user.lecturer_profile?.staff_id || "",
+      department: getDepartmentNameById(user.lecturer_profile?.dept_id),
+      designation: user.lecturer_profile?.designation || "",
+      status: user.is_active ? "Active" : "Inactive",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Lecturers");
+    XLSX.writeFile(workbook, "lecturers_export.xlsx");
+  };
+
   const handleStudentBulkUpload = async () => {
     if (!uploadFile) {
       setUploadError("Select an Excel or CSV file before uploading");
@@ -779,6 +803,231 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     }
   };
 
+  const handleLecturerBulkUpload = async () => {
+    if (!uploadFile) {
+      setUploadError("Select an Excel or CSV file before uploading");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadError("");
+      setUploadMessage("");
+      setUploadProgress(null);
+
+      const fileBuffer = await uploadFile.arrayBuffer();
+      const workbook = XLSX.read(fileBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!rows.length) {
+        setUploadError("The uploaded file is empty");
+        return;
+      }
+
+      const payloads = [];
+      const validationErrors = [];
+      const duplicateRows = [];
+      const existingEmailKeys = new Set(users.map((user) => normalizeText(user.email)));
+      const existingStaffIdKeys = new Set(
+        users.map((user) => normalizeText(user.lecturer_profile?.staff_id))
+      );
+      const seenEmailKeys = new Set();
+      const seenStaffIdKeys = new Set();
+
+      rows.forEach((row, index) => {
+        const rowNumber = index + 2;
+        const firstName = String(getFirstNonEmptyValue(row, ["first_name", "firstname"])).trim();
+        const lastName = String(getFirstNonEmptyValue(row, ["last_name", "lastname"])).trim();
+        const email = String(getFirstNonEmptyValue(row, ["email"])).trim();
+        const password = String(getFirstNonEmptyValue(row, ["password"])).trim();
+        const contactNumber = String(getFirstNonEmptyValue(row, ["contact_number", "phone"])).trim();
+        const staffId = String(getFirstNonEmptyValue(row, ["staff_id", "employee_id"])).trim();
+        const designation = String(getFirstNonEmptyValue(row, ["designation"])).trim();
+        const activeValue = String(getFirstNonEmptyValue(row, ["is_active", "active"])).trim();
+
+        const deptIdValue = getFirstNonEmptyValue(row, ["dept_id", "department_id"]);
+        const deptCode = String(getFirstNonEmptyValue(row, ["dept_code", "department_code"])).trim();
+        const deptName = String(getFirstNonEmptyValue(row, ["dept_name", "department_name", "department"])).trim();
+
+        if (!firstName || !lastName || !email || !password || !staffId) {
+          validationErrors.push(
+            `Row ${rowNumber}: first_name, last_name, email, password and staff_id are required`
+          );
+          return;
+        }
+
+        let department = null;
+        const parsedDeptId = Number(deptIdValue);
+        if (Number.isFinite(parsedDeptId) && parsedDeptId > 0) {
+          department = departments.find((item) => item.dept_id === parsedDeptId) || null;
+        }
+
+        if (!department && deptCode) {
+          const normalizedCode = normalizeText(deptCode);
+          department = departments.find((item) => normalizeText(item.code) === normalizedCode) || null;
+        }
+
+        if (!department && deptName) {
+          const normalizedName = normalizeText(deptName);
+          const matches = departments.filter((item) => normalizeText(item.name) === normalizedName);
+          if (matches.length > 1) {
+            validationErrors.push(
+              `Row ${rowNumber}: department '${deptName}' matched multiple records, use dept_code or dept_id`
+            );
+            return;
+          }
+          department = matches[0] || null;
+        }
+
+        if (!department) {
+          validationErrors.push(
+            `Row ${rowNumber}: dept_id, dept_code or dept_name is required and must match`
+          );
+          return;
+        }
+
+        const emailKey = normalizeText(email);
+        const staffIdKey = normalizeText(staffId);
+
+        if (existingEmailKeys.has(emailKey) || existingStaffIdKeys.has(staffIdKey)) {
+          duplicateRows.push(`Row ${rowNumber}: lecturer already exists in system (email or staff_id)`);
+          return;
+        }
+
+        if (seenEmailKeys.has(emailKey) || seenStaffIdKeys.has(staffIdKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate lecturer in upload file (email or staff_id)`);
+          return;
+        }
+
+        seenEmailKeys.add(emailKey);
+        seenStaffIdKeys.add(staffIdKey);
+
+        const isActive = ["false", "0", "no", "inactive"].includes(normalizeText(activeValue))
+          ? false
+          : true;
+
+        payloads.push({
+          rowNumber,
+          payload: {
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+            role: "Lecturer",
+            is_active: isActive,
+            contact_number: contactNumber || null,
+            lecturer_profile: {
+              staff_id: staffId,
+              dept_id: Number(department.dept_id),
+              designation: designation || null,
+            },
+          },
+        });
+      });
+
+      if (!payloads.length) {
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new lecturers were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
+        return;
+      }
+
+      const failedRows = [];
+      let createdCount = 0;
+      let processedCount = 0;
+
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
+      });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => createUser(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const source = chunk[chunkIndex];
+            failedRows.push(
+              `Row ${source.rowNumber}: ${readApiError(result.reason, "Failed to create")}`
+            );
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
+
+      await loadUsers();
+
+      const baseMessage = `Created ${createdCount} lecturer record(s)`;
+      const validationPart = validationErrors.length
+        ? ` | ${validationErrors.length} row(s) skipped during validation`
+        : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
+      const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
+
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
+      }
+
+      setUploadFile(null);
+    } catch (uploadException) {
+      setUploadError(readApiError(uploadException, "Failed to process upload file"));
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
@@ -821,6 +1070,46 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Export Students
+              </button>
+            </>
+          )}
+          {isLecturerManagementView && (
+            <>
+              <a
+                href="/lecturer_upload_sample.csv"
+                download
+                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+              >
+                Download CSV Template
+              </a>
+              <label className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {uploadFile ? uploadFile.name : "Choose Excel File"}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(event) => {
+                    setUploadFile(event.target.files?.[0] || null);
+                    setUploadError("");
+                    setUploadMessage("");
+                    setUploadProgress(null);
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleLecturerBulkUpload}
+                disabled={!uploadFile || uploading}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {uploading ? "Uploading..." : "Upload Excel"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportLecturers}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Export Lecturers
               </button>
             </>
           )}
