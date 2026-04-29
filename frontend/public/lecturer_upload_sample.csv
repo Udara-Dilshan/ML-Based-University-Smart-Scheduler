@@ -1,3 +1,106 @@
 first_name,last_name,email,password,contact_number,staff_id,dept_code,designation,is_active
-Kasun,Perera,lecturer1@example.com,Pass@1234,771234567,LEC001,DOAS,Senior Lecturer,TRUE
-Nadeesha,Herath,lecturer2@example.com,Pass@1234,772345678,LEC002,DOAES,Lecturer,TRUE
+E.M.U.W.J.B.,Ekanayake,jayalath@uwu.ac.lk,Pass@1234,552226676,LEC001,DOICT,Acting Head of the Department,TRUE
+U.W.H.K.,Ukgoda,hansika@uwu.ac.lk,Pass@1234,772345678,LEC002,DOICT,Lecturer (Probrationary),TRUE
+K.R.R. , Premathilaka,Rukshika@uwu.ac.lk,Pass@1234,772345678,LEC003,DOICT,Temporary Lecturer,TRUE
+ W.M.M.P.,Wijesekara,Wijesekara@uwuw.ac.lk,Pass@1234,772345678,LEC004,DOICT,Temporary Demonstrator,TRUE
+K.H.I.K.,Hewavitharana,indika.h@uwu.ac.lk,Pass@1235,552226668,LEC005,DOBT,Head of the Department,TRUE
+Kolitha B., Wijesekara,kolitha@uwu.ac.lk,Pass@1236,552226668,LEC006,DOBT,Assistant Lecturer,TRUE
+Nadeesh,Silva,nadeesh.silva1@example.lk,Pass@1237,552226668,LEC007,DOBT,Lecturer,TRUE
+Kasun,Perera,kasun.perera2@example.lk,Pass@1238,552226668,LEC008,DOBT,Assistant Lecturer,TRUE
+Tharindu,Fernando,tharindu.fernando3@example.lk,Pass@1239,552226668,LEC009,DOBT,Lecturer,TRUE
+Dilshan,Jayasinghe,dilshan.jayasinghe4@example.lk,Pass@1240,552226668,LEC010,DOBT,Assistant Lecturer,TRUE
+Isuru,Bandara,isuru.bandara5@example.lk,Pass@1241,552226668,LEC011,DOBT,Senior Lecturer,TRUE
+Ruwan,Herath,ruwan.herath6@example.lk,Pass@1242,552226668,LEC012,DOBT,Lecturer,TRUE
+Saman,Dissanayake,saman.dissanayake7@example.lk,Pass@1243,552226668,LEC013,DOBT,Assistant Lecturer,TRUE
+Chandana,Gunawardena,chandana.gunawardena8@example.lk,Pass@1244,552226668,LEC014,DOBT,Assistant Lecturer,TRUE
+Kamal,Senanayake,kamal.senanayake9@example.lk,Pass@1245,552226668,LEC015,DOBT,Assistant Lecturer,TRUE
+Nimal,Wijesinghe,nimal.wijesinghe10@example.lk,Pass@1246,552226668,LEC016,DOBT,Senior Lecturer,TRUE
+Gayan,Rajapaksha,gayan.rajapaksha11@example.lk,Pass@1247,552226668,LEC017,DOBT,Lecturer,TRUE
+Harsha,Abeysekera,harsha.abeysekera12@example.lk,Pass@1248,552226668,LEC018,DOBT,Lecturer,TRUE
+Pradeep,Kulathunga,pradeep.kulathunga13@example.lk,Pass@1249,552226668,LEC019,DOBT,Lecturer,TRUE
+Madusha,Karunaratne,madusha.karunaratne14@example.lk,Pass@1250,552226668,LEC020,DOET,Lecturer,TRUE
+Ishara,Wijeratne,ishara.wijeratne15@example.lk,Pass@1251,552226668,LEC021,DOET,Assistant Lecturer,TRUE
+Lakshan,Ranasinghe,lakshan.ranasinghe16@example.lk,Pass@1252,552226668,LEC022,DOET,Senior Lecturer,TRUE
+Supun,Vipulasena,supun.ekanayake17@example.lk,Pass@1253,552226668,LEC023,DOET,Lecturer,TRUE
+Charith,Samarasinghe,charith.samarasinghe18@example.lk,Pass@1254,552226668,LEC024,DOET,Assistant Lecturer,TRUE
+Dinesh,Weerasinghe,dinesh.weerasinghe19@example.lk,Pass@1255,552226668,LEC025,DOET,Lecturer,TRUE
+Roshan,Hettiarachchi,roshan.hettiarachchi20@example.lk,Pass@1256,552226668,LEC026,DOET,Assistant Lecturer,TRUE
+Niroshan,Pathirana,niroshan.madushanka21@example.lk,Pass@1257,552226668,LEC027,DOET,Assistant Lecturer,TRUE
+Shehan,Liyanage,shehan.pathirana22@example.lk,Pass@1258,552226668,LEC028,DOET,Senior Lecturer,TRUE
+Dasun,Kodithuwakku,dasun.liyanage23@example.lk,Pass@1259,552226668,LEC029,DOET,Lecturer,TRUE
+Janith,Alwis,janith.kodithuwakku24@example.lk,Pass@1260,552226668,LEC030,DOET,Senior Lecturer,TRUE
+Ashan,Dias,ashan.alwis25@example.lk,Pass@1261,552226668,LEC031,DOET,Lecturer,TRUE
+Bhanuka,Peiris,bhanuka.dias26@example.lk,Pass@1262,552226668,LEC032,DOET,Lecturer,TRUE
+Chatura,Gamage,chatura.peiris27@example.lk,Pass@1263,552226668,LEC033,DOET,Lecturer,TRUE
+Eranga,Piyasena,eranga.gamage28@example.lk,Pass@1264,552226668,LEC034,DOET,Lecturer,TRUE
+Heshan,Siriwardena,heshan.piyasena29@example.lk,Pass@1265,552226668,LEC035,DOET,Assistant Lecturer,TRUE
+Indika,Gunasekara,indika.siriwardena30@example.lk,Pass@1266,552226668,LEC036,DOET,Lecturer,TRUE
+Kushan,Wickramasinghe,kushan.gunasekara31@example.lk,Pass@1267,552226668,LEC037,DOET,Lecturer,TRUE
+Malith,Wickramaratne,malith.wickramasinghe32@example.lk,Pass@1268,552226668,LEC038,DOAES,Assistant Lecturer,TRUE
+Nuwan,Munasinghe,nuwan.wickramaratne33@example.lk,Pass@1269,552226668,LEC039,DOSCT,Assistant Lecturer,TRUE
+Oshada,Premaratne,oshada.munasinghe34@example.lk,Pass@1270,552226668,LEC040,DOBT,Senior Lecturer,TRUE
+Pramod,Yapa,pramod.premaratne35@example.lk,Pass@1271,552226668,LEC041,DOAES,Assistant Lecturer,TRUE
+Ravindu,Warnakulasuriya,ravindu.yapa36@example.lk,Pass@1272,552226668,LEC042,DOBT,Senior Lecturer,TRUE
+Sajith,Thilakaratne,sajith.warnakulasuriya37@example.lk,Pass@1273,552226668,LEC043,DOICT,Assistant Lecturer,TRUE
+Thilina,Adhikari,thilina.thilakaratne38@example.lk,Pass@1274,552226668,LEC044,DOET,Assistant Lecturer,TRUE
+Umesh,Balasuriya,umesh.adhikari39@example.lk,Pass@1275,552226668,LEC045,DOCSI,Assistant Lecturer,TRUE
+Vishva,Chandrasiri,vishva.balasuriya40@example.lk,Pass@1276,552226668,LEC046,DOBT,Senior Lecturer,TRUE
+Yasiru,Dananjaya,yasiru.chandrasiri41@example.lk,Pass@1277,552226668,LEC047,DOSCT,Assistant Lecturer,TRUE
+Sandun,Edirisinghe,sandun.dananjaya42@example.lk,Pass@1278,552226668,LEC048,DOSCT,Assistant Lecturer,TRUE
+Amila,Fonseka,amila.edirisinghe43@example.lk,Pass@1279,552226668,LEC049,DOICT,Assistant Lecturer,TRUE
+Buddhika,Gunarathne,buddhika.fonseka44@example.lk,Pass@1280,552226668,LEC050,DOICT,Lecturer,TRUE
+Chaminda,Hapuarachchi,chaminda.gunarathne45@example.lk,Pass@1281,552226668,LEC051,DOCSI,Lecturer,TRUE
+Damith,Illangasinghe,damith.hapuarachchi46@example.lk,Pass@1282,552226668,LEC052,DOICT,Assistant Lecturer,TRUE
+Erantha,Jayasuriya,erantha.illangasinghe47@example.lk,Pass@1283,552226668,LEC053,DOET,Senior Lecturer,TRUE
+Gihan,Kumara,gihan.jayasuriya48@example.lk,Pass@1284,552226668,LEC054,DOCSI,Assistant Lecturer,TRUE
+Hemantha,Laksiri,hemantha.kumara49@example.lk,Pass@1285,552226668,LEC055,DOCSI,Lecturer,TRUE
+Janaka,Manage,janaka.laksiri50@example.lk,Pass@1286,552226668,LEC056,DOCSI,Lecturer,TRUE
+Kanchana,Nanayakkara,kanchana.manage51@example.lk,Pass@1287,552226668,LEC057,DOAES,Lecturer,TRUE
+Lahiru,Opatha,lahiru.nanayakkara52@example.lk,Pass@1288,552226668,LEC058,DOICT,Assistant Lecturer,TRUE
+Manoj,Rajakaruna,manoj.opatha53@example.lk,Pass@1289,552226668,LEC059,DOICT,Senior Lecturer,TRUE
+Nishan,Samarakoon,nishan.pabasara54@example.lk,Pass@1290,552226668,LEC060,DOSCT,Assistant Lecturer,TRUE
+Pubudu,Tennakoon,pubudu.rajakaruna55@example.lk,Pass@1291,552226668,LEC061,DOSCT,Senior Lecturer,TRUE
+Ramesh,Udugama,ramesh.samarakoon56@example.lk,Pass@1292,552226668,LEC062,DOSCT,Senior Lecturer,TRUE
+Sanjeewa,Vithanage,sanjeewa.tennakoon57@example.lk,Pass@1293,552226668,LEC063,DOCSI,Lecturer,TRUE
+Thushara,Weerakoon,thushara.udugama58@example.lk,Pass@1294,552226668,LEC064,DOICT,Senior Lecturer,TRUE
+Upul,Yatawara,upul.vithanage59@example.lk,Pass@1295,552226668,LEC065,DOSCT,Lecturer,TRUE
+Vajira,Amarasinghe,vajira.weerakoon60@example.lk,Pass@1296,552226668,LEC066,DOSCT,Assistant Lecturer,TRUE
+Wasantha,Basnayake,wasantha.yatawara61@example.lk,Pass@1297,552226668,LEC067,DOAES,Senior Lecturer,TRUE
+Ajith,Chathuranga,ajith.amarasinghe62@example.lk,Pass@1298,552226668,LEC068,DOCSI,Lecturer,TRUE
+Bandula,Demel,bandula.basnayake63@example.lk,Pass@1299,552226668,LEC069,DOCSI,Lecturer,TRUE
+Chinthaka,Edirisooriya,chinthaka.chathuranga64@example.lk,Pass@1300,552226668,LEC070,DOET,Lecturer,TRUE
+Dayan,Gunathilake,dayan.demel65@example.lk,Pass@1301,552226668,LEC071,DOSCT,Lecturer,TRUE
+Eshan,Indrajith,eshan.edirisooriya66@example.lk,Pass@1302,552226668,LEC072,DOAES,Senior Lecturer,TRUE
+Fazil,Jayawardena,fazil.fernando67@example.lk,Pass@1303,552226668,LEC073,DOAES,Assistant Lecturer,TRUE
+Gamini,Kariyawasam,gamini.gunathilake68@example.lk,Pass@1304,552226668,LEC074,DOCSI,Assistant Lecturer,TRUE
+Harin,Lekamge,harin.herath69@example.lk,Pass@1305,552226668,LEC075,DOSCT,Lecturer,TRUE
+Ishan,Madduma,ishan.indrajith70@example.lk,Pass@1306,552226668,LEC076,DOICT,Assistant Lecturer,TRUE
+Jayan,Nissanka,jayan.jayawardena71@example.lk,Pass@1307,552226668,LEC077,DOSCT,Senior Lecturer,TRUE
+Kapila,Peris,kapila.kariyawasam72@example.lk,Pass@1308,552226668,LEC078,DOICT,Lecturer,TRUE
+Lakmal,Ranathunga,lakmal.lekamge73@example.lk,Pass@1309,552226668,LEC079,DOAES,Lecturer,TRUE
+Mahesh,Seneviratne,mahesh.madduma74@example.lk,Pass@1310,552226668,LEC080,DOBT,Senior Lecturer,TRUE
+Nalin,Tharakan,nalin.nissanka75@example.lk,Pass@1311,552226668,LEC081,DOBT,Senior Lecturer,TRUE
+Prasanna,Upeksha,prasanna.peris76@example.lk,Pass@1312,552226668,LEC082,DOET,Lecturer,TRUE
+Ranjith,Vidanage,ranjith.ranathunga77@example.lk,Pass@1313,552226668,LEC083,DOAES,Lecturer,TRUE
+Sampath,Weligama,sampath.seneviratne78@example.lk,Pass@1314,552226668,LEC084,DOAES,Senior Lecturer,TRUE
+Tharanga,Yogarajah,tharanga.tharakan79@example.lk,Pass@1315,552226668,LEC085,DOBT,Assistant Lecturer,TRUE
+Udaya,Amarathunga,udaya.upeksha80@example.lk,Pass@1316,552226668,LEC086,DOBT,Lecturer,TRUE
+Viraj,Bandaranayake,viraj.vidanage81@example.lk,Pass@1317,552226668,LEC087,DOCSI,Assistant Lecturer,TRUE
+Wimal,Chandraratne,wimal.weligama82@example.lk,Pass@1318,552226668,LEC088,DOET,Senior Lecturer,TRUE
+Nadeesha,Desilva,nadeesha.yogarajah83@example.lk,Pass@1319,552226668,LEC089,DOSCT,Senior Lecturer,TRUE
+Sanduni,Ekanayaka,sanduni.amarathunga84@example.lk,Pass@1320,552226668,LEC090,DOAES,Lecturer,TRUE
+Sachini,Gajasinghe,sachini.bandaranayake85@example.lk,Pass@1321,552226668,LEC091,DOAES,Senior Lecturer,TRUE
+Lakshmi,Illangakoon,lakshmi.chandraratne86@example.lk,Pass@1322,552226668,LEC092,DOET,Assistant Lecturer,FALSE
+Iresha,Jayasena,iresha.desilva87@example.lk,Pass@1323,552226668,LEC093,DOAES,Lecturer,TRUE
+Tharushi,Kodikara,tharushi.ekanayaka88@example.lk,Pass@1324,552226668,LEC094,DOET,Senior Lecturer,TRUE
+Imesha,Liyanarachchi,imesha.gajasinghe89@example.lk,Pass@1325,552226668,LEC095,DOICT,Assistant Lecturer,TRUE
+Nisansala,Muthumala,nisansala.herath90@example.lk,Pass@1326,552226668,LEC096,DOICT,Lecturer,TRUE
+Dilki,Nawarathne,dilki.illangakoon91@example.lk,Pass@1327,552226668,LEC097,DOSCT,Assistant Lecturer,TRUE
+Shashini,Panagoda,shashini.jayasena92@example.lk,Pass@1328,552226668,LEC098,DOET,Lecturer,TRUE
+Piumi,Rathnayake,piumi.kodikara93@example.lk,Pass@1329,552226668,LEC099,DOAES,Assistant Lecturer,TRUE
+Ashini,Senarath,ashini.liyanarachchi94@example.lk,Pass@1330,552226668,LEC100,DOET,Senior Lecturer,TRUE
+Hiruni,Thennakoon,hiruni.muthumala95@example.lk,Pass@1331,552226668,LEC101,DOAES,Lecturer,TRUE
+Kasuni,Uduwela,kasuni.nawarathne96@example.lk,Pass@1332,552226668,LEC102,DOAES,Assistant Lecturer,TRUE
+Madushi,Vitharana,madushi.panagoda97@example.lk,Pass@1333,552226668,LEC103,DOSCT,Assistant Lecturer,TRUE
+Nethmi,Weerasekara,nethmi.rathnayake98@example.lk,Pass@1334,552226668,LEC104,DOET,Assistant Lecturer,TRUE
+Rashmi,Yahampath,rashmi.senarath99@example.lk,Pass@1335,552226668,LEC105,DOCSI,Senior Lecturer,TRUE

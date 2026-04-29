@@ -1,3 +1,10 @@
-resource_name,resource_type,capacity,faculty_code,faculty_name,department_code,department_name,department_codes,department_names,facilities,location
-TLH 1,Lecture Hall,120,FOT,Faculty of Technological Studies,ICT,Information and Communication Technology,"ICT|EN","Information and Communication Technology|Engineering Technology","AC, Projector, Smart Board",Tec Building
-Lab C1,Lab,45,FOT,Faculty of Technological Studies,EN,Engineering Technology,EN,Engineering Technology,"Computers, Wi-Fi",C Block
+resource_name,resource_type,capacity,faculty_name,department_name,facilities,location
+A1/Smart,Lecture Hall,112,Faculty of Applied Sciences,Department of Computer Science & Informatics,Smart Board,A Block
+B-MLT,Auditorium,400,Faculty of Management,Department of Management Sciences,Huge Space,B Block
+C1 Computer Lab,Lab,20,Faculty of Applied Sciences,Department of Computer Science & Informatics,Computers,C Block
+D1/Smart,Lecture Hall,110,Faculty of Applied Sciences,Department of Computer Science & Informatics,Interactive Board,D Block
+E1,Lecture Hall,600,Faculty of Applied Sciences,Department of Computer Science & Informatics,Huge Space,E Block
+FTS-CAD CAM Lab,Lab,100,Faculty of Technological Studies,Department of Engineering Technology,CAD CAM,FTS Building
+GIS Lab,Lab,42,Faculty of Applied Sciences,Department of Computer Science & Informatics,"GIS Software, PCs",E Block
+TMLT,Auditorium,200,Faculty of Technological Studies,Department of Engineering Technology,Main Lecture Theatre,FTS Building
+LH 11 (Down),Lecture Hall,196,Faculty of Applied Sciences,Department of Computer Science & Informatics,Fans,ASB (Behind G Canteen)

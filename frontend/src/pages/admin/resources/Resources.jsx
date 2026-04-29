@@ -49,6 +49,10 @@ export default function Resources() {
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
   const [selectedFacilities, setSelectedFacilities] = useState([]);
   const [otherFacility, setOtherFacility] = useState("");
+  const [resourceSearch, setResourceSearch] = useState("");
+  const [resourceFacultyFilter, setResourceFacultyFilter] = useState("");
+  const [resourceDepartmentFilter, setResourceDepartmentFilter] = useState("");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -94,6 +98,33 @@ export default function Resources() {
     return [...locationOptions, form.location];
   }, [locationOptions, form.location]);
 
+  const filteredResourceTypes = useMemo(() => {
+    if (!resourceTypeFilter) {
+      return resourceTypes;
+    }
+    return resourceTypes.includes(resourceTypeFilter)
+      ? [resourceTypeFilter, ...resourceTypes.filter((item) => item !== resourceTypeFilter)]
+      : [resourceTypeFilter, ...resourceTypes];
+  }, [resourceTypes, resourceTypeFilter]);
+
+  const filteredResourceDepartments = useMemo(() => {
+    const scopedDepartments = resourceFacultyFilter
+      ? departments.filter((department) => String(department.faculty_id) === String(resourceFacultyFilter))
+      : departments;
+
+    if (!resourceDepartmentFilter) {
+      return scopedDepartments;
+    }
+
+    const hasCurrent = scopedDepartments.some((department) => String(department.dept_id) === String(resourceDepartmentFilter));
+    if (hasCurrent) {
+      return scopedDepartments;
+    }
+
+    const currentDepartment = departments.find((department) => String(department.dept_id) === String(resourceDepartmentFilter));
+    return currentDepartment ? [...scopedDepartments, currentDepartment] : scopedDepartments;
+  }, [departments, resourceFacultyFilter, resourceDepartmentFilter]);
+
   const filteredDepartments = useMemo(() => {
     if (!form.faculty_id) {
       return [];
@@ -118,6 +149,45 @@ export default function Resources() {
     );
     return currentDepartment ? [...filteredDepartments, currentDepartment] : filteredDepartments;
   }, [filteredDepartments, departments, form.dept_id]);
+
+  const filteredResources = useMemo(() => {
+    const query = normalizeText(resourceSearch);
+
+    return resources.filter((resource) => {
+      if (resourceFacultyFilter && String(resource.faculty_id || "") !== String(resourceFacultyFilter)) {
+        return false;
+      }
+
+      if (resourceDepartmentFilter) {
+        const resourceDeptIds = (resource.dept_ids || [resource.dept_id])
+          .map((id) => String(id))
+          .filter(Boolean);
+        if (!resourceDeptIds.includes(String(resourceDepartmentFilter))) {
+          return false;
+        }
+      }
+
+      if (resourceTypeFilter && resource.type !== resourceTypeFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const searchableValues = [
+        resource.name,
+        resource.type,
+        resource.faculty_name,
+        resource.department_name,
+        ...(resource.department_names || []),
+        resource.facilities,
+        resource.location,
+      ];
+
+      return searchableValues.some((value) => normalizeText(value).includes(query));
+    });
+  }, [resources, resourceSearch, resourceFacultyFilter, resourceDepartmentFilter, resourceTypeFilter]);
 
   const loadData = async () => {
     try {
@@ -717,6 +787,54 @@ export default function Resources() {
         </div>
       )}
 
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4">
+        <input
+          value={resourceSearch}
+          onChange={(event) => setResourceSearch(event.target.value)}
+          placeholder="Search name, type, faculty, department, facility or location"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+        <select
+          value={resourceFacultyFilter}
+          onChange={(event) => {
+            setResourceFacultyFilter(event.target.value);
+            setResourceDepartmentFilter("");
+          }}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Faculties</option>
+          {faculties.map((faculty) => (
+            <option key={faculty.faculty_id} value={faculty.faculty_id}>
+              {faculty.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={resourceDepartmentFilter}
+          onChange={(event) => setResourceDepartmentFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Departments</option>
+          {filteredResourceDepartments.map((department) => (
+            <option key={department.dept_id} value={department.dept_id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={resourceTypeFilter}
+          onChange={(event) => setResourceTypeFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Types</option>
+            {filteredResourceTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full min-w-[760px]">
           <thead className="bg-gray-50">
@@ -739,15 +857,15 @@ export default function Resources() {
                 </td>
               </tr>
             )}
-            {!loading && resources.length === 0 && (
+            {!loading && filteredResources.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={8}>
-                  No resources found.
+                  No resources found for the current filters.
                 </td>
               </tr>
             )}
             {!loading &&
-              resources.map((resource) => (
+              filteredResources.map((resource) => (
                 <tr key={resource.resource_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-800">{resource.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.type}</td>

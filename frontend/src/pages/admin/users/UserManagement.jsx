@@ -82,6 +82,10 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [studentSearch, setStudentSearch] = useState("");
   const [studentBatchFilter, setStudentBatchFilter] = useState("");
   const [studentStatusFilter, setStudentStatusFilter] = useState("all");
+  const [lecturerSearch, setLecturerSearch] = useState("");
+  const [lecturerFacultyFilter, setLecturerFacultyFilter] = useState("");
+  const [lecturerDepartmentFilter, setLecturerDepartmentFilter] = useState("");
+  const [lecturerStatusFilter, setLecturerStatusFilter] = useState("all");
   const fileInputRef = useRef(null);
 
   const isStudentManagementView = forcedRole === "Student";
@@ -435,6 +439,57 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     return department?.name || String(deptId);
   };
 
+  const getDepartmentById = (deptId) => {
+    if (deptId === undefined || deptId === null || deptId === "") {
+      return null;
+    }
+
+    return departments.find((item) => String(item.dept_id) === String(deptId)) || null;
+  };
+
+  const getFacultyNameByDepartmentId = (deptId) => {
+    const department = getDepartmentById(deptId);
+    if (!department?.faculty) {
+      return "-";
+    }
+
+    return department.faculty.name || department.faculty.code || String(department.faculty.faculty_id);
+  };
+
+  const facultyOptions = useMemo(() => {
+    const options = new Map();
+
+    departments.forEach((department) => {
+      const faculty = department.faculty;
+      if (!faculty?.faculty_id) {
+        return;
+      }
+
+      const key = String(faculty.faculty_id);
+      if (!options.has(key)) {
+        options.set(key, {
+          faculty_id: faculty.faculty_id,
+          name: faculty.name || faculty.code || key,
+        });
+      }
+    });
+
+    return Array.from(options.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }, [departments]);
+
+  const lecturerDepartments = useMemo(() => {
+    return departments
+      .filter((department) => {
+        if (!lecturerFacultyFilter) {
+          return true;
+        }
+
+        return String(department.faculty_id || department.faculty?.faculty_id || "") === String(lecturerFacultyFilter);
+      })
+      .slice()
+      .sort((left, right) => (left.name || "").localeCompare(right.name || ""));
+  }, [departments, lecturerFacultyFilter]);
+
   const getBatchLabelById = (batchId) => {
     if (batchId === undefined || batchId === null || batchId === "") {
       return "-";
@@ -457,7 +512,8 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     if (user.role === "Lecturer") {
       const staff = user.lecturer_profile?.staff_id || "-";
       const dept = getDepartmentNameById(user.lecturer_profile?.dept_id);
-      return `Staff: ${staff}, Dept: ${dept}`;
+      const faculty = getFacultyNameByDepartmentId(user.lecturer_profile?.dept_id);
+      return `Staff: ${staff}, Dept: ${dept}, Faculty: ${faculty}`;
     }
     if (user.role === "ResourceManager") {
       return `Section: ${user.resource_manager_profile?.assigned_section || "-"}`;
@@ -491,8 +547,47 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   };
 
   const filteredUsers = useMemo(() => {
-    if (!isStudentManagementView) {
+    if (!isStudentManagementView && !isLecturerManagementView) {
       return users;
+    }
+
+    if (isLecturerManagementView) {
+      const query = normalizeText(lecturerSearch);
+
+      return users.filter((user) => {
+        if (lecturerStatusFilter === "active" && !user.is_active) {
+          return false;
+        }
+        if (lecturerStatusFilter === "inactive" && user.is_active) {
+          return false;
+        }
+
+        const department = getDepartmentById(user.lecturer_profile?.dept_id);
+        const facultyId = String(department?.faculty_id || department?.faculty?.faculty_id || "");
+        const departmentId = String(user.lecturer_profile?.dept_id || "");
+
+        if (lecturerFacultyFilter && facultyId !== String(lecturerFacultyFilter)) {
+          return false;
+        }
+
+        if (lecturerDepartmentFilter && departmentId !== String(lecturerDepartmentFilter)) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        const email = user.email || "";
+        const staffId = user.lecturer_profile?.staff_id || "";
+        const departmentName = getDepartmentNameById(user.lecturer_profile?.dept_id);
+        const facultyName = getFacultyNameByDepartmentId(user.lecturer_profile?.dept_id);
+
+        return [fullName, email, staffId, departmentName, facultyName].some((value) =>
+          normalizeText(value).includes(query)
+        );
+      });
     }
 
     const query = normalizeText(studentSearch);
@@ -525,11 +620,17 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     });
   }, [
     isStudentManagementView,
+    isLecturerManagementView,
     users,
     studentStatusFilter,
     studentBatchFilter,
     studentSearch,
+    lecturerFacultyFilter,
+    lecturerDepartmentFilter,
+    lecturerSearch,
+    lecturerStatusFilter,
     batches,
+    departments,
   ]);
 
   const handleExportStudents = () => {
@@ -1146,6 +1247,53 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
           <select
             value={studentStatusFilter}
             onChange={(event) => setStudentStatusFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      )}
+
+      {isLecturerManagementView && (
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4">
+          <input
+            value={lecturerSearch}
+            onChange={(event) => setLecturerSearch(event.target.value)}
+            placeholder="Search name, email, staff ID, faculty, department"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <select
+            value={lecturerFacultyFilter}
+            onChange={(event) => {
+              setLecturerFacultyFilter(event.target.value);
+              setLecturerDepartmentFilter("");
+            }}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Faculties</option>
+            {facultyOptions.map((faculty) => (
+              <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                {faculty.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={lecturerDepartmentFilter}
+            onChange={(event) => setLecturerDepartmentFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Departments</option>
+            {lecturerDepartments.map((department) => (
+              <option key={department.dept_id} value={department.dept_id}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={lecturerStatusFilter}
+            onChange={(event) => setLecturerStatusFilter(event.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
             <option value="all">All Status</option>
