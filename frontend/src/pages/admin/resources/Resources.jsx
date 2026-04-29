@@ -13,6 +13,13 @@ const initialForm = {
   location: "",
 };
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const getFirstNonEmptyValue = (row, keys) => {
@@ -46,6 +53,7 @@ export default function Resources() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const modalTitle = useMemo(
     () => (editId ? "Edit Resource" : "Add Resource"),
@@ -355,6 +363,7 @@ export default function Resources() {
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -369,6 +378,23 @@ export default function Resources() {
 
       const payloads = [];
       const validationErrors = [];
+      const duplicateRows = [];
+      const existingKeys = new Set(
+        resources.map((item) => {
+          const deptIds = (item.dept_ids || [])
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id))
+            .sort((a, b) => a - b)
+            .join(",");
+          return [
+            normalizeText(item.name),
+            normalizeText(item.type),
+            String(item.faculty_id || ""),
+            deptIds,
+          ].join("::");
+        })
+      );
+      const seenKeys = new Set();
 
       rows.forEach((row, index) => {
         const rowNumber = index + 2;
@@ -483,6 +509,29 @@ export default function Resources() {
           return;
         }
 
+        const deptIds = resolvedDepartments
+          .map((item) => Number(item.dept_id))
+          .filter((value) => Number.isFinite(value))
+          .sort((a, b) => a - b);
+        const resourceKey = [
+          normalizeText(name),
+          normalizeText(type),
+          String(faculty.faculty_id),
+          deptIds.join(","),
+        ].join("::");
+
+        if (existingKeys.has(resourceKey)) {
+          duplicateRows.push(`Row ${rowNumber}: resource already exists for selected faculty/department(s)`);
+          return;
+        }
+
+        if (seenKeys.has(resourceKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate resource in upload file`);
+          return;
+        }
+
+        seenKeys.add(resourceKey);
+
         payloads.push({
           rowNumber,
           payload: {
@@ -499,25 +548,68 @@ export default function Resources() {
       });
 
       if (!payloads.length) {
-        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new resources were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map((item) => resourceAPI.createResource(item.payload))
-      );
-
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
-          failedRows.push(`Row ${payloads[index].rowNumber}: ${detail}`);
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => resourceAPI.createResource(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+            failedRows.push(`Row ${chunk[chunkIndex].rowNumber}: ${detail}`);
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadData();
 
@@ -525,11 +617,24 @@ export default function Resources() {
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
       const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
 
-      if (validationErrors.length || failedRows.length) {
-        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
       }
 
       setUploadFile(null);
@@ -537,6 +642,7 @@ export default function Resources() {
       setUploadError(uploadException.message || "Failed to process upload file");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -563,6 +669,7 @@ export default function Resources() {
                 setUploadFile(event.target.files?.[0] || null);
                 setUploadError("");
                 setUploadMessage("");
+                setUploadProgress(null);
               }}
             />
           </label>
@@ -595,6 +702,12 @@ export default function Resources() {
       {uploadError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {uploadError}
+        </div>
+      )}
+
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
         </div>
       )}
 
