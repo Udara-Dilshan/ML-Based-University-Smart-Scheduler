@@ -10,6 +10,7 @@ export default function Navbar({ title }) {
   const menuRef = useRef(null);
   const currentUser = getUser();
   const isLecturer = currentUser?.role === "Lecturer";
+  const isStudent = currentUser?.role === "Student";
 
   // Listen for storage changes to update profile image
   useEffect(() => {
@@ -79,12 +80,24 @@ export default function Navbar({ title }) {
   };
 
   const handleProfile = () => {
-    navigate(isLecturer ? "/lecturer/profile" : "/admin/profile");
+    if (isLecturer) {
+      navigate("/lecturer/profile");
+    } else if (isStudent) {
+      navigate("/student/profile");
+    } else {
+      navigate("/admin/profile");
+    }
     setIsMenuOpen(false);
   };
 
   const handleSettings = () => {
-    navigate(isLecturer ? "/lecturer/settings" : "/admin/settings");
+    if (isLecturer) {
+      navigate("/lecturer/settings");
+    } else if (isStudent) {
+      navigate("/student/settings");
+    } else {
+      navigate("/admin/settings");
+    }
     setIsMenuOpen(false);
   };
 

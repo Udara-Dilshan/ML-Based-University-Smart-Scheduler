@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
-from app.models.academic import Department
+from app.models.academic import Batch, BatchActiveTerm, Department
 from app.models.user import User, UserRole
 from app.models.profiles import Student
 from app.schemas.user import (
@@ -45,7 +45,81 @@ def _parse_int(value: str | None) -> int | None:
         return None
 
 
+def _semester_label(semester_number: int) -> str:
+    year = ((semester_number - 1) // 2) + 1
+    semester = 1 if semester_number % 2 == 1 else 2
+    return f"Year {year} Semester {semester}"
+
+
+SEMESTER_NAME_TO_NUMBER = {
+    _semester_label(number): number
+    for number in range(1, 11)
+}
+
+
+def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str]:
+    active_term = (
+        db.query(BatchActiveTerm)
+        .filter(
+            BatchActiveTerm.batch_id == batch.batch_id,
+            BatchActiveTerm.is_active.is_(True),
+        )
+        .order_by(BatchActiveTerm.id.desc())
+        .first()
+    )
+
+    if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
+        semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
+        semester_name = active_term.semester_name
+    else:
+        semester_number = batch.current_semester
+        semester_name = _semester_label(semester_number)
+
+    return semester_number, semester_name
+
+
 def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
+    student_profile = None
+    if user.student_profile:
+        reg_no = getattr(user.student_profile, "index_number", None) or getattr(
+            user.student_profile, "reg_no", None
+        )
+        registration_number = getattr(user.student_profile, "registration_number", None)
+        raw_batch_id = getattr(user.student_profile, "batch_id", None)
+        if raw_batch_id is None:
+            raw_batch_id = getattr(user.student_profile, "batch", None)
+
+        batch_id = _parse_int(raw_batch_id)
+        batch_code = None
+        degree_name = None
+        degree_code = None
+        department_name = None
+        semester_name = None
+        semester_number = None
+
+        if db is not None and batch_id is not None:
+            batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+            if batch is not None:
+                batch_code = batch.batch_code
+                if batch.degree:
+                    degree_name = batch.degree.name
+                    degree_code = batch.degree.code
+                    if batch.degree.department:
+                        department_name = batch.degree.department.name
+                semester_number, semester_name = _resolve_batch_semester(batch, db)
+
+        student_profile = {
+            "reg_no": reg_no,
+            "registration_number": registration_number,
+            "batch_id": batch_id,
+            "batch_code": batch_code,
+            "degree_name": degree_name,
+            "degree_code": degree_code,
+            "department_name": department_name,
+            "semester_name": semester_name,
+            "semester_number": semester_number,
+        }
+
     lecturer_profile = None
     if user.lecturer_profile:
         dept_id = _parse_int(user.lecturer_profile.department)
@@ -71,7 +145,7 @@ def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
         "created_at": user.created_at,
         "contact_number": user.contact_number,
         "profile_image": user.profile_image,
-        "student_profile": None,
+        "student_profile": student_profile,
         "lecturer_profile": lecturer_profile,
         "resource_manager_profile": None,
     }

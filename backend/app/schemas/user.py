@@ -54,6 +54,12 @@ class StudentProfileResponse(BaseModel):
     reg_no: Optional[str] = None
     registration_number: Optional[str] = None
     batch_id: Optional[int] = None
+    batch_code: Optional[str] = None
+    degree_name: Optional[str] = None
+    degree_code: Optional[str] = None
+    department_name: Optional[str] = None
+    semester_name: Optional[str] = None
+    semester_number: Optional[int] = None
 
 
 class LecturerProfileResponse(BaseModel):

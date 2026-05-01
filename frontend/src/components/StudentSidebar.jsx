@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Calendar,
@@ -6,6 +7,7 @@ import {
   FileHeart,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
+import { getUser } from "../services/api";
 
 const navItemClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
@@ -15,10 +17,21 @@ const navItemClass = ({ isActive }) =>
   }`;
 
 export default function StudentSidebar() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const initials = `${user.first_name?.[0] || "S"}${
-    user.last_name?.[0] || "T"
-  }`.toUpperCase();
+  const [userRefresh, setUserRefresh] = useState(0);
+  const user = getUser() || {};
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUserRefresh((prev) => prev + 1);
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+  }, []);
+
+  const initials = useMemo(() => {
+    return `${user.first_name?.[0] || "S"}${user.last_name?.[0] || "T"}`.toUpperCase();
+  }, [user, userRefresh]);
 
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -77,10 +90,18 @@ export default function StudentSidebar() {
       {/* User */}
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-sm
-                          font-medium flex items-center justify-center">
-            {initials}
-          </div>
+          {user.profile_image ? (
+            <img
+              src={`http://localhost:8000${user.profile_image}`}
+              alt="Profile"
+              className="h-8 w-8 rounded-full object-cover border border-gray-200"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-sm
+                            font-medium flex items-center justify-center">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
               {user.first_name} {user.last_name}
