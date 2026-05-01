@@ -6,9 +6,17 @@ Run: python seed_data.py
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.user import User, UserRole
-from app.models.academic import Faculty, Department, Degree, Batch
 from app.utils.auth import hash_password
 import sys
+
+
+APP_TO_DB_ROLE = {
+    UserRole.SUPER_ADMIN.value: "SUPER_ADMIN",
+    UserRole.SCHEDULER.value: "SCHEDULER",
+    UserRole.LECTURER.value: "LECTURER",
+    UserRole.STUDENT.value: "STUDENT",
+    UserRole.RESOURCE_MANAGER.value: "RESOURCE_MANAGER",
+}
 
 
 # -----------------------------
@@ -27,7 +35,7 @@ def create_admin_user(db: Session):
         password_hash=hash_password("admin1234"),
         first_name="System",
         last_name="Administrator",
-        role=UserRole.SUPER_ADMIN.value,
+        role=APP_TO_DB_ROLE[UserRole.SUPER_ADMIN.value],
         contact_number="+94712345678",
         is_active=True
     )
@@ -41,171 +49,6 @@ def create_admin_user(db: Session):
 
 
 # -----------------------------
-# FACULTIES
-# -----------------------------
-def create_sample_faculties(db: Session):
-
-    faculties_data = [
-        {"name": "Faculty of Animal Science and Export Agriculture", "code": "FASEA"},
-        {"name": "Faculty of Applied Sciences", "code": "FAS"},
-        {"name": "Faculty of Management", "code": "FOM"},
-        {"name": "Faculty of Technological Studies", "code": "FTS"},
-
-    ]
-
-    created = []
-
-    for data in faculties_data:
-
-        existing = db.query(Faculty).filter(Faculty.name == data["name"]).first()
-
-        if not existing:
-            faculty = Faculty(**data)
-            db.add(faculty)
-            created.append(faculty)
-
-    db.commit()
-
-    if created:
-        print(f"{len(created)} faculties created")
-    else:
-        print("Faculties already exist")
-
-    return db.query(Faculty).all()
-
-
-# -----------------------------
-# DEPARTMENTS
-# -----------------------------
-def create_sample_departments(db: Session, faculties):
-
-    faculty_map = {f.name: f for f in faculties}
-
-    departments_data = [
-
-        # Animal Science and Export Agriculture
-        {"name": "Department of Animal Science", "faculty_id": faculty_map["Faculty of Animal Science and Export Agriculture"].faculty_id},
-        {"name": "Department of Export Agriculture", "faculty_id": faculty_map["Faculty of Animal Science and Export Agriculture"].faculty_id},
-
-        # Applied Sciences
-        {"name": "Department of Computer Science and Informatics", "faculty_id": faculty_map["Faculty of Applied Sciences"].faculty_id},
-        {"name": "Department of Science and Technology", "faculty_id": faculty_map["Faculty of Applied Sciences"].faculty_id},
-        {"name": "Department of Applied Earth Sciences", "faculty_id": faculty_map["Faculty of Applied Sciences"].faculty_id},
-
-        # Management
-        {"name": "Department of Management Sciences", "faculty_id": faculty_map["Faculty of Management"].faculty_id},
-        {"name": "Department of Tourism Studies", "faculty_id": faculty_map["Faculty of Management"].faculty_id},
-
-        # Technological Studies
-        {"name": "Department of Biosystems Technology", "faculty_id": faculty_map["Faculty of Technological Studies"].faculty_id},
-        {"name": "Department of Engineering Technology", "faculty_id": faculty_map["Faculty of Technological Studies"].faculty_id},
-        {"name": "Department of Information and Communication Technology", "faculty_id": faculty_map["Faculty of Technological Studies"].faculty_id},
-    ]
-
-    department_codes = {
-        "Department of Animal Science": "DAS",
-        "Department of Export Agriculture": "DEA",
-        "Department of Computer Science and Informatics": "DCSI",
-        "Department of Science and Technology": "DST",
-        "Department of Applied Earth Sciences": "DAES",
-        "Department of Management Sciences": "DMS",
-        "Department of Tourism Studies": "DTS",
-        "Department of Biosystems Technology": "DBT",
-        "Department of Engineering Technology": "DET",
-        "Department of Information and Communication Technology": "DICT",
-    }
-
-    created = []
-
-    for dept in departments_data:
-
-        existing = db.query(Department).filter(Department.name == dept["name"]).first()
-
-        if not existing:
-            dept["code"] = department_codes[dept["name"]]
-            department = Department(**dept)
-            db.add(department)
-            created.append(department)
-
-    db.commit()
-
-    if created:
-        print(f"{len(created)} departments created")
-    else:
-        print("Departments already exist")
-
-    return db.query(Department).all()
-
-
-# -----------------------------
-# DEGREE PROGRAMS
-# -----------------------------
-def create_sample_degrees(db: Session):
-
-    degrees_data = [
-
-        {"name": "BSc Animal Production and Food Technology", "code": "APFT"},
-        {"name": "BSc Export Agriculture", "code": "EAG"},
-        {"name": "BSc Aquatic Resources Technology", "code": "AQT"},
-        {"name": "BSc Computer Science and Technology", "code": "CST"},
-        {"name": "BSc Science and Technology", "code": "SCT"},
-        {"name": "BSc Mineral Resources and Technology", "code": "MRT"},
-        {"name": "Bachelor of Industrial Information Technology", "code": "IIT"},
-        {"name": "BBM Entrepreneurship and Management", "code": "EMG"},
-        {"name": "BBM Hospitality Tourism and Events Management", "code": "HTE"},
-        {"name": "Bachelor of Information and Communication Technology", "code": "BICT"},
-        {"name": "Bachelor of Engineering Technology", "code": "BET"},
-        {"name": "Bachelor of Biosystems Technology", "code": "BST"},
-    ]
-
-    created = []
-
-    for degree in degrees_data:
-
-        existing = db.query(Degree).filter(Degree.code == degree["code"]).first()
-
-        if not existing:
-            d = Degree(**degree)
-            db.add(d)
-            created.append(d)
-
-    db.commit()
-
-    if created:
-        print(f"{len(created)} degrees created")
-    else:
-        print("Degrees already exist")
-
-
-# -----------------------------
-# BATCHES
-# -----------------------------
-def create_sample_batches(db: Session):
-
-    batches = [
-        {"name": "ICT 21", "academic_year": "2021/2025"},
-        {"name": "ICT 22", "academic_year": "2022/2026"},
-        {"name": "ICT 23", "academic_year": "2023/2027"},
-        {"name": "ICT 24", "academic_year": "2024/2028"},
-        {"name": "ICT 25", "academic_year": "2025/2029"},
-    ]
-
-    for batch in batches:
-
-        existing = db.query(Batch).filter(
-            Batch.name == batch["name"],
-            Batch.academic_year == batch["academic_year"]
-        ).first()
-
-        if not existing:
-            db.add(Batch(**batch))
-
-    db.commit()
-
-    print("Batches seeded")
-
-
-# -----------------------------
 # SAMPLE USERS
 # -----------------------------
 def create_sample_users(db: Session):
@@ -216,28 +59,28 @@ def create_sample_users(db: Session):
             "password": "scheduler123",
             "first_name": "Academic",
             "last_name": "Scheduler",
-            "role": UserRole.SCHEDULER.value
+            "role": APP_TO_DB_ROLE[UserRole.SCHEDULER.value]
         },
         {
             "email": "lecturer@uwu.ac.lk",
             "password": "lecturer123",
             "first_name": "Kasun",
             "last_name": "Perera",
-            "role": UserRole.LECTURER.value
+            "role": APP_TO_DB_ROLE[UserRole.LECTURER.value]
         },
         {
             "email": "student@uwu.ac.lk",
             "password": "student123",
             "first_name": "Nimal",
             "last_name": "Silva",
-            "role": UserRole.STUDENT.value
+            "role": APP_TO_DB_ROLE[UserRole.STUDENT.value]
         },
         {
             "email": "resource@uwu.ac.lk",
             "password": "resource123",
             "first_name": "Resource",
             "last_name": "Manager",
-            "role": UserRole.RESOURCE_MANAGER.value
+            "role": APP_TO_DB_ROLE[UserRole.RESOURCE_MANAGER.value]
         },
     ]
 
@@ -277,12 +120,6 @@ def seed_database():
     try:
 
         create_admin_user(db)
-
-        faculties = create_sample_faculties(db)
-
-        create_sample_departments(db, faculties)
-
-        create_sample_batches(db)
 
         create_sample_users(db)
 

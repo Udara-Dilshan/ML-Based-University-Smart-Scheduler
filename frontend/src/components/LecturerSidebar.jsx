@@ -5,6 +5,7 @@ import {
   Clock,
   BookOpen,
   User,
+  Settings,
   ChevronDown,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
@@ -68,15 +69,28 @@ export default function LecturerSidebar() {
           My Profile
         </NavLink>
 
+        <NavLink to="/lecturer/settings" className={navItemClass}>
+          <Settings size={16} />
+          Settings
+        </NavLink>
+
       </nav>
 
       {/* ── User Info ── */}
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-teal-600 text-white text-sm 
-                          font-medium flex items-center justify-center">
-            {initials}
-          </div>
+          {user.profile_image ? (
+            <img
+              src={`http://localhost:8000${user.profile_image}`}
+              alt="Profile"
+              className="h-8 w-8 rounded-full object-cover border border-gray-200"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-teal-600 text-white text-sm 
+                            font-medium flex items-center justify-center">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
               {user.first_name} {user.last_name}

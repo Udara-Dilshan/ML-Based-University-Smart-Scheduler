@@ -1,4 +1,8 @@
 degree_code,degree_name,department_code,department_name,duration_years
-BSC-ICT,BSc in Information and Communication Technology,DET,Department of Engineering Technology,4
-BBA-MGT,Bachelor of Business Administration,MGT,Department of Management Sciences,4
-BSC-EEE,BSc in Electrical and Electronic Engineering,EEE,Department of Electrical and Electronic Engineering,4
+FOT_ET,Bachelor of Engineering Technology Honours degree ,DOET,Department of Engineering Technology,4
+FOT_BST,Bachelor of Biosystems Technology Honours degree,DOBT,Department of Biosystem Technology,4
+FOT_ICT,Bachelor of Information and Communication Technology ,DOICT,Department of Information & Communication Technology,4
+FASEA_CST,Bachelor of Science in Computer Science and Technology,DOCSI,Department of Computer Science & Informatics,4
+FASEA2_IIT,Bachelor of Industrial Information Technology,DOCSI,Department of Computer Science & Informatics,4
+FASEA3_SCT,Bachelor of Technology in Science and Technology,DOSCT,Department of Science & Technology,4
+FASEA_MRT,Bachelor of Science in Mineral Resources and Technology,DOAES,Department of Applied Earth Sciences,4

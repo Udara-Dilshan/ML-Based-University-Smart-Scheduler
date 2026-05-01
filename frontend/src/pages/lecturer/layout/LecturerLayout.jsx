@@ -8,6 +8,7 @@ const pageTitles = {
   "/lecturer/availability": "My Availability",
   "/lecturer/courses":      "My Courses",
   "/lecturer/profile":      "My Profile",
+  "/lecturer/settings":     "Settings",
 };
 
 export default function LecturerLayout() {

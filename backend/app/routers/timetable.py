@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import time
 from ..database.connection import get_db
 from ..models.timetable import TimetableSession
 from pydantic import BaseModel
@@ -13,8 +14,8 @@ class SessionBase(BaseModel):
     lecturer_id: int
     resource_id: int
     day_of_week: str
-    start_time: str
-    end_time: str
+    start_time: time
+    end_time: time
 
 class SessionOut(SessionBase):
     session_id: int

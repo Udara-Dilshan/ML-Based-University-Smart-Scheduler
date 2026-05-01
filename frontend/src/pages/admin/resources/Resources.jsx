@@ -13,6 +13,13 @@ const initialForm = {
   location: "",
 };
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const getFirstNonEmptyValue = (row, keys) => {
@@ -42,10 +49,15 @@ export default function Resources() {
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
   const [selectedFacilities, setSelectedFacilities] = useState([]);
   const [otherFacility, setOtherFacility] = useState("");
+  const [resourceSearch, setResourceSearch] = useState("");
+  const [resourceFacultyFilter, setResourceFacultyFilter] = useState("");
+  const [resourceDepartmentFilter, setResourceDepartmentFilter] = useState("");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const modalTitle = useMemo(
     () => (editId ? "Edit Resource" : "Add Resource"),
@@ -86,6 +98,33 @@ export default function Resources() {
     return [...locationOptions, form.location];
   }, [locationOptions, form.location]);
 
+  const filteredResourceTypes = useMemo(() => {
+    if (!resourceTypeFilter) {
+      return resourceTypes;
+    }
+    return resourceTypes.includes(resourceTypeFilter)
+      ? [resourceTypeFilter, ...resourceTypes.filter((item) => item !== resourceTypeFilter)]
+      : [resourceTypeFilter, ...resourceTypes];
+  }, [resourceTypes, resourceTypeFilter]);
+
+  const filteredResourceDepartments = useMemo(() => {
+    const scopedDepartments = resourceFacultyFilter
+      ? departments.filter((department) => String(department.faculty_id) === String(resourceFacultyFilter))
+      : departments;
+
+    if (!resourceDepartmentFilter) {
+      return scopedDepartments;
+    }
+
+    const hasCurrent = scopedDepartments.some((department) => String(department.dept_id) === String(resourceDepartmentFilter));
+    if (hasCurrent) {
+      return scopedDepartments;
+    }
+
+    const currentDepartment = departments.find((department) => String(department.dept_id) === String(resourceDepartmentFilter));
+    return currentDepartment ? [...scopedDepartments, currentDepartment] : scopedDepartments;
+  }, [departments, resourceFacultyFilter, resourceDepartmentFilter]);
+
   const filteredDepartments = useMemo(() => {
     if (!form.faculty_id) {
       return [];
@@ -110,6 +149,45 @@ export default function Resources() {
     );
     return currentDepartment ? [...filteredDepartments, currentDepartment] : filteredDepartments;
   }, [filteredDepartments, departments, form.dept_id]);
+
+  const filteredResources = useMemo(() => {
+    const query = normalizeText(resourceSearch);
+
+    return resources.filter((resource) => {
+      if (resourceFacultyFilter && String(resource.faculty_id || "") !== String(resourceFacultyFilter)) {
+        return false;
+      }
+
+      if (resourceDepartmentFilter) {
+        const resourceDeptIds = (resource.dept_ids || [resource.dept_id])
+          .map((id) => String(id))
+          .filter(Boolean);
+        if (!resourceDeptIds.includes(String(resourceDepartmentFilter))) {
+          return false;
+        }
+      }
+
+      if (resourceTypeFilter && resource.type !== resourceTypeFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const searchableValues = [
+        resource.name,
+        resource.type,
+        resource.faculty_name,
+        resource.department_name,
+        ...(resource.department_names || []),
+        resource.facilities,
+        resource.location,
+      ];
+
+      return searchableValues.some((value) => normalizeText(value).includes(query));
+    });
+  }, [resources, resourceSearch, resourceFacultyFilter, resourceDepartmentFilter, resourceTypeFilter]);
 
   const loadData = async () => {
     try {
@@ -355,6 +433,7 @@ export default function Resources() {
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -369,6 +448,23 @@ export default function Resources() {
 
       const payloads = [];
       const validationErrors = [];
+      const duplicateRows = [];
+      const existingKeys = new Set(
+        resources.map((item) => {
+          const deptIds = (item.dept_ids || [])
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id))
+            .sort((a, b) => a - b)
+            .join(",");
+          return [
+            normalizeText(item.name),
+            normalizeText(item.type),
+            String(item.faculty_id || ""),
+            deptIds,
+          ].join("::");
+        })
+      );
+      const seenKeys = new Set();
 
       rows.forEach((row, index) => {
         const rowNumber = index + 2;
@@ -483,6 +579,29 @@ export default function Resources() {
           return;
         }
 
+        const deptIds = resolvedDepartments
+          .map((item) => Number(item.dept_id))
+          .filter((value) => Number.isFinite(value))
+          .sort((a, b) => a - b);
+        const resourceKey = [
+          normalizeText(name),
+          normalizeText(type),
+          String(faculty.faculty_id),
+          deptIds.join(","),
+        ].join("::");
+
+        if (existingKeys.has(resourceKey)) {
+          duplicateRows.push(`Row ${rowNumber}: resource already exists for selected faculty/department(s)`);
+          return;
+        }
+
+        if (seenKeys.has(resourceKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate resource in upload file`);
+          return;
+        }
+
+        seenKeys.add(resourceKey);
+
         payloads.push({
           rowNumber,
           payload: {
@@ -499,25 +618,68 @@ export default function Resources() {
       });
 
       if (!payloads.length) {
-        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new resources were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map((item) => resourceAPI.createResource(item.payload))
-      );
-
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
-          failedRows.push(`Row ${payloads[index].rowNumber}: ${detail}`);
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => resourceAPI.createResource(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+            failedRows.push(`Row ${chunk[chunkIndex].rowNumber}: ${detail}`);
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadData();
 
@@ -525,11 +687,24 @@ export default function Resources() {
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
       const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
 
-      if (validationErrors.length || failedRows.length) {
-        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
       }
 
       setUploadFile(null);
@@ -537,6 +712,7 @@ export default function Resources() {
       setUploadError(uploadException.message || "Failed to process upload file");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -563,6 +739,7 @@ export default function Resources() {
                 setUploadFile(event.target.files?.[0] || null);
                 setUploadError("");
                 setUploadMessage("");
+                setUploadProgress(null);
               }}
             />
           </label>
@@ -598,11 +775,65 @@ export default function Resources() {
         </div>
       )}
 
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
+
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4">
+        <input
+          value={resourceSearch}
+          onChange={(event) => setResourceSearch(event.target.value)}
+          placeholder="Search name, type, faculty, department, facility or location"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+        <select
+          value={resourceFacultyFilter}
+          onChange={(event) => {
+            setResourceFacultyFilter(event.target.value);
+            setResourceDepartmentFilter("");
+          }}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Faculties</option>
+          {faculties.map((faculty) => (
+            <option key={faculty.faculty_id} value={faculty.faculty_id}>
+              {faculty.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={resourceDepartmentFilter}
+          onChange={(event) => setResourceDepartmentFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Departments</option>
+          {filteredResourceDepartments.map((department) => (
+            <option key={department.dept_id} value={department.dept_id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={resourceTypeFilter}
+          onChange={(event) => setResourceTypeFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Types</option>
+            {filteredResourceTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full min-w-[760px]">
@@ -626,15 +857,15 @@ export default function Resources() {
                 </td>
               </tr>
             )}
-            {!loading && resources.length === 0 && (
+            {!loading && filteredResources.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={8}>
-                  No resources found.
+                  No resources found for the current filters.
                 </td>
               </tr>
             )}
             {!loading &&
-              resources.map((resource) => (
+              filteredResources.map((resource) => (
                 <tr key={resource.resource_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-800">{resource.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{resource.type}</td>

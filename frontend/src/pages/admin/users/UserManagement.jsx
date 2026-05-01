@@ -17,6 +17,13 @@ const roleOptions = [
 
 const sectionOptions = ["Transport", "Events"];
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const getFirstNonEmptyValue = (row, keys) => {
@@ -71,12 +78,18 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentBatchFilter, setStudentBatchFilter] = useState("");
   const [studentStatusFilter, setStudentStatusFilter] = useState("all");
+  const [lecturerSearch, setLecturerSearch] = useState("");
+  const [lecturerFacultyFilter, setLecturerFacultyFilter] = useState("");
+  const [lecturerDepartmentFilter, setLecturerDepartmentFilter] = useState("");
+  const [lecturerStatusFilter, setLecturerStatusFilter] = useState("all");
   const fileInputRef = useRef(null);
 
   const isStudentManagementView = forcedRole === "Student";
+  const isLecturerManagementView = forcedRole === "Lecturer";
   const selectedRole = forcedRole || form.role;
   const showRoleColumn = !forcedRole;
   const modalTitle = useMemo(() => (editId ? "Edit User" : "Add User"), [editId]);
@@ -426,6 +439,57 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     return department?.name || String(deptId);
   };
 
+  const getDepartmentById = (deptId) => {
+    if (deptId === undefined || deptId === null || deptId === "") {
+      return null;
+    }
+
+    return departments.find((item) => String(item.dept_id) === String(deptId)) || null;
+  };
+
+  const getFacultyNameByDepartmentId = (deptId) => {
+    const department = getDepartmentById(deptId);
+    if (!department?.faculty) {
+      return "-";
+    }
+
+    return department.faculty.name || department.faculty.code || String(department.faculty.faculty_id);
+  };
+
+  const facultyOptions = useMemo(() => {
+    const options = new Map();
+
+    departments.forEach((department) => {
+      const faculty = department.faculty;
+      if (!faculty?.faculty_id) {
+        return;
+      }
+
+      const key = String(faculty.faculty_id);
+      if (!options.has(key)) {
+        options.set(key, {
+          faculty_id: faculty.faculty_id,
+          name: faculty.name || faculty.code || key,
+        });
+      }
+    });
+
+    return Array.from(options.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }, [departments]);
+
+  const lecturerDepartments = useMemo(() => {
+    return departments
+      .filter((department) => {
+        if (!lecturerFacultyFilter) {
+          return true;
+        }
+
+        return String(department.faculty_id || department.faculty?.faculty_id || "") === String(lecturerFacultyFilter);
+      })
+      .slice()
+      .sort((left, right) => (left.name || "").localeCompare(right.name || ""));
+  }, [departments, lecturerFacultyFilter]);
+
   const getBatchLabelById = (batchId) => {
     if (batchId === undefined || batchId === null || batchId === "") {
       return "-";
@@ -448,7 +512,8 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     if (user.role === "Lecturer") {
       const staff = user.lecturer_profile?.staff_id || "-";
       const dept = getDepartmentNameById(user.lecturer_profile?.dept_id);
-      return `Staff: ${staff}, Dept: ${dept}`;
+      const faculty = getFacultyNameByDepartmentId(user.lecturer_profile?.dept_id);
+      return `Staff: ${staff}, Dept: ${dept}, Faculty: ${faculty}`;
     }
     if (user.role === "ResourceManager") {
       return `Section: ${user.resource_manager_profile?.assigned_section || "-"}`;
@@ -482,8 +547,47 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   };
 
   const filteredUsers = useMemo(() => {
-    if (!isStudentManagementView) {
+    if (!isStudentManagementView && !isLecturerManagementView) {
       return users;
+    }
+
+    if (isLecturerManagementView) {
+      const query = normalizeText(lecturerSearch);
+
+      return users.filter((user) => {
+        if (lecturerStatusFilter === "active" && !user.is_active) {
+          return false;
+        }
+        if (lecturerStatusFilter === "inactive" && user.is_active) {
+          return false;
+        }
+
+        const department = getDepartmentById(user.lecturer_profile?.dept_id);
+        const facultyId = String(department?.faculty_id || department?.faculty?.faculty_id || "");
+        const departmentId = String(user.lecturer_profile?.dept_id || "");
+
+        if (lecturerFacultyFilter && facultyId !== String(lecturerFacultyFilter)) {
+          return false;
+        }
+
+        if (lecturerDepartmentFilter && departmentId !== String(lecturerDepartmentFilter)) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        const email = user.email || "";
+        const staffId = user.lecturer_profile?.staff_id || "";
+        const departmentName = getDepartmentNameById(user.lecturer_profile?.dept_id);
+        const facultyName = getFacultyNameByDepartmentId(user.lecturer_profile?.dept_id);
+
+        return [fullName, email, staffId, departmentName, facultyName].some((value) =>
+          normalizeText(value).includes(query)
+        );
+      });
     }
 
     const query = normalizeText(studentSearch);
@@ -516,11 +620,17 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     });
   }, [
     isStudentManagementView,
+    isLecturerManagementView,
     users,
     studentStatusFilter,
     studentBatchFilter,
     studentSearch,
+    lecturerFacultyFilter,
+    lecturerDepartmentFilter,
+    lecturerSearch,
+    lecturerStatusFilter,
     batches,
+    departments,
   ]);
 
   const handleExportStudents = () => {
@@ -545,6 +655,29 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     XLSX.writeFile(workbook, "students_export.xlsx");
   };
 
+  const handleExportLecturers = () => {
+    if (!filteredUsers.length) {
+      setUploadError("No lecturers to export");
+      return;
+    }
+
+    const exportRows = filteredUsers.map((user) => ({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      contact_number: user.contact_number || "",
+      staff_id: user.lecturer_profile?.staff_id || "",
+      department: getDepartmentNameById(user.lecturer_profile?.dept_id),
+      designation: user.lecturer_profile?.designation || "",
+      status: user.is_active ? "Active" : "Inactive",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Lecturers");
+    XLSX.writeFile(workbook, "lecturers_export.xlsx");
+  };
+
   const handleStudentBulkUpload = async () => {
     if (!uploadFile) {
       setUploadError("Select an Excel or CSV file before uploading");
@@ -555,6 +688,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -569,6 +703,19 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
 
       const payloads = [];
       const validationErrors = [];
+      const duplicateRows = [];
+      const existingEmailKeys = new Set(
+        users
+          .filter((user) => user.role === "Student")
+          .map((user) => normalizeText(user.email))
+      );
+      const existingRegNoKeys = new Set(
+        users
+          .filter((user) => user.role === "Student")
+          .map((user) => normalizeText(user.student_profile?.reg_no))
+      );
+      const seenEmailKeys = new Set();
+      const seenRegNoKeys = new Set();
 
       rows.forEach((row, index) => {
         const rowNumber = index + 2;
@@ -621,6 +768,22 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
           ? false
           : true;
 
+        const emailKey = normalizeText(email);
+        const regNoKey = normalizeText(regNo);
+
+        if (existingEmailKeys.has(emailKey) || existingRegNoKeys.has(regNoKey)) {
+          duplicateRows.push(`Row ${rowNumber}: student already exists in system (email or reg_no)`);
+          return;
+        }
+
+        if (seenEmailKeys.has(emailKey) || seenRegNoKeys.has(regNoKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate student in upload file (email or reg_no)`);
+          return;
+        }
+
+        seenEmailKeys.add(emailKey);
+        seenRegNoKeys.add(regNoKey);
+
         payloads.push({
           rowNumber,
           payload: {
@@ -641,26 +804,70 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       });
 
       if (!payloads.length) {
-        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new students were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map((item) => createUser(item.payload))
-      );
-
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          failedRows.push(
-            `Row ${payloads[index].rowNumber}: ${readApiError(result.reason, "Failed to create")}`
-          );
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => createUser(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const source = chunk[chunkIndex];
+            failedRows.push(
+              `Row ${source.rowNumber}: ${readApiError(result.reason, "Failed to create")}`
+            );
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadUsers();
 
@@ -668,11 +875,24 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
       const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
 
-      if (validationErrors.length || failedRows.length) {
-        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
       }
 
       setUploadFile(null);
@@ -680,6 +900,232 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       setUploadError(readApiError(uploadException, "Failed to process upload file"));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleLecturerBulkUpload = async () => {
+    if (!uploadFile) {
+      setUploadError("Select an Excel or CSV file before uploading");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadError("");
+      setUploadMessage("");
+      setUploadProgress(null);
+
+      const fileBuffer = await uploadFile.arrayBuffer();
+      const workbook = XLSX.read(fileBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!rows.length) {
+        setUploadError("The uploaded file is empty");
+        return;
+      }
+
+      const payloads = [];
+      const validationErrors = [];
+      const duplicateRows = [];
+      const existingEmailKeys = new Set(users.map((user) => normalizeText(user.email)));
+      const existingStaffIdKeys = new Set(
+        users.map((user) => normalizeText(user.lecturer_profile?.staff_id))
+      );
+      const seenEmailKeys = new Set();
+      const seenStaffIdKeys = new Set();
+
+      rows.forEach((row, index) => {
+        const rowNumber = index + 2;
+        const firstName = String(getFirstNonEmptyValue(row, ["first_name", "firstname"])).trim();
+        const lastName = String(getFirstNonEmptyValue(row, ["last_name", "lastname"])).trim();
+        const email = String(getFirstNonEmptyValue(row, ["email"])).trim();
+        const password = String(getFirstNonEmptyValue(row, ["password"])).trim();
+        const contactNumber = String(getFirstNonEmptyValue(row, ["contact_number", "phone"])).trim();
+        const staffId = String(getFirstNonEmptyValue(row, ["staff_id", "employee_id"])).trim();
+        const designation = String(getFirstNonEmptyValue(row, ["designation"])).trim();
+        const activeValue = String(getFirstNonEmptyValue(row, ["is_active", "active"])).trim();
+
+        const deptIdValue = getFirstNonEmptyValue(row, ["dept_id", "department_id"]);
+        const deptCode = String(getFirstNonEmptyValue(row, ["dept_code", "department_code"])).trim();
+        const deptName = String(getFirstNonEmptyValue(row, ["dept_name", "department_name", "department"])).trim();
+
+        if (!firstName || !lastName || !email || !password || !staffId) {
+          validationErrors.push(
+            `Row ${rowNumber}: first_name, last_name, email, password and staff_id are required`
+          );
+          return;
+        }
+
+        let department = null;
+        const parsedDeptId = Number(deptIdValue);
+        if (Number.isFinite(parsedDeptId) && parsedDeptId > 0) {
+          department = departments.find((item) => item.dept_id === parsedDeptId) || null;
+        }
+
+        if (!department && deptCode) {
+          const normalizedCode = normalizeText(deptCode);
+          department = departments.find((item) => normalizeText(item.code) === normalizedCode) || null;
+        }
+
+        if (!department && deptName) {
+          const normalizedName = normalizeText(deptName);
+          const matches = departments.filter((item) => normalizeText(item.name) === normalizedName);
+          if (matches.length > 1) {
+            validationErrors.push(
+              `Row ${rowNumber}: department '${deptName}' matched multiple records, use dept_code or dept_id`
+            );
+            return;
+          }
+          department = matches[0] || null;
+        }
+
+        if (!department) {
+          validationErrors.push(
+            `Row ${rowNumber}: dept_id, dept_code or dept_name is required and must match`
+          );
+          return;
+        }
+
+        const emailKey = normalizeText(email);
+        const staffIdKey = normalizeText(staffId);
+
+        if (existingEmailKeys.has(emailKey) || existingStaffIdKeys.has(staffIdKey)) {
+          duplicateRows.push(`Row ${rowNumber}: lecturer already exists in system (email or staff_id)`);
+          return;
+        }
+
+        if (seenEmailKeys.has(emailKey) || seenStaffIdKeys.has(staffIdKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate lecturer in upload file (email or staff_id)`);
+          return;
+        }
+
+        seenEmailKeys.add(emailKey);
+        seenStaffIdKeys.add(staffIdKey);
+
+        const isActive = ["false", "0", "no", "inactive"].includes(normalizeText(activeValue))
+          ? false
+          : true;
+
+        payloads.push({
+          rowNumber,
+          payload: {
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+            role: "Lecturer",
+            is_active: isActive,
+            contact_number: contactNumber || null,
+            lecturer_profile: {
+              staff_id: staffId,
+              dept_id: Number(department.dept_id),
+              designation: designation || null,
+            },
+          },
+        });
+      });
+
+      if (!payloads.length) {
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new lecturers were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
+        return;
+      }
+
+      const failedRows = [];
+      let createdCount = 0;
+      let processedCount = 0;
+
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
+      });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => createUser(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const source = chunk[chunkIndex];
+            failedRows.push(
+              `Row ${source.rowNumber}: ${readApiError(result.reason, "Failed to create")}`
+            );
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
+
+      await loadUsers();
+
+      const baseMessage = `Created ${createdCount} lecturer record(s)`;
+      const validationPart = validationErrors.length
+        ? ` | ${validationErrors.length} row(s) skipped during validation`
+        : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
+      const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
+
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
+      }
+
+      setUploadFile(null);
+    } catch (uploadException) {
+      setUploadError(readApiError(uploadException, "Failed to process upload file"));
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -707,6 +1153,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                     setUploadFile(event.target.files?.[0] || null);
                     setUploadError("");
                     setUploadMessage("");
+                    setUploadProgress(null);
                   }}
                 />
               </label>
@@ -724,6 +1171,46 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Export Students
+              </button>
+            </>
+          )}
+          {isLecturerManagementView && (
+            <>
+              <a
+                href="/lecturer_upload_sample.csv"
+                download
+                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+              >
+                Download CSV Template
+              </a>
+              <label className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {uploadFile ? uploadFile.name : "Choose Excel File"}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(event) => {
+                    setUploadFile(event.target.files?.[0] || null);
+                    setUploadError("");
+                    setUploadMessage("");
+                    setUploadProgress(null);
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleLecturerBulkUpload}
+                disabled={!uploadFile || uploading}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {uploading ? "Uploading..." : "Upload Excel"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportLecturers}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Export Lecturers
               </button>
             </>
           )}
@@ -769,6 +1256,53 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
         </div>
       )}
 
+      {isLecturerManagementView && (
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4">
+          <input
+            value={lecturerSearch}
+            onChange={(event) => setLecturerSearch(event.target.value)}
+            placeholder="Search name, email, staff ID, faculty, department"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <select
+            value={lecturerFacultyFilter}
+            onChange={(event) => {
+              setLecturerFacultyFilter(event.target.value);
+              setLecturerDepartmentFilter("");
+            }}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Faculties</option>
+            {facultyOptions.map((faculty) => (
+              <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                {faculty.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={lecturerDepartmentFilter}
+            onChange={(event) => setLecturerDepartmentFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Departments</option>
+            {lecturerDepartments.map((department) => (
+              <option key={department.dept_id} value={department.dept_id}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={lecturerStatusFilter}
+            onChange={(event) => setLecturerStatusFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      )}
+
       {uploadMessage && (
         <div className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {uploadMessage}
@@ -778,6 +1312,12 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       {uploadError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {uploadError}
+        </div>
+      )}
+
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
         </div>
       )}
 

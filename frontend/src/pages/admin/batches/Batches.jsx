@@ -12,6 +12,13 @@ const initialForm = {
   academic_year: "",
 };
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const getFirstNonEmptyValue = (row, keys) => {
@@ -78,6 +85,7 @@ export default function Batches() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [activeTermFormByBatch, setActiveTermFormByBatch] = useState({});
   const [assigningBatchIds, setAssigningBatchIds] = useState({});
   const [termMessage, setTermMessage] = useState("");
@@ -364,6 +372,7 @@ export default function Batches() {
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -493,25 +502,85 @@ export default function Batches() {
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map(async (item) => {
-          const created = await academicAPI.createBatch(item.createPayload);
-          await academicAPI.assignBatchActiveTerm(created.batch_id, item.termPayload);
-          return created;
-        })
-      );
-
+      const createFailures = [];
+      const termFailures = [];
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
-          failedRows.push(`Row ${payloads[index].rowNumber}: ${detail}`);
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+
+        const chunkResults = await Promise.all(
+          chunk.map(async (item) => {
+            try {
+              const created = await academicAPI.createBatch(item.createPayload);
+
+              try {
+                await academicAPI.assignBatchActiveTerm(created.batch_id, item.termPayload);
+                return {
+                  status: "success",
+                  rowNumber: item.rowNumber,
+                };
+              } catch (termError) {
+                const detail = termError?.response?.data?.detail || termError?.message || "Failed to assign active term";
+                return {
+                  status: "term_failed",
+                  rowNumber: item.rowNumber,
+                  detail: String(detail),
+                };
+              }
+            } catch (createError) {
+              const detail = createError?.response?.data?.detail || createError?.message || "Failed to create batch";
+              return {
+                status: "create_failed",
+                rowNumber: item.rowNumber,
+                detail: String(detail),
+              };
+            }
+          })
+        );
+
+        chunkResults.forEach((result) => {
+          if (result.status === "success") {
+            createdCount += 1;
+            return;
+          }
+
+          if (result.status === "term_failed") {
+            createdCount += 1;
+            const rowError = `Row ${result.rowNumber}: ${result.detail}`;
+            failedRows.push(rowError);
+            termFailures.push(rowError);
+            return;
+          }
+
+          if (result.status === "create_failed") {
+            const rowError = `Row ${result.rowNumber}: ${result.detail}`;
+            failedRows.push(rowError);
+            createFailures.push(rowError);
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadData();
 
@@ -519,8 +588,13 @@ export default function Batches() {
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
-      const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      const createFailPart = createFailures.length
+        ? ` | ${createFailures.length} row(s) failed during create`
+        : "";
+      const termFailPart = termFailures.length
+        ? ` | ${termFailures.length} row(s) failed during term setup`
+        : "";
+      setUploadMessage(`${baseMessage}${validationPart}${createFailPart}${termFailPart}`);
 
       if (validationErrors.length || failedRows.length) {
         setUploadError([...validationErrors, ...failedRows].join(" | "));
@@ -531,6 +605,7 @@ export default function Batches() {
       setUploadError(uploadException.message || "Failed to process upload file");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -608,6 +683,12 @@ export default function Batches() {
       {uploadError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {uploadError}
+        </div>
+      )}
+
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
         </div>
       )}
 

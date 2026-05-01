@@ -21,11 +21,16 @@ class Department(Base):
 
 class Module(Base):
     __tablename__ = "modules"
+    __table_args__ = (
+        UniqueConstraint("degree_id", "code", name="uq_modules_degree_code"),
+        UniqueConstraint("degree_id", "name", name="uq_modules_degree_name"),
+    )
+
     module_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     dept_id = Column(Integer, ForeignKey("departments.dept_id"))
     degree_id = Column(Integer, ForeignKey("degrees.degree_id"), nullable=False)
     name = Column(String(255), nullable=False)
-    code = Column(String(50), unique=True, nullable=False)
+    code = Column(String(50), nullable=False)
     credits = Column(Integer, nullable=False)
     lecture_hours_per_week = Column(Integer, nullable=False)
     is_active = Column(Integer, nullable=True, default=1)

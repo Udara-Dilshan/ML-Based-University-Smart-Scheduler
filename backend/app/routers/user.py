@@ -26,6 +26,8 @@ APP_TO_DB_ROLE = {
 
 DB_TO_APP_ROLE = {value: key for key, value in APP_TO_DB_ROLE.items()}
 
+VALID_RESOURCE_MANAGER_SECTIONS = {"TRANSPORT", "EVENTS", "GENERAL"}
+
 
 def _normalize_app_role(role: Optional[str]) -> Optional[str]:
     if role is None:
@@ -50,6 +52,16 @@ def _normalize_app_role(role: Optional[str]) -> Optional[str]:
 
 def _to_db_role(role: str) -> str:
     return APP_TO_DB_ROLE[role]
+
+
+def _normalize_resource_manager_section(value: str) -> str:
+    normalized = (value or "").strip().upper().replace(" ", "_")
+    if normalized not in VALID_RESOURCE_MANAGER_SECTIONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="assigned_section must be one of TRANSPORT, EVENTS, GENERAL",
+        )
+    return normalized
 
 
 def _validate_role(role: str) -> str:
@@ -182,7 +194,7 @@ def _set_lecturer_profile(
 def _set_resource_manager_profile(user: User, assigned_section: str):
     if not user.resource_manager_profile:
         user.resource_manager_profile = ResourceManager(user_id=user.user_id)
-    user.resource_manager_profile.assigned_section = assigned_section
+    user.resource_manager_profile.assigned_section = _normalize_resource_manager_section(assigned_section)
 
 
 def _clear_non_target_profiles(user: User, role: str):

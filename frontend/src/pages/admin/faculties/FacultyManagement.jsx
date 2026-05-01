@@ -10,6 +10,15 @@ const initialForm = {
   dean_name: "",
 };
 
+const BULK_UPLOAD_CHUNK_SIZE = 4;
+const BULK_UPLOAD_CHUNK_DELAY_MS = 150;
+
+const wait = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
+const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
+
 const getFirstNonEmptyValue = (row, keys) => {
   for (const key of keys) {
     const value = row[key];
@@ -33,6 +42,7 @@ export default function FacultyManagement() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const modalTitle = useMemo(() => (editId ? "Edit Faculty" : "Add Faculty"), [editId]);
 
@@ -153,6 +163,7 @@ export default function FacultyManagement() {
       setUploading(true);
       setUploadError("");
       setUploadMessage("");
+      setUploadProgress(null);
 
       const fileBuffer = await uploadFile.arrayBuffer();
       const workbook = XLSX.read(fileBuffer, { type: "array" });
@@ -167,6 +178,11 @@ export default function FacultyManagement() {
 
       const payloads = [];
       const validationErrors = [];
+      const duplicateRows = [];
+      const existingCodeKeys = new Set(faculties.map((item) => normalizeText(item.code)));
+      const existingNameKeys = new Set(faculties.map((item) => normalizeText(item.name)));
+      const seenCodeKeys = new Set();
+      const seenNameKeys = new Set();
 
       rows.forEach((row, index) => {
         const rowNumber = index + 2;
@@ -179,6 +195,22 @@ export default function FacultyManagement() {
           return;
         }
 
+        const codeKey = normalizeText(code);
+        const nameKey = normalizeText(name);
+
+        if (existingCodeKeys.has(codeKey) || existingNameKeys.has(nameKey)) {
+          duplicateRows.push(`Row ${rowNumber}: faculty already exists (code or name)`);
+          return;
+        }
+
+        if (seenCodeKeys.has(codeKey) || seenNameKeys.has(nameKey)) {
+          duplicateRows.push(`Row ${rowNumber}: duplicate faculty in upload file (code or name)`);
+          return;
+        }
+
+        seenCodeKeys.add(codeKey);
+        seenNameKeys.add(nameKey);
+
         payloads.push({
           rowNumber,
           payload: {
@@ -190,25 +222,68 @@ export default function FacultyManagement() {
       });
 
       if (!payloads.length) {
-        setUploadError(validationErrors.join(" | ") || "No valid rows were found in file");
+        const summaryParts = [];
+        if (validationErrors.length) {
+          summaryParts.push(`${validationErrors.length} row(s) invalid`);
+        }
+        if (duplicateRows.length) {
+          summaryParts.push(`${duplicateRows.length} row(s) already exist or duplicated`);
+        }
+
+        if (duplicateRows.length && !validationErrors.length) {
+          setUploadMessage(
+            `No new faculties were uploaded | ${duplicateRows.length} row(s) already exist or are repeated in the file`
+          );
+          setUploadError("");
+          return;
+        }
+
+        setUploadError(
+          summaryParts.length
+            ? `No new rows to upload | ${summaryParts.join(" | ")}`
+            : "No valid rows were found in file"
+        );
         return;
       }
 
-      const createResults = await Promise.allSettled(
-        payloads.map((item) => academicAPI.createFaculty(item.payload))
-      );
-
       const failedRows = [];
       let createdCount = 0;
+      let processedCount = 0;
 
-      createResults.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          createdCount += 1;
-        } else {
-          const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
-          failedRows.push(`Row ${payloads[index].rowNumber}: ${detail}`);
-        }
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
       });
+
+      for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
+        const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
+        const createResults = await Promise.allSettled(
+          chunk.map((item) => academicAPI.createFaculty(item.payload))
+        );
+
+        createResults.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
+            createdCount += 1;
+          } else {
+            const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+            failedRows.push(`Row ${chunk[chunkIndex].rowNumber}: ${detail}`);
+          }
+        });
+
+        processedCount += chunk.length;
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
+
+        if (processedCount < payloads.length) {
+          await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
+        }
+      }
 
       await loadFaculties();
 
@@ -216,11 +291,24 @@ export default function FacultyManagement() {
       const validationPart = validationErrors.length
         ? ` | ${validationErrors.length} row(s) skipped during validation`
         : "";
+      const duplicatePart = duplicateRows.length
+        ? ` | ${duplicateRows.length} row(s) skipped as duplicate`
+        : "";
       const failPart = failedRows.length ? ` | ${failedRows.length} row(s) failed during save` : "";
-      setUploadMessage(`${baseMessage}${validationPart}${failPart}`);
+      setUploadMessage(`${baseMessage}${validationPart}${duplicatePart}${failPart}`);
 
-      if (validationErrors.length || failedRows.length) {
-        setUploadError([...validationErrors, ...failedRows].join(" | "));
+      if (validationErrors.length || duplicateRows.length || failedRows.length) {
+        const issueSummary = [];
+        if (validationErrors.length) {
+          issueSummary.push(`${validationErrors.length} invalid`);
+        }
+        if (duplicateRows.length) {
+          issueSummary.push(`${duplicateRows.length} duplicate`);
+        }
+        if (failedRows.length) {
+          issueSummary.push(`${failedRows.length} failed`);
+        }
+        setUploadError(`Upload completed with issues | ${issueSummary.join(" | ")}`);
       }
 
       setUploadFile(null);
@@ -228,6 +316,7 @@ export default function FacultyManagement() {
       setUploadError(uploadException.message || "Failed to process upload file");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -271,6 +360,7 @@ export default function FacultyManagement() {
                 setUploadFile(event.target.files?.[0] || null);
                 setUploadError("");
                 setUploadMessage("");
+                setUploadProgress(null);
               }}
             />
           </label>
@@ -303,6 +393,12 @@ export default function FacultyManagement() {
       {uploadError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {uploadError}
+        </div>
+      )}
+
+      {uploading && uploadProgress && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
         </div>
       )}
 

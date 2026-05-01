@@ -1,3 +1,29 @@
 batch_code,degree_code,degree_name,student_count,current_semester,academic_year
-ICT 23,ICT,Information and communication technology,80,Year 1 Semester 1,2025/2026
-CST 21,CST,Computer science technology,95,Year 4 Semester 2,2025/2026
+ICT-21,FOT_ICT,Bachelor of Information and Communication Technology Honours degree,89,8,2021/2022
+ICT-22,FOT_ICT,Bachelor of Information and Communication Technology Honours degree,88,6,2022/2023
+ICT-23,FOT_ICT,Bachelor of Information and Communication Technology Honours degree,90,4,2023/2024
+ICT-24,FOT_ICT,Bachelor of Information and Communication Technology Honours degree,76,2,2024/2025
+ET-21,FOT_ET,Bachelor of Engineering Technology Honours degree ,83,8,2025/2026
+ET-22,FOT_ET,Bachelor of Engineering Technology Honours degree ,88,6,2026/2027
+ET-23,FOT_ET,Bachelor of Engineering Technology Honours degree ,84,4,2027/2028
+ET-24,FOT_ET,Bachelor of Engineering Technology Honours degree ,82,2,2021/2022
+BST-21,FOT_BST,Bachelor of Biosystems Technology Honours degree,85,8,2022/2023
+BST-22,FOT_BST,Bachelor of Biosystems Technology Honours degree,84,6,2023/2024
+BST-23,FOT_BST,Bachelor of Biosystems Technology Honours degree,88,4,2024/2025
+BST-24,FOT_BST,Bachelor of Biosystems Technology Honours degree,80,2,2025/2026
+CST-21,FASEA_CST,Bachelor of Science in Computer Science and Technology,78,8,2026/2027
+CST-22,FASEA_CST,Bachelor of Science in Computer Science and Technology,76,6,2027/2028
+CST-23,FASEA_CST,Bachelor of Science in Computer Science and Technology,80,4,2021/2022
+CST-24,FASEA_CST,Bachelor of Science in Computer Science and Technology,82,2,2022/2023
+IIT-21,FASEA2_IIT,Bachelor of Industrial Information Technology,80,8,2023/2024
+IIT-22,FASEA2_IIT,Bachelor of Industrial Information Technology,79,6,2024/2025
+IIT-23,FASEA2_IIT,Bachelor of Industrial Information Technology,78,4,2025/2026
+IIT-24,FASEA2_IIT,Bachelor of Industrial Information Technology,80,2,2026/2027
+SCT-21,FASEA3_SCT,Bachelor of Technology in Science and Technology,83,8,2027/2028
+SCT-22,FASEA3_SCT,Bachelor of Technology in Science and Technology,82,6,2021/2022
+SCT-23,FASEA3_SCT,Bachelor of Technology in Science and Technology,87,4,2022/2023
+SCT-24,FASEA3_SCT,Bachelor of Technology in Science and Technology,88,2,2023/2024
+MRT-21,FASEA_MRT,Bachelor of Science in Mineral Resources and Technology,78,8,2024/2025
+MRT-22,FASEA_MRT,Bachelor of Science in Mineral Resources and Technology,77,6,2025/2026
+MRT-23,FASEA_MRT,Bachelor of Science in Mineral Resources and Technology,74,4,2026/2027
+MRT-24,FASEA_MRT,Bachelor of Science in Mineral Resources and Technology,72,2,2027/2028
