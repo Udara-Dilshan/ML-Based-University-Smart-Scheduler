@@ -313,6 +313,13 @@ export const lecturerAPI = {
   },
 };
 
+export const studentAPI = {
+  getCourses: async () => {
+    const response = await api.get("/api/dashboard/student-courses");
+    return response.data;
+  },
+};
+
 export const setAuthToken = (token) => {
   localStorage.setItem("token", token);
 };

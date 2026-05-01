@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import distinct, func
 from sqlalchemy.orm import Session
 from ..database.connection import get_db
-from ..models.academic import Batch, LecturerModuleAssignment, Module
+from ..models.academic import Batch, BatchActiveTerm, DegreeSemesterModule, LecturerModuleAssignment, Module
 from ..models.resource import Resource
 from ..models.settings import SystemConstraint
 from ..models.timetable import TimetableSession
@@ -33,6 +33,18 @@ DAY_MAP = {
     "saturday": "Sat",
     "sun": "Sun",
     "sunday": "Sun",
+}
+
+
+def _semester_label(semester_number: int) -> str:
+    year = ((semester_number - 1) // 2) + 1
+    semester = 1 if semester_number % 2 == 1 else 2
+    return f"Year {year} Semester {semester}"
+
+
+SEMESTER_NAME_TO_NUMBER = {
+    _semester_label(number): number
+    for number in range(1, 11)
 }
 
 WORKING_HOURS_START_KEY = "working_hours_start"
@@ -75,6 +87,27 @@ def _decode_working_days(mask: int) -> list[str]:
         if (int(mask or 0) & (1 << index)) != 0:
             days.append(day)
     return days
+
+
+def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str]:
+    active_term = (
+        db.query(BatchActiveTerm)
+        .filter(
+            BatchActiveTerm.batch_id == batch.batch_id,
+            BatchActiveTerm.is_active.is_(True),
+        )
+        .order_by(BatchActiveTerm.id.desc())
+        .first()
+    )
+
+    if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
+        semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
+        semester_name = active_term.semester_name
+    else:
+        semester_number = batch.current_semester
+        semester_name = _semester_label(semester_number)
+
+    return semester_number, semester_name
 
 
 @router.get("/stats")
@@ -266,6 +299,103 @@ def get_lecturer_dashboard_summary(
             "hours_this_week": hours_this_week,
         },
         "today_schedule": today_schedule,
+    }
+
+
+@router.get("/student-courses")
+def get_student_courses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STUDENT)),
+):
+    student_profile = current_user.student_profile
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    raw_batch_id = getattr(student_profile, "batch_id", None)
+    if raw_batch_id is None:
+        raw_batch_id = getattr(student_profile, "batch", None)
+
+    try:
+        batch_id = int(str(raw_batch_id).strip()) if raw_batch_id is not None else None
+    except (TypeError, ValueError):
+        batch_id = None
+
+    if not batch_id:
+        raise HTTPException(status_code=422, detail="Student batch is not set")
+
+    batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    if not batch.degree:
+        raise HTTPException(status_code=404, detail="Degree not found for student batch")
+
+    semester_number, semester_name = _resolve_batch_semester(batch, db)
+
+    modules = (
+        db.query(Module)
+        .join(DegreeSemesterModule, DegreeSemesterModule.module_id == Module.module_id)
+        .filter(
+            DegreeSemesterModule.degree_id == batch.degree_id,
+            DegreeSemesterModule.semester_number == semester_number,
+        )
+        .order_by(Module.name.asc())
+        .all()
+    )
+
+    module_ids = [module.module_id for module in modules]
+    assignments = []
+    if module_ids:
+        assignments = (
+            db.query(LecturerModuleAssignment)
+            .filter(
+                LecturerModuleAssignment.batch_id == batch.batch_id,
+                LecturerModuleAssignment.module_id.in_(module_ids),
+                LecturerModuleAssignment.is_active.is_(True),
+            )
+            .all()
+        )
+
+    assignment_by_module_id = {item.module_id: item for item in assignments}
+    lecturer_ids = [item.lecturer_user_id for item in assignments]
+    lecturer_by_id = {}
+    if lecturer_ids:
+        lecturer_rows = db.query(User).filter(User.user_id.in_(lecturer_ids)).all()
+        lecturer_by_id = {item.user_id: item for item in lecturer_rows}
+
+    total_credits = sum(int(module.credits or 0) for module in modules)
+
+    return {
+        "batch_id": batch.batch_id,
+        "batch_code": batch.batch_code,
+        "degree_id": batch.degree_id,
+        "degree_name": batch.degree.name,
+        "semester_name": semester_name,
+        "semester_number": semester_number,
+        "total_courses": len(modules),
+        "total_credits": total_credits,
+        "modules": [
+            {
+                "module_id": module.module_id,
+                "code": module.code,
+                "name": module.name,
+                "credits": module.credits,
+                "department_name": module.department.name if module.department else None,
+                "lecture_hours_per_week": module.lecture_hours_per_week,
+                "status": "Active" if int(module.is_active or 0) == 1 else "Inactive",
+                "assigned_lecturer_user_id": assignment_by_module_id[module.module_id].lecturer_user_id
+                if module.module_id in assignment_by_module_id
+                else None,
+                "assigned_lecturer_name": (
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].first_name} "
+                    f"{lecturer_by_id[assignment_by_module_id[module.module_id].lecturer_user_id].last_name}"
+                ).strip()
+                if module.module_id in assignment_by_module_id
+                and assignment_by_module_id[module.module_id].lecturer_user_id in lecturer_by_id
+                else None,
+            }
+            for module in modules
+        ],
     }
 
 
