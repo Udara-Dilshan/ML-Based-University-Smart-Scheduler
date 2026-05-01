@@ -3,6 +3,7 @@ import {
   LayoutDashboard, BookOpen, Calendar,
   GraduationCap, Sparkles, Users,
   HelpCircle, Settings, ChevronDown,
+  FileHeart,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -46,9 +47,9 @@ export default function StudentSidebar() {
         <NavLink to="/student/timetable" className={navItemClass}>
           <Calendar size={16} />Timetable
         </NavLink>
-        <NavLink to="/student/grades" className={navItemClass}>
+        {/* <NavLink to="/student/grades" className={navItemClass}>
           <GraduationCap size={16} />Grades & Results
-        </NavLink>
+        </NavLink> */}
 
         <p className="px-3 py-1 mt-3 text-xs font-semibold text-gray-400 uppercase">
           Campus Life
@@ -56,9 +57,15 @@ export default function StudentSidebar() {
         <NavLink to="/student/events" className={navItemClass}>
           <Sparkles size={16} />Events
         </NavLink>
-        <NavLink to="/student/clubs" className={navItemClass}>
+        {/* <NavLink to="/student/clubs" className={navItemClass}>
           <Users size={16} />Clubs
+        </NavLink> */}
+
+        {/* ✅ Medical Submission - New */}
+        <NavLink to="/student/medical" className={navItemClass}>
+          <FileHeart size={16} />Medical Submission
         </NavLink>
+
         <NavLink to="/student/support" className={navItemClass}>
           <HelpCircle size={16} />Support
         </NavLink>

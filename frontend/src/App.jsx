@@ -37,7 +37,7 @@ import StudentLayout from "./pages/student/layout/StudentLayout";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentCourses from "./pages/student/StudentCourses";
 import StudentTimetable from "./pages/student/StudentTimetable";
-import StudentGrades from "./pages/student/StudentGrades";
+import StudentMedical from "./pages/student/StudentMedical";
 import StudentEvents from "./pages/student/StudentEvents";
 import StudentClubs from "./pages/student/StudentClubs";
 import StudentSupport from "./pages/student/StudentSupport";
@@ -97,15 +97,16 @@ function App() {
 
         {/* Student */}
         <Route element={<ProtectedRoute allowedRoles={["Student"]} />}>
-          <Route element={<StudentLayout />}>
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/courses"   element={<StudentCourses />}   />
-            <Route path="/student/timetable" element={<StudentTimetable />} />
-            <Route path="/student/grades"    element={<StudentGrades />}    />
-            <Route path="/student/events"    element={<StudentEvents />}    />
-            <Route path="/student/clubs"     element={<StudentClubs />}     />
-            <Route path="/student/support"   element={<StudentSupport />}   />
-            <Route path="/student/settings"  element={<StudentSettings />}  />
+          <Route path="/student" element={<StudentLayout />}>
+            <Route index element={<StudentDashboard />} />
+            <Route path="dashboard" element={<StudentDashboard />} />
+            <Route path="courses"   element={<StudentCourses />}   />
+            <Route path="timetable" element={<StudentTimetable />} />
+            <Route path="medical"   element={<StudentMedical />} />
+            <Route path="events"    element={<StudentEvents />}    />
+            <Route path="clubs"     element={<StudentClubs />}     />
+            <Route path="support"   element={<StudentSupport />}   />
+            <Route path="settings"  element={<StudentSettings />}  />
           </Route>
         </Route>
 
