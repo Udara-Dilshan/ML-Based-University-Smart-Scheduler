@@ -5,6 +5,7 @@ import { Outlet, useLocation } from "react-router-dom";
 const pageTitles = {
   "/student/dashboard": "Student Dashboard",
   "/student/courses":   "My Courses",
+  "/student/registration": "Semester Registration",
   "/student/timetable": "Timetable",
   "/student/medical":   "Medical Submission",
   "/student/profile":   "My Profile",

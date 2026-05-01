@@ -7,7 +7,8 @@ import uvicorn
 from app.database.connection import initialize_database
 from app.routers import (
     auth, user, dashboard, academic,
-    resource, lecturer_availability, timetable, settings
+    resource, lecturer_availability, timetable, settings,
+    semester_registration,
 )
 
 app = FastAPI(title="University Smart Scheduling System API")
@@ -41,6 +42,7 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(dashboard.router)
 app.include_router(academic.router)
+app.include_router(semester_registration.router)
 app.include_router(resource.router)
 app.include_router(lecturer_availability.router)
 app.include_router(timetable.router)

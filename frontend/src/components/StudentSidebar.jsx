@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, Calendar,
   GraduationCap, Sparkles, Users,
   HelpCircle, Settings, ChevronDown,
-  FileHeart,
+  FileHeart, FileText,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 import { getUser } from "../services/api";
@@ -56,6 +56,9 @@ export default function StudentSidebar() {
         </NavLink>
         <NavLink to="/student/courses" className={navItemClass}>
           <BookOpen size={16} />My Courses
+        </NavLink>
+        <NavLink to="/student/registration" className={navItemClass}>
+          <FileText size={16} />Semester Registration
         </NavLink>
         <NavLink to="/student/timetable" className={navItemClass}>
           <Calendar size={16} />Timetable

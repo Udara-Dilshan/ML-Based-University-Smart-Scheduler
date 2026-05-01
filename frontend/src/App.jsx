@@ -38,6 +38,7 @@ import StudentLayout from "./pages/student/layout/StudentLayout";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentCourses from "./pages/student/StudentCourses";
 import StudentProfile from "./pages/student/StudentProfile";
+import StudentSemesterRegistration from "./pages/student/StudentSemesterRegistration";
 import StudentTimetable from "./pages/student/StudentTimetable";
 import StudentMedical from "./pages/student/StudentMedical";
 import StudentEvents from "./pages/student/StudentEvents";
@@ -105,6 +106,7 @@ function App() {
             <Route path="dashboard" element={<StudentDashboard />} />
             <Route path="courses"   element={<StudentCourses />}   />
             <Route path="profile"   element={<StudentProfile />}   />
+            <Route path="registration" element={<StudentSemesterRegistration />} />
             <Route path="timetable" element={<StudentTimetable />} />
             <Route path="medical"   element={<StudentMedical />} />
             <Route path="events"    element={<StudentEvents />}    />

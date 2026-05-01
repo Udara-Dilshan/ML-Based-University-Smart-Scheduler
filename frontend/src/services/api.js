@@ -313,6 +313,24 @@ export const lecturerAPI = {
   },
 };
 
+export const semesterRegistrationAPI = {
+  getFormData: async () => {
+    const response = await api.get("/api/semester-registration/form-data");
+    return response.data;
+  },
+  generateForm: async (payload, format) => {
+    const response = await api.post(
+      "/api/semester-registration/generate",
+      payload,
+      {
+        params: { format },
+        responseType: "blob",
+      }
+    );
+    return response.data;
+  },
+};
+
 export const studentAPI = {
   getCourses: async () => {
     const response = await api.get("/api/dashboard/student-courses");
