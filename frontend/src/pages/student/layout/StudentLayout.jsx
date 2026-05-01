@@ -6,7 +6,8 @@ const pageTitles = {
   "/student/dashboard": "Student Dashboard",
   "/student/courses":   "My Courses",
   "/student/timetable": "Timetable",
-  "/student/grades":    "Grades & Results",
+  "/student/medical":   "Medical Submission",
+
   "/student/events":    "Campus Events",
   "/student/clubs":     "Clubs",
   "/student/support":   "Support Center",

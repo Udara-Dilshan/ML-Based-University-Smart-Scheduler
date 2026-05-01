@@ -17,14 +17,7 @@ export default function StudentTimetable() {
   return (
     <div className="space-y-4">
 
-      {/* Warning */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3">
-        <AlertCircle size={18} className="text-yellow-600 flex-shrink-0" />
-        <p className="text-sm text-yellow-800">
-          <strong>2 scheduling conflicts detected</strong> — Dr. Johnson has overlapping classes on Monday.
-        </p>
-        <button className="ml-auto text-xs text-yellow-700 font-medium">View Conflicts</button>
-      </div>
+      
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
