@@ -29,7 +29,7 @@ class Module(Base):
     module_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     dept_id = Column(Integer, ForeignKey("departments.dept_id"))
     degree_id = Column(Integer, ForeignKey("degrees.degree_id"), nullable=False)
-    name = Column(String(255), nullable=False)
+    name = Column(String(200), nullable=False)
     code = Column(String(50), nullable=False)
     credits = Column(Integer, nullable=False)
     lecture_hours_per_week = Column(Integer, nullable=False)

@@ -74,6 +74,8 @@ SAMPLE_SEMESTER = "1st Year 1st Semester"
 SAMPLE_SEMESTER_IN_YEAR = "1st Semester"
 SAMPLE_ACADEMIC_YEAR = "2022/2023"
 SAMPLE_BATCH_YEAR = "Batch Year 2020/2021"
+SAMPLE_SEMESTER_FULL = "1st Year 1st Semester, Academic Year 2022/2023"
+SAMPLE_ACADEMIC_YEAR_FULL = "Academic Year 2022/2023"
 
 
 def _semester_label(semester_number: int) -> str:
@@ -243,17 +245,45 @@ def _normalize(text: str) -> str:
     return " ".join(text.split()).strip().lower()
 
 
-def _replace_text_in_runs(
+def _iter_document_paragraphs(document):
+    yield from document.paragraphs
+    for section in document.sections:
+        yield from section.header.paragraphs
+        yield from section.footer.paragraphs
+
+
+def _iter_document_tables(document):
+    yield from document.tables
+    for section in document.sections:
+        yield from section.header.tables
+        yield from section.footer.tables
+
+
+def _replace_text_in_paragraph(
     paragraph,
     replacements: dict[str, str],
     underline_keys: set[str],
 ) -> None:
+    if not paragraph.runs:
+        return
+
+    paragraph_text = "".join(run.text for run in paragraph.runs)
+    updated_text = paragraph_text
+    underline = False
+    for old, new in replacements.items():
+        if old in updated_text:
+            updated_text = updated_text.replace(old, new)
+            if old in underline_keys:
+                underline = True
+
+    if updated_text == paragraph_text:
+        return
+
+    paragraph.text = updated_text
     for run in paragraph.runs:
-        for old, new in replacements.items():
-            if old in run.text:
-                run.text = run.text.replace(old, new)
-                if old in underline_keys:
-                    run.underline = True
+        run.font.name = "Times New Roman"
+        if underline:
+            run.underline = True
 
 
 def _replace_in_document(
@@ -261,14 +291,27 @@ def _replace_in_document(
     replacements: dict[str, str],
     underline_keys: set[str],
 ) -> None:
-    for paragraph in document.paragraphs:
-        _replace_text_in_runs(paragraph, replacements, underline_keys)
+    for paragraph in _iter_document_paragraphs(document):
+        _replace_text_in_paragraph(paragraph, replacements, underline_keys)
 
-    for table in document.tables:
+    for table in _iter_document_tables(document):
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
-                    _replace_text_in_runs(paragraph, replacements, underline_keys)
+                    _replace_text_in_paragraph(paragraph, replacements, underline_keys)
+
+
+def _set_document_font(document):
+    for paragraph in _iter_document_paragraphs(document):
+        for run in paragraph.runs:
+            run.font.name = "Times New Roman"
+
+    for table in _iter_document_tables(document):
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = "Times New Roman"
 
 
 def _update_table_cell(
@@ -313,6 +356,7 @@ def _update_module_table(document: Document, modules: list[Module]) -> None:
                         for run in paragraph.runs:
                             if Pt is not None:
                                 run.font.size = Pt(9)
+                            run.font.name = "Times New Roman"
             break
 
 
@@ -457,7 +501,9 @@ def _render_docx(data: dict, modules: list[Module]) -> bytes:
         SAMPLE_LEVEL_ALT: data["level_label"],
         SAMPLE_SEMESTER: data["semester_label"],
         SAMPLE_SEMESTER_IN_YEAR: data["semester_in_year_label"],
+        SAMPLE_SEMESTER_FULL: f"{data['semester_label']}, Academic Year {data['academic_year']}",
         SAMPLE_ACADEMIC_YEAR: data["academic_year"],
+        SAMPLE_ACADEMIC_YEAR_FULL: f"Academic Year {data['academic_year']}",
         SAMPLE_BATCH_YEAR: data["batch_year_label"],
     }
 
@@ -473,6 +519,7 @@ def _render_docx(data: dict, modules: list[Module]) -> bytes:
         SAMPLE_EMAIL,
         SAMPLE_DATE,
         SAMPLE_ACADEMIC_YEAR,
+        SAMPLE_ACADEMIC_YEAR_FULL,
         SAMPLE_BATCH_YEAR,
     }
 
@@ -499,6 +546,7 @@ def _render_docx(data: dict, modules: list[Module]) -> bytes:
             continue
 
     _update_module_table(document, modules)
+    _set_document_font(document)
 
     output = BytesIO()
     document.save(output)
