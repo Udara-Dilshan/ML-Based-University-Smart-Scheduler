@@ -1,16 +1,47 @@
-import { Search, BookOpen, Video, MessageCircle, FileText } from "lucide-react";
+import { Search, Globe, GraduationCap, FileDown, Bug } from "lucide-react";
 
 const quickActions = [
-  { icon: BookOpen,      label: "Knowledge Base",  desc: "Browse articles",   color: "text-blue-400"   },
-  { icon: Video,         label: "Video Tutorials", desc: "Watch guides",      color: "text-purple-400" },
-  { icon: MessageCircle, label: "Live Chat",        desc: "Chat with support", color: "text-green-400"  },
-  { icon: FileText,      label: "Submit Ticket",    desc: "Create request",    color: "text-orange-400" },
+  {
+    icon: Globe,
+    label: "UWU Website",
+    desc: "Official university website",
+    color: "text-blue-400",
+    href: "https://www.uwu.ac.lk/",
+  },
+  {
+    icon: GraduationCap,
+    label: "UWU VLE",
+    desc: "Virtual Learning Environment",
+    color: "text-purple-400",
+    href: "https://vle.uwu.ac.lk/",
+  },
+  {
+    icon: FileDown,
+    label: "User Guide",
+    desc: "Download system manual",
+    color: "text-green-400",
+  },
+  {
+    icon: Bug,
+    label: "Report an Issue",
+    desc: "Report timetable or system errors",
+    color: "text-orange-400",
+  },
 ];
 
 const faqs = [
-  { q: "How do I register for next semester?",   a: "Go to Academic → Registration and follow the steps." },
-  { q: "How can I view my timetable?",           a: "Click on Timetable in the sidebar menu."            },
-  { q: "How do I submit a medical certificate?", a: "Go to Support and use the Submit Ticket option."    },
+  {
+    q: "What should I do if there is a clash in my timetable?",
+    a: "Please use the 'Report an Issue' option to notify the academic administration immediately.",
+  },
+  {
+    q: "How do I register for the upcoming semester?",
+    a: "Navigate to the 'Semester Registration' tab in the sidebar during the official registration period and select your modules.",
+  },
+  {
+    q: "Where do I submit a medical certificate?",
+    a: "Medical certificates must be handed over physically to the Examination Branch within 7 days of your absence.",
+  },
 ];
 
 export default function StudentSupport() {
@@ -27,12 +58,33 @@ export default function StudentSupport() {
         <div className="grid grid-cols-4 gap-4">
           {quickActions.map((a) => {
             const Icon = a.icon;
-            return (
-              <button key={a.label} className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl p-4 text-left transition">
+            const content = (
+              <>
                 <Icon size={24} className={`${a.color} mb-2`} />
                 <p className="text-white font-semibold text-sm">{a.label}</p>
                 <p className="text-white opacity-70 text-xs mt-0.5">{a.desc}</p>
-              </button>
+              </>
+            );
+            return (
+              a.href ? (
+                <a
+                  key={a.label}
+                  href={a.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl p-4 text-left transition"
+                >
+                  {content}
+                </a>
+              ) : (
+                <button
+                  key={a.label}
+                  type="button"
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl p-4 text-left transition"
+                >
+                  {content}
+                </button>
+              )
             );
           })}
         </div>
@@ -62,8 +114,27 @@ export default function StudentSupport() {
           <h3 className="font-semibold text-gray-900 mb-4">Contact Information</h3>
           <div className="space-y-4">
             {[
-              { label: "Academic Office", email: "academic@uwu.ac.lk", phone: "+94 55 2226 601", initials: "AO", color: "bg-blue-500"  },
-              { label: "IT Support",      email: "it@uwu.ac.lk",       phone: "+94 55 2226 602", initials: "IT", color: "bg-green-500" },
+              {
+                label: "Student Affairs Division",
+                email: "studentaffairs@uwu.ac.lk",
+                phone: "+94 55 2226 622",
+                initials: "SA",
+                color: "bg-blue-500",
+              },
+              {
+                label: "Examination Branch",
+                email: "exams@uwu.ac.lk",
+                phone: "+94 55 2226 633",
+                initials: "EB",
+                color: "bg-purple-500",
+              },
+              {
+                label: "IT Center",
+                email: "itcenter@uwu.ac.lk",
+                phone: "+94 55 2226 602",
+                initials: "IT",
+                color: "bg-green-500",
+              },
             ].map((c) => (
               <div key={c.label} className="flex items-start gap-3">
                 <div className={`w-8 h-8 ${c.color} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
