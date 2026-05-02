@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.resource import Resource
 from ..models.academic import Faculty, Department
+from ..models.settings import SystemSetting
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_admin_user
 
@@ -15,53 +16,56 @@ router = APIRouter(
 )
 
 
-TYPE_TO_DB = {
-    "LECTURE HALL": "LECTURE_HALL",
-    "LECTURE_HALL": "LECTURE_HALL",
-    "LAB": "LAB",
-    "AUDITORIUM": "AUDITORIUM",
-    "SEMINAR ROOM": "AUDITORIUM",
-    "SEMINAR_ROOM": "AUDITORIUM",
-    "GROUND": "GROUND",
-}
-
-DB_TO_DISPLAY = {
+LEGACY_TYPE_ALIASES = {
+    "LECTURE HALL": "Lecture Hall",
     "LECTURE_HALL": "Lecture Hall",
     "LAB": "Lab",
     "AUDITORIUM": "Auditorium",
+    "SEMINAR ROOM": "Auditorium",
+    "SEMINAR_ROOM": "Auditorium",
     "GROUND": "Ground",
 }
 
 
-def _normalize_resource_type(value: str) -> str:
+def _normalize_resource_type(value: str, db: Session) -> str:
     raw = (value or "").strip()
-    normalized_key = raw.upper().replace("-", " ").replace("_", " ")
-    normalized_key = " ".join(normalized_key.split())
-
-    if not normalized_key:
+    if not raw:
         raise HTTPException(status_code=422, detail="Resource type is required")
 
-    db_value = TYPE_TO_DB.get(raw.upper())
-    if db_value:
-        return db_value
-
-    db_value = TYPE_TO_DB.get(normalized_key)
-    if db_value:
-        return db_value
-
-    compact_key = normalized_key.replace(" ", "_")
-    if compact_key in DB_TO_DISPLAY:
-        return compact_key
-
-    raise HTTPException(
-        status_code=422,
-        detail="Unsupported resource type. Use Lecture Hall, Lab, Auditorium or Ground.",
+    available_types = (
+        db.query(SystemSetting)
+        .filter(SystemSetting.category == "RESOURCE_TYPES")
+        .order_by(SystemSetting.value.asc())
+        .all()
     )
+
+    if available_types:
+        for item in available_types:
+            if raw.lower() == (item.value or "").strip().lower():
+                return item.value.strip()
+
+        normalized_key = " ".join(raw.upper().replace("-", " ").replace("_", " ").split())
+        legacy_alias = LEGACY_TYPE_ALIASES.get(normalized_key)
+        if legacy_alias:
+            for item in available_types:
+                if legacy_alias.lower() == (item.value or "").strip().lower():
+                    return item.value.strip()
+
+        raise HTTPException(
+            status_code=422,
+            detail="Unsupported resource type. Add it under Settings -> System Dropdowns -> Resource Types first.",
+        )
+
+    normalized_key = " ".join(raw.upper().replace("-", " ").replace("_", " ").split())
+    if normalized_key in LEGACY_TYPE_ALIASES:
+        return LEGACY_TYPE_ALIASES[normalized_key]
+
+    return raw
 
 
 def _display_resource_type(value: str | None) -> str:
     raw = (value or "").strip().upper()
-    return DB_TO_DISPLAY.get(raw, "Unknown")
+    return LEGACY_TYPE_ALIASES.get(raw, (value or "").strip())
 
 
 def _to_resource_response(item: Resource) -> dict:
@@ -165,7 +169,7 @@ def create_resource(resource: ResourceBase, db: Session = Depends(get_db)):
     db_resource = Resource(
         name=resource.name.strip(),
         capacity=resource.capacity,
-        type=_normalize_resource_type(resource.type),
+        type=_normalize_resource_type(resource.type, db),
         faculty_id=resource.faculty_id,
         dept_id=departments[0].dept_id,
         facilities=(resource.facilities or "").strip() or None,
@@ -201,7 +205,7 @@ def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = De
         data["name"] = new_name
 
     if "type" in data and data["type"] is not None:
-        data["type"] = _normalize_resource_type(data["type"])
+        data["type"] = _normalize_resource_type(data["type"], db)
 
     if "location" in data:
         data["location"] = (data["location"] or "").strip() or None

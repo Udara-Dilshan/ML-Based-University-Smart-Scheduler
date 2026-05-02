@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table, Enum, Text
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table, Text
 from sqlalchemy.orm import synonym, relationship
 from ..database.connection import Base
 
@@ -15,10 +15,7 @@ class Resource(Base):
 
     resource_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), unique=True, nullable=False)
-    type = Column(
-        Enum("LECTURE_HALL", "LAB", "AUDITORIUM", "GROUND", name="resourcetype"),
-        nullable=False,
-    )
+    type = Column(String(100), nullable=False)
     capacity = Column(Integer, nullable=False)
     faculty_id = Column(Integer, ForeignKey("faculties.faculty_id"), nullable=False)
     dept_id = Column(Integer, ForeignKey("departments.dept_id"), nullable=True, index=True)
