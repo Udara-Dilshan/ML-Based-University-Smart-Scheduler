@@ -66,6 +66,7 @@ class ModuleBase(BaseModel):
     degree_id: int
     credits: int = Field(gt=0)
     lecture_hours_per_week: int = Field(gt=0)
+    required_resource_type: Optional[str] = None
 
 
 class ModuleUpdate(BaseModel):
@@ -75,6 +76,7 @@ class ModuleUpdate(BaseModel):
     degree_id: Optional[int] = None
     credits: Optional[int] = Field(default=None, gt=0)
     lecture_hours_per_week: Optional[int] = Field(default=None, gt=0)
+    required_resource_type: Optional[str] = None
 
 
 class ModuleOut(ModuleBase):
@@ -572,6 +574,9 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
             if degree.dept_id != payload.dept_id:
                 raise HTTPException(status_code=422, detail="Selected degree does not belong to selected department")
 
+            if not payload.required_resource_type or not payload.required_resource_type.strip():
+                raise HTTPException(status_code=422, detail="Required resource type is required")
+
             duplicate = db.query(Module).filter(
                 Module.degree_id == payload.degree_id,
                 (Module.code == normalized_code) | (Module.name == normalized_name),
@@ -589,6 +594,7 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
                 degree_id=payload.degree_id,
                 credits=payload.credits,
                 lecture_hours_per_week=payload.lecture_hours_per_week,
+                required_resource_type=payload.required_resource_type.strip(),
             )
             db.add(item)
             db.commit()
@@ -769,6 +775,10 @@ def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(g
         data["code"] = data["code"].strip().upper()
     if "name" in data:
         data["name"] = data["name"].strip()
+    if "required_resource_type" in data and data["required_resource_type"] is not None:
+        data["required_resource_type"] = data["required_resource_type"].strip()
+        if not data["required_resource_type"]:
+            raise HTTPException(status_code=422, detail="Required resource type is required")
 
     if "dept_id" in data:
         department = db.query(Department).filter(Department.dept_id == data["dept_id"]).first()

@@ -33,6 +33,7 @@ class Module(Base):
     code = Column(String(50), nullable=False)
     credits = Column(Integer, nullable=False)
     lecture_hours_per_week = Column(Integer, nullable=False)
+    required_resource_type = Column(String(100), nullable=True)
     is_active = Column(Integer, nullable=True, default=1)
     department = relationship("Department", back_populates="modules")
     degree_semester_mappings = relationship(

@@ -1,460 +1,456 @@
-course_code,course_name,faculty_name,department_name,degree_code,credits,lecture_hours_per_week
-ICT 101-2,Mathematics for ICT,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 131-3,Programming Techniques,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 132-2,Fundamentals of Computer Networks,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 133-3,Computer Systems Organization,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 141-3,Electronics for ICT,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 102-2,Calculus,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 103-2,Introduction to Statistics,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 111-2,Financial Management,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 134-2,Database Management Systems,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 142-3,Internet and Web Technologies,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 143-2,Data Structures and Algorithms,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 201-2,Numerical Methods,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 231-3,Object Oriented Programming,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 232-3,Information Systems and Data Modeling,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 233-2,Communication Theory,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 234-2,Information Assurance,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 235-3,Software Engineering,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 211-2,Project Management,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 221-2,Professional Ethics in Computing,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 222-2,Independent Study Project I,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 236-2,Business Process Management,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 237-2,Systems Level Programming,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 238-3,Object Oriented Analysis and Designs,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 241-2,Human Computer Interaction,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 242-2,Statistical Methods,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 321-2,Independent Study Project II,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 331-2,Advanced Database Management Systems,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 332-3,Software Quality Assurance,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 341-2,Algorithm Design and Optimization,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 342-2,Cloud Computing,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 343-3,Web Service Technologies,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 351-2,Mobile Computing,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 352-2,Rapid Application Development,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 371-6,Industrial Training,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,6,6
-ICT 361-3,Operational Research,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 362-1,Sampling Techniques,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ICT 481-6,Capstone Project,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,6,6
-ICT 431-2,Object Oriented Design Patterns and Principals,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 441-2,Scientific Writing and Research Methodology,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 442-2,Emerging Technologies in ICT,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 443-2,Multivariate Analysis,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 451-3,Software Requirement Engineering,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 452-2,Semantic Web Technologies,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 461-2,Time Series Analysis,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 462-3,Data Mining and Practical Machine Learning,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 411-2,Entrepreneurship and Business Development,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 421-2,Safety and Risk Management,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 432-3,Computer Systems Security,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 453-2,Parallel and Distributed Computing,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 454-3,IoT and Embedded Systems,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-ICT 463-2,Neural Networks,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ICT 464-3,Intelligent Systems,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,3,3
-MET 111-4,Fundamentals of Mathematics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,4,4
-MET 121-3,Physics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 122-2,Chemistry (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 141-3,Introduction to Computer Engineering (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 141-3 ,Sinhala I,Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 171-3,Workshop Technology (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 112-2,Fundamentals of Statistics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 113-3,Calculus (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 142-3,Computer Programming (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 161-3,Materials Science for Engineering Technology (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 172-3,Engineering Drawing & CAD (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 211-3,Numerical Methods (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 251-3,Fundamentals of Electrical Engineering (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 252-3,Fundamentals of Electronic Engineering (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 261-3,Mechanics of Machines (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 271-3,Fundamentals of Thermodynamics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 212-2,Complex Analysis and Mathematical Transforms (CC,Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 231-2,Engineering Ethics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 253-3,Electrical Machines (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 262-2,Mechanics of Materials (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 272-2,CAD/CAM(CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 273-3,Fluid Mechanics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 274-3,Controls and Instrumentation Engineering (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 316-2,Probability and Statistics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 351-2,Engineering Measurements and Instruments (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 371-3,Manufacturing Technology (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 372-3,Product Modeling & Design (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 373-2,Applied Thermodynamics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 374-3,Group Design Project (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 375-3,Automobile Engineering (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 376-6,Industrial Training (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,6,6
-MET 431-1,Safety and Risk Management (OC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-MET 432-2,Engineering Economics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 433-1,Scientific Writing (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-MET 471-6,Final Year Project (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,6,6
-MET 472-3,Farm Machinery Technology I (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 473-3,Mechatronics (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 474-2,Maintenance Management (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 475-1,Sustainable Consumption and Production (OC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-MET 434-2,Business Management Entrepreneurship (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 435-2,Energy Management (OC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 436-2,Industrial Quality Management (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 476-2,Industrial Engineering Technology (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-MET 477-3,Farm Machinery Technology II (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,3,3
-MET 478-2,Building Service Technology (OC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-BBST 141-3,General Chemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 101-2,Mathematics I (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 121-2,Physics I (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 121-3,Principles of Biology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 122-2,Environmental Science (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 142-1,Inorganic Chemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 102-2,Mathematics II (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 143-2,Organic Chemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 172-3,Physics II (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-ESD 221-1,English Language- Level 3 (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 241-1,Analytical Chemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 251-3,Computer Programming Concept (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 261-1,Engineering Drawing (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 221-3,Introductory Microbiology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 242-1,Physical Chemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 211-2,Statistic for Biosystems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-ESD 222-1,English Language IV (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 243-2,Biochemistry (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 271-2,Biophysics (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 272-2,Fluid Mechanics and Heat Transfer (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 231-1,Fundamental of Biosystems Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 222-2,Fundamental for Biotechnology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 273-1,Thermodynamics in Biosystems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 262-3,Workshop Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 274-2,Electronics for Bioengineering (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 201-2,Numerical Method for Biosystem Technology (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 381-2,Biomaterial (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 382-1,Biotechnological Approaches for Biosystems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 383-2,Engineering Properties of Biological Material (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 384-2,Food Preservation Storage and Packaging Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 385-2,In vitro Propagation Techniques (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 387-1,Post-Harvest Engineering (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 386-2,Paper and Pulp Technology (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 388-2,Project Formulation and Management (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 391-2,Biological Process Design and Optimization (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 393-3,Food Process Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 394-2,Mechanics of Material in Biosystems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 395-2,Microbial Systems Engineering (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 396-2,Natural Products Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 397-2,"Technology of Dairy, Fish and Meat Products (CS)",Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 388-1,Scientific Writing,Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 389-2,Seminar in Biosystems Technology,Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 392-2,Environmental Toxicology (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 399-2,Wood and Wood Based Products development and techniques(OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 491-4,Industrial Training (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,4,4
-BBST 492-6,Research (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,6,6
-BBST 481-3,Advanced Analytical Techniques (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,3,3
-BBST 483-2,Applied Statistic for Biosystems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 484-2,Bioprospecting (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 485-2,Biosensors and Application (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 486-2,Food Safety and Quality Assurance (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 498-2,Utilization of Biosystems in Waste Management (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 489-2,Seminar in Biosystems Technology,Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 482-2,Application of Nano Technology in Food Industry (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BBST 487-1,Green Technology (OS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-CST 101-2,Fundamentals of Electronics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 161-3,Microcomputer Architecture and Logic Design,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 214-3,Statistical Methods - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 291-2,Entrepreneurship,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 225-3,Data Structures and Analysis of Algorithm,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 292-2,Project - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 328-2,Advanced Programming Techniques,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 372-3,Intelligent Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 381-2,Computer Graphics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 333-2,Data and Network Security,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 384-2,Embedded Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 345-2,Mobile Application Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 393-2,Principles of Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 363-2,Computer Systems Architecture,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 394-2,Project - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 382-3,Digital Image Processing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 364-2,Systems Level Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 316-2,Statistical Method - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 351-2,Parallel and Distributed Computing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 102-2,Introduction to Computer Science,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 121-3,Structured Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 121-3,Principles of Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-CST 111-2,Essential Mathematics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 122-2,Web Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 131-2,Fundamentals of Computer Networks,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 123-3,Database Management Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-CST 112-2,Calculus,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 124-2,Object Oriented Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 131-3,Fundamentals of Economics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-CST 241-3,System Analysis and Design,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-CST 232-2,Data Communication and Networking,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 242-3,Software Engineering,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 232-3,Financial Accounting,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 241-2,Entrepreneurship,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 213-2,Discrete Mathematics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 262-2,Operating Systems Concepts and Compiler Designs,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 243-3,Rapid Application Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 271-2,Project - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 251-3,Principles of Marketing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 233-2,Management Accountancy,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 211-2,Operational Research,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 226-2,Web Application Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 223-2,Information Technology Project Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 334-2,Business Finance,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 342-3,Organizational Behavior,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 311-3,Statistical Methods - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,3,3
-IIT 301-2,Data Structures and Algorithms,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 371-2,Human Computer Interaction,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 344-2,Management Information Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 327-2,Advanced Database Management Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 327-2,Information Security and Risk Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 334-2,Mobile Computing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 315-2,Mathematics for Computing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 343-2,Business Law,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 372-2,Project - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 395-2,Research Methodology and Scientific Writing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 346-2,Software Quality Assurance,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 396-1,Emerging Technologies in Computer Science & Informatics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
-CST 347-2,Software Architecture and Design Patterns,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 344-2,Strategic Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 313-2,Statistical Methods - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 361-2,Digital Image Processing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 446-2,"Intellectual Property Rights, Legislation and Commercialization",Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 497-2,"Social, Ethical and Professional Issues in Computing",Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 429-2,Semantic Web Technologies,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 448-2,Business Process Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 414-2,Business Analytics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 447-2,GIS for Business,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 424-2,Organizational Change and Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 445-2,E Commerce,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 452-2,Digital Marketing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 448-2,Enterprise Resource Planning (ERP),Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 437-2,Internet of Things,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 402-2,Advanced Programming Techniques,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 474-2,Data Warehousing and Data Mining,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 436-2,System Administration and Maintenance,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 475-2,Digital Forensics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-CST 435-2,Advanced Computer Networks,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 462-2,Multimedia Technologies,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-IIT 473-6,Industrial Training,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,6,6
-IIT 474-6,Research Project,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,6,6
-SCT 142-2,Engineering Workshop,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 122-2,Cell Biology,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 161-1,Computer Programming,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 221-1,Microbiology - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 222-2,Biochemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 261-1,Database Management Systems,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 223-3,Diversity of Life,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,3,3
-SCT 241-2,Mechanics of Materials,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 311-1,Communication Skills - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 341-2,Materials Characterization Techniques - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 343-2,Materials Physics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 344-1,Materials Technology Laboratory - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 346-2,Polymer Science and Technology - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 347-2,Structural Properties of Materials,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 348-2,Surface and Colloidal Science,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 377-2,Mathematical Methods and Complex Analysis,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 361-1,Environmental Science,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 362-1,Soft Materials and Their Applications,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 351-1,Biomaterials and Applications,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 352-2,Ceramic Science and Technology,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 353-2,Computational Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 354-2,Functional Properties of Materials,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 355-1,Glass Science and Technology,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 356-2,Material Characterization Techniques - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 357-1,Materials Technology Laboratory - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 358-1,Polymer Science and Technology - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 359-1,Seminar in Materials Science,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 301-2,Materials Science Group Project,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 302-2,Applied Economics and Financial Accounting,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 303-2,Research Methodology and Scientific Writing,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-IIT 323-2,Human Resource Management,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 363-2,Wood and Wood based Product Development,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 101-1,Essential Mathematics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 121-1,Introductory Biology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 131-2,General Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 141-1,Engineering Drawings,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 151-2,"Mechanics, Waves, and Vibrations",Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 151-3,Earth Materials and Processes,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 152-1,Water Resources - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 102-2,Calculus,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 132-2,Inorganic Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 152-2,Properties of Matter,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 161-3,Mineralogy and Petrology - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 162-1,Water Resources - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-BGE 211-2,Aesthetic Studies,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 201-1,Abstract Algebra,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 211-2,Statistical Methods,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 231-2,Physical Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 251-2,Electricity and Magnetism,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 252-1,Optics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 251-3,Mineralogy and Petrology - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 253-2,Principles of Hydrogeology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 202-3,Differential Equations and Applications,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-SCT 232-2,Organic Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 242-2,Engineering Thermodynamics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 253-1,Electronics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 212-1,Operational Research,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 252-2,Structural Geology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 254-2,Applied Geochemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 362-2,Analytical Techniques and Instrumentation - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 371-3,Water Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 372-1,Water Chemistry Laboratory - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 373-2,Hydrology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 374-3,Fluid Mechanics and Hydraulics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 376-2,Aquatic Microbiology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 377-2,Oceanography,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 378-2,Advanced Hydrogeology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 382-3,Water Treatment Methods,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 316-3,Engineering Geology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 352-2,Surveying and Levelling,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 353-1,Engineering Workshop Technology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 355-2,Soil Physics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 366-1,Computer Programming,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 365-3,Remote Sensing and Geospatial Technology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 381-2,Water Safety Plan,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 361-2,Research Methodology and Scientific Writing,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 351-3,Applied Geophysics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 383-1,Water Treatment Laboratory,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 384-2,Water Supply Engineering,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 386-3,Groundwater Flow Modelling,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 385-2,Wastewater Treatment and Reuse - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 327-2,Petroleum Exploration and Extraction,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 364-1,Computer Aided Drawing and Designing,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 392-2,Project Management,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 451-2,Environment and Industry Regulations,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 463-2,Analytical Techniques and Instrumentation - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 471-3,Advanced Water Chemistry,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 472-1,Water Chemistry Laboratory - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 473-2,Wastewater Treatment and Reuse - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 474-1,Nanotechnology for Water Treatment,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-MRT 475-2,Bottled Water Technology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 476-3,Solute Transport and Reactive Fluid Flow Modelling,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,3,3
-MRT 478-2,Water Wells and Pumps,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 453-2,Pollution Control and Remediation,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 454-2,Quantity Surveying,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 401-2,Business Management and Entrepreneurship,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-SCT 402-2,Quality Assurance and Control,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-MRT 461-6,Directed Research Project,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,6,6
-MRT 462-6,Industrial Training (Non-GPA),Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,6,6
-ESD 121-1,English Language,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 151-1,Sinhala Language I,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 161-1,Tamil Language I ,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 111-1,Communication Skills I,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 122-1,Communicative English,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 152-1,Sinhala Language II,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 162-1,Tamil Language II,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-BGE 211-2,Aesthetic Studies,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,2,2
-ESD 221-1,Effective English Usage,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 222-1,Explorative English,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 311-1,Communication Skills II,Faculty of Technological Studies,Department of Information & Communication Technology,FOT_ICT,1,1
-ESD 121-1,English Language I (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-ESD 161-1,Tamil Language I (CC) ,Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-ESD 111-1,Communication skills (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-ESD 122-1,English Language II (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-ESD 152-1,Sinhala II,Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-ESD162-1,Tamil Language II (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,1,1
-BGE 211-2,Aesthetic studies (CC),Faculty of Technological Studies,Department of Engineering Technology,FOT_ET,2,2
-BGE 121-2,Ethics and Law Basics (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-ESD 121-1,English Language I (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-ESD 103-2,Information Technology (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-ESD 151-1,Sinhala Language Skills (CS) (NGPA),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-ESD 161-1,Tamil Language (CS) (NGPA),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BGE 211-2,Aesthetic studies (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-BGE 214-1,Geography (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BGE 213-1,History (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-ESD 311-1,Communication Skills II (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,1,1
-BBST 389-2,Sustainable Bioenergy Systems (CS),Faculty of Technological Studies,Department of Biosystem Technology,FOT_BST,2,2
-CST 102-2,Introduction to Computer Science,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 121-3,Structured Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 111-2,Essential Mathematics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 121-2,English Language Level - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 122-2,Web Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 131-2,Fundamentals of Computer Networks,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 151-1,Sinhala Language - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-ESD 161-1,Tamil Language - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-BGE 121-2,Ethics and Law basics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 123-3,Database Management Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 124-2,Object Oriented Programming,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 112-2,Calculus,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 111-1,Communication Skills - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-ESD 141-2,Quantitative Reasoning,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 122-2,English Language Level - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 152-1,Sinhala Language - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-ESD 162-1,Tamil Language - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-CST 241-3,System Analysis and Design,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 232-2,Data Communication and Networking,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 242-3,Software Engineering,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-ESD 221-2,English Language Level - III,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-BGE 211-2,Aesthetic Studies,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 213-2,Discrete Mathematics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 262-2,Operating Systems Concepts and Compiler Designs,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 243-3,Rapid Application Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,3,3
-CST 226-2,Web Application Development,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-IIT 223-2,Information Technology Project Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 371-2,Human Computer Interaction,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 327-2,Advanced Database Management Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 344-2,Management Information Systems,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 311-1,Communication Skills - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-CST 315-2,Mathematics for Computing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 347-2,Software Architecture & Design Patterns,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 346-2,Software Quality Assurance,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 395-2,Research Methodology and Scientific Writing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-CST 396-1,Emerging Technologies in Computer Science and Informatics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,1,1
-CST 334-2,Mobile Computing,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA_CST,2,2
-ESD 121-2,English Language Level - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-ESD 151-1,Sinhala Language - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
-ESD 161-1,Tamil Language - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
-BGE 121-2,Ethics and Law basics,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-ESD 141-2,Quantitative Reasoning,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-ESD 122-2,English Language Level - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-ESD 221-2,English Language Level - III,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-BGE 211-2,Aesthetic Studies,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-ESD 311-1,Communication Skills - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
-IIT 323-2,Human Resources Management,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,2,2
-SCT 101-1,Essential Mathematics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 121-1,Introductory Biology,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 131-2,General Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 141-1,Engineering Drawings,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 151-2,"Mechanics, Waves, and Vibrations",Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 121-2,English Language Level - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 103-2,Information Technology,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 151-1,(NGPA) Sinhala Language - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-ESD 161-1,(NGPA) Tamil Language - I,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-BGE 121-2,Ethics and Law Basics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 102-2,Calculus,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 132-2,Inorganic Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 152-2,Properties of Matter,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 111-1,Communication Skills,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-ESD 141-2,Quantitative Reasoning,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 122-2,English Language Level - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 152-1,(NGPA) Sinhala Language - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-ESD 162-1,(NGPA) Tamil Language - II,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 201-1,Abstract Algebra,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 211-2,Statistical Methods,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 231-2,Physical Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 252-1,Optics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 251-2,Electricity and Magnetism,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 202-3,Differential Equations and Applications,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,3,3
-SCT 212-1,Operational Research,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 232-2,Organic Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 242-2,Engineering Thermodynamics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 253-1,Basic Electronics,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-BGE 213-1,History,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-BGE 214-1,Geography,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,1,1
-SCT 342-2,Chemistry for Materials Science,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-SCT 342-2,Materials Chemistry,Faculty of Applied Sciences,Department of Science & Technology,FASEA3_SCT,2,2
-ESD 111-1,Communication Skills - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 311-1,Communication Skills - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 122-2,English Language Level - II,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-ESD 152-1,Sinhala Language - II (non-GPA),Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 162-1,Tamil Language - II (non-GPA),Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 141-2,Quantitative Reasoning,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-ESD 221-2,English Language Level - III,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-BGE 213-1,History,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-BGE 214-1,Geography,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-SCT 302-2,Applied Economics and Financial Accounting,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-IIT 323-2,Human Resource Managements and Industrial Relations,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-IIT 446-2,"Intellectual Property Rights, Legislations and Commercialization",Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-ESD 121-2,English Language Level - I,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-ESD 151-1,Sinhala Language - I (non-GPA),Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 161-1,Tamil Language - I (non-GPA),Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,1,1
-ESD 103-2,Information Technology,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-BGE 121-2,Ethics and Law Basics,Faculty of Applied Sciences,Department of Applied Earth Sciences,FASEA_MRT,2,2
-ESD 111-1,Communication Skills - I,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
-ESD 152-1 ,Sinhala Language - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
- ESD 162-1,Tamil Language - II,Faculty of Applied Sciences,Department of Computer Science & Informatics,FASEA2_IIT,1,1
+"course_code","course_name","faculty_name","department_name","degree_code","credits","lecture_hours_per_week","required_resource_type"
+"ICT 101-2","Mathematics for ICT","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 131-3","Programming Techniques","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 132-2","Fundamentals of Computer Networks","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 133-3","Computer Systems Organization","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 141-3","Electronics for ICT","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 102-2","Calculus","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 103-2","Introduction to Statistics","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 111-2","Financial Management","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 134-2","Database Management Systems","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 142-3","Internet and Web Technologies","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 143-2","Data Structures and Algorithms","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 201-2","Numerical Methods","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 231-3","Object Oriented Programming","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 232-3","Information Systems and Data Modeling","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 233-2","Communication Theory","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 234-2","Information Assurance","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 235-3","Software Engineering","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 211-2","Project Management","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 221-2","Professional Ethics in Computing","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 222-2","Independent Study Project I","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 236-2","Business Process Management","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 237-2","Systems Level Programming","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 238-3","Object Oriented Analysis and Designs","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 241-2","Human Computer Interaction","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 242-2","Statistical Methods","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 321-2","Independent Study Project II","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 331-2","Advanced Database Management Systems","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 332-3","Software Quality Assurance","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 341-2","Algorithm Design and Optimization","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 342-2","Cloud Computing","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 343-3","Web Service Technologies","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 351-2","Mobile Computing","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 352-2","Rapid Application Development","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 371-6","Industrial Training","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","6","6","Lecture Hall"
+"ICT 361-3","Operational Research","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 362-1","Sampling Techniques","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ICT 481-6","Capstone Project","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","6","6","Lecture Hall"
+"ICT 431-2","Object Oriented Design Patterns and Principals","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 441-2","Scientific Writing and Research Methodology","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 442-2","Emerging Technologies in ICT","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 443-2","Multivariate Analysis","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 451-3","Software Requirement Engineering","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 452-2","Semantic Web Technologies","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 461-2","Time Series Analysis","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 462-3","Data Mining and Practical Machine Learning","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 411-2","Entrepreneurship and Business Development","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 421-2","Safety and Risk Management","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 432-3","Computer Systems Security","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 453-2","Parallel and Distributed Computing","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 454-3","IoT and Embedded Systems","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"ICT 463-2","Neural Networks","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ICT 464-3","Intelligent Systems","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","3","3","Lecture Hall"
+"MET 111-4","Fundamentals of Mathematics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","4","4","Lecture Hall"
+"MET 121-3","Physics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 122-2","Chemistry (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 141-3","Introduction to Computer Engineering (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 171-3","Workshop Technology (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 112-2","Fundamentals of Statistics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 113-3","Calculus (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 142-3","Computer Programming (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 161-3","Materials Science for Engineering Technology (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 172-3","Engineering Drawing & CAD (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 211-3","Numerical Methods (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 251-3","Fundamentals of Electrical Engineering (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 252-3","Fundamentals of Electronic Engineering (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 261-3","Mechanics of Machines (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 271-3","Fundamentals of Thermodynamics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 212-2","Complex Analysis and Mathematical Transforms (CC","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 231-2","Engineering Ethics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 253-3","Electrical Machines (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 262-2","Mechanics of Materials (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 272-2","CAD/CAM(CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 273-3","Fluid Mechanics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 274-3","Controls and Instrumentation Engineering (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 316-2","Probability and Statistics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 351-2","Engineering Measurements and Instruments (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 371-3","Manufacturing Technology (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 372-3","Product Modeling & Design (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 373-2","Applied Thermodynamics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 374-3","Group Design Project (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 375-3","Automobile Engineering (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 376-6","Industrial Training (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","6","6","Lecture Hall"
+"MET 431-1","Safety and Risk Management (OC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"MET 432-2","Engineering Economics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 433-1","Scientific Writing (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"MET 471-6","Final Year Project (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","6","6","Lecture Hall"
+"MET 472-3","Farm Machinery Technology I (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 473-3","Mechatronics (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 474-2","Maintenance Management (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 475-1","Sustainable Consumption and Production (OC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"MET 434-2","Business Management Entrepreneurship (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 435-2","Energy Management (OC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 436-2","Industrial Quality Management (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 476-2","Industrial Engineering Technology (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"MET 477-3","Farm Machinery Technology II (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","3","3","Lecture Hall"
+"MET 478-2","Building Service Technology (OC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"BBST 141-3","General Chemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 101-2","Mathematics I (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 121-2","Physics I (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 121-3","Principles of Biology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 122-2","Environmental Science (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 142-1","Inorganic Chemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 102-2","Mathematics II (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 143-2","Organic Chemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 172-3","Physics II (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"ESD 221-1","English Language- Level 3 (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 241-1","Analytical Chemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 251-3","Computer Programming Concept (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 261-1","Engineering Drawing (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 221-3","Introductory Microbiology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 242-1","Physical Chemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 211-2","Statistic for Biosystems (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"ESD 222-1","English Language IV (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 243-2","Biochemistry (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 271-2","Biophysics (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 272-2","Fluid Mechanics and Heat Transfer (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 231-1","Fundamental of Biosystems Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 222-2","Fundamental for Biotechnology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 273-1","Thermodynamics in Biosystems (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 262-3","Workshop Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 274-2","Electronics for Bioengineering (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 201-2","Numerical Method for Biosystem Technology (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 381-2","Biomaterial (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 382-1","Biotechnological Approaches for Biosystems (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 383-2","Engineering Properties of Biological Material (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 384-2","Food Preservation Storage and Packaging Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 385-2","In vitro Propagation Techniques (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 387-1","Post-Harvest Engineering (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 386-2","Paper and Pulp Technology (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 388-2","Project Formulation and Management (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 391-2","Biological Process Design and Optimization (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 393-3","Food Process Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 394-2","Mechanics of Material in Biosystems (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 395-2","Microbial Systems Engineering (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 396-2","Natural Products Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 397-2","Technology of Dairy, Fish and Meat Products (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 388-1","Scientific Writing","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BBST 389-2","Seminar in Biosystems Technology","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 392-2","Environmental Toxicology (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 399-2","Wood and Wood Based Products development and techniques(OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 491-4","Industrial Training (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","4","4","Lecture Hall"
+"BBST 492-6","Research (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","6","6","Lecture Hall"
+"BBST 481-3","Advanced Analytical Techniques (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","3","3","Lecture Hall"
+"BBST 483-2","Applied Statistic for Biosystems (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 484-2","Bioprospecting (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 485-2","Biosensors and Application (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 486-2","Food Safety and Quality Assurance (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 498-2","Utilization of Biosystems in Waste Management (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 482-2","Application of Nano Technology in Food Industry (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BBST 487-1","Green Technology (OS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"CST 101-2","Fundamentals of Electronics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 161-3","Microcomputer Architecture and Logic Design","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 214-3","Statistical Methods - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 291-2","Entrepreneurship","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 225-3","Data Structures and Analysis of Algorithm","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 292-2","Project - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 328-2","Advanced Programming Techniques","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 372-3","Intelligent Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 381-2","Computer Graphics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 333-2","Data and Network Security","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 384-2","Embedded Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 345-2","Mobile Application Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 393-2","Principles of Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 363-2","Computer Systems Architecture","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 394-2","Project - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 382-3","Digital Image Processing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 364-2","Systems Level Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 316-2","Statistical Method - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 351-2","Parallel and Distributed Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 102-2","Introduction to Computer Science","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 121-3","Structured Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 121-3","Principles of Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"CST 111-2","Essential Mathematics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 122-2","Web Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 131-2","Fundamentals of Computer Networks","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 123-3","Database Management Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"CST 112-2","Calculus","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 124-2","Object Oriented Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 131-3","Fundamentals of Economics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"CST 241-3","System Analysis and Design","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"CST 232-2","Data Communication and Networking","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 242-3","Software Engineering","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 232-3","Financial Accounting","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 241-2","Entrepreneurship","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 213-2","Discrete Mathematics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 262-2","Operating Systems Concepts and Compiler Designs","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 243-3","Rapid Application Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 271-2","Project - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 251-3","Principles of Marketing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 233-2","Management Accountancy","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 211-2","Operational Research","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 226-2","Web Application Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 223-2","Information Technology Project Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 334-2","Business Finance","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 342-3","Organizational Behavior","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 311-3","Statistical Methods - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","3","3","Lecture Hall"
+"IIT 301-2","Data Structures and Algorithms","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 371-2","Human Computer Interaction","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 344-2","Management Information Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 327-2","Advanced Database Management Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 327-2","Information Security and Risk Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 334-2","Mobile Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 315-2","Mathematics for Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 343-2","Business Law","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 372-2","Project - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 395-2","Research Methodology and Scientific Writing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 346-2","Software Quality Assurance","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 396-1","Emerging Technologies in Computer Science & Informatics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"CST 347-2","Software Architecture and Design Patterns","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 344-2","Strategic Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 313-2","Statistical Methods - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 361-2","Digital Image Processing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 446-2","Intellectual Property Rights, Legislation and Commercialization","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 497-2","Social, Ethical and Professional Issues in Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 429-2","Semantic Web Technologies","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 448-2","Business Process Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 414-2","Business Analytics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 447-2","GIS for Business","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 424-2","Organizational Change and Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 445-2","E Commerce","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 452-2","Digital Marketing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 448-2","Enterprise Resource Planning (ERP)","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 437-2","Internet of Things","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 402-2","Advanced Programming Techniques","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 474-2","Data Warehousing and Data Mining","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 436-2","System Administration and Maintenance","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 475-2","Digital Forensics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"CST 435-2","Advanced Computer Networks","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 462-2","Multimedia Technologies","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"IIT 473-6","Industrial Training","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","6","6","Lecture Hall"
+"IIT 474-6","Research Project","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","6","6","Lecture Hall"
+"SCT 142-2","Engineering Workshop","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 122-2","Cell Biology","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 161-1","Computer Programming","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 221-1","Microbiology - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 222-2","Biochemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 261-1","Database Management Systems","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 223-3","Diversity of Life","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","3","3","Lecture Hall"
+"SCT 241-2","Mechanics of Materials","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 311-1","Communication Skills - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 341-2","Materials Characterization Techniques - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 343-2","Materials Physics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 344-1","Materials Technology Laboratory - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 346-2","Polymer Science and Technology - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 347-2","Structural Properties of Materials","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 348-2","Surface and Colloidal Science","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 377-2","Mathematical Methods and Complex Analysis","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 361-1","Environmental Science","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 362-1","Soft Materials and Their Applications","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 351-1","Biomaterials and Applications","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 352-2","Ceramic Science and Technology","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 353-2","Computational Chemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 354-2","Functional Properties of Materials","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 355-1","Glass Science and Technology","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 356-2","Material Characterization Techniques - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 357-1","Materials Technology Laboratory - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 358-1","Polymer Science and Technology - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 359-1","Seminar in Materials Science","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 301-2","Materials Science Group Project","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 302-2","Applied Economics and Financial Accounting","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 303-2","Research Methodology and Scientific Writing","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"IIT 323-2","Human Resource Management","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 363-2","Wood and Wood based Product Development","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 101-1","Essential Mathematics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 121-1","Introductory Biology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 131-2","General Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 141-1","Engineering Drawings","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 151-2","Mechanics, Waves, and Vibrations","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 151-3","Earth Materials and Processes","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 152-1","Water Resources - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 102-2","Calculus","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 132-2","Inorganic Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 152-2","Properties of Matter","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 161-3","Mineralogy and Petrology - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 162-1","Water Resources - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"BGE 211-2","Aesthetic Studies","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 201-1","Abstract Algebra","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 211-2","Statistical Methods","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 231-2","Physical Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 251-2","Electricity and Magnetism","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 252-1","Optics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 251-3","Mineralogy and Petrology - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 253-2","Principles of Hydrogeology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 202-3","Differential Equations and Applications","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"SCT 232-2","Organic Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 242-2","Engineering Thermodynamics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 253-1","Electronics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 212-1","Operational Research","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 252-2","Structural Geology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 254-2","Applied Geochemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 362-2","Analytical Techniques and Instrumentation - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 371-3","Water Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 372-1","Water Chemistry Laboratory - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 373-2","Hydrology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 374-3","Fluid Mechanics and Hydraulics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 376-2","Aquatic Microbiology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 377-2","Oceanography","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 378-2","Advanced Hydrogeology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 382-3","Water Treatment Methods","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 316-3","Engineering Geology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 352-2","Surveying and Levelling","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 353-1","Engineering Workshop Technology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 355-2","Soil Physics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 366-1","Computer Programming","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 365-3","Remote Sensing and Geospatial Technology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 381-2","Water Safety Plan","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 361-2","Research Methodology and Scientific Writing","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 351-3","Applied Geophysics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 383-1","Water Treatment Laboratory","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 384-2","Water Supply Engineering","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 386-3","Groundwater Flow Modelling","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 385-2","Wastewater Treatment and Reuse - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 327-2","Petroleum Exploration and Extraction","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 364-1","Computer Aided Drawing and Designing","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 392-2","Project Management","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 451-2","Environment and Industry Regulations","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 463-2","Analytical Techniques and Instrumentation - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 471-3","Advanced Water Chemistry","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 472-1","Water Chemistry Laboratory - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 473-2","Wastewater Treatment and Reuse - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 474-1","Nanotechnology for Water Treatment","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"MRT 475-2","Bottled Water Technology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 476-3","Solute Transport and Reactive Fluid Flow Modelling","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","3","3","Lecture Hall"
+"MRT 478-2","Water Wells and Pumps","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 453-2","Pollution Control and Remediation","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 454-2","Quantity Surveying","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 401-2","Business Management and Entrepreneurship","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"SCT 402-2","Quality Assurance and Control","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"MRT 461-6","Directed Research Project","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","6","6","Lecture Hall"
+"MRT 462-6","Industrial Training (Non-GPA)","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","6","6","Lecture Hall"
+"ESD 121-1","English Language","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 151-1","Sinhala Language I","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language I ","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 111-1","Communication Skills I","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 122-1","Communicative English","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 152-1","Sinhala Language II","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 162-1","Tamil Language II","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"BGE 211-2","Aesthetic Studies","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","2","2","Lecture Hall"
+"ESD 221-1","Effective English Usage","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 222-1","Explorative English","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 311-1","Communication Skills II","Faculty of Technological Studies","Department of Information & Communication Technology","FOT_ICT","1","1","Lecture Hall"
+"ESD 121-1","English Language I (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language I (CC) ","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"ESD 111-1","Communication skills (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"ESD 122-1","English Language II (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"ESD 152-1","Sinhala II","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"ESD162-1","Tamil Language II (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","1","1","Lecture Hall"
+"BGE 211-2","Aesthetic studies (CC)","Faculty of Technological Studies","Department of Engineering Technology","FOT_ET","2","2","Lecture Hall"
+"BGE 121-2","Ethics and Law Basics (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"ESD 121-1","English Language I (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"ESD 103-2","Information Technology (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"ESD 151-1","Sinhala Language Skills (CS) (NGPA)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language (CS) (NGPA)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BGE 211-2","Aesthetic studies (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","2","2","Lecture Hall"
+"BGE 214-1","Geography (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"BGE 213-1","History (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"ESD 311-1","Communication Skills II (CS)","Faculty of Technological Studies","Department of Biosystem Technology","FOT_BST","1","1","Lecture Hall"
+"CST 102-2","Introduction to Computer Science","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 121-3","Structured Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 111-2","Essential Mathematics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 121-2","English Language Level - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 122-2","Web Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 131-2","Fundamentals of Computer Networks","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 151-1","Sinhala Language - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"BGE 121-2","Ethics and Law basics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 123-3","Database Management Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 124-2","Object Oriented Programming","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 112-2","Calculus","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 111-1","Communication Skills - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"ESD 141-2","Quantitative Reasoning","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 122-2","English Language Level - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 152-1","Sinhala Language - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"ESD 162-1","Tamil Language - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"CST 241-3","System Analysis and Design","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 232-2","Data Communication and Networking","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 242-3","Software Engineering","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"ESD 221-2","English Language Level - III","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"BGE 211-2","Aesthetic Studies","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 213-2","Discrete Mathematics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 262-2","Operating Systems Concepts and Compiler Designs","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 243-3","Rapid Application Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","3","3","Lecture Hall"
+"CST 226-2","Web Application Development","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"IIT 223-2","Information Technology Project Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 371-2","Human Computer Interaction","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 327-2","Advanced Database Management Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 344-2","Management Information Systems","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 311-1","Communication Skills - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"CST 315-2","Mathematics for Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 347-2","Software Architecture & Design Patterns","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 346-2","Software Quality Assurance","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 395-2","Research Methodology and Scientific Writing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"CST 396-1","Emerging Technologies in Computer Science and Informatics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","1","1","Lecture Hall"
+"CST 334-2","Mobile Computing","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA_CST","2","2","Lecture Hall"
+"ESD 121-2","English Language Level - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"ESD 151-1","Sinhala Language - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"BGE 121-2","Ethics and Law basics","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"ESD 141-2","Quantitative Reasoning","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"ESD 122-2","English Language Level - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"ESD 221-2","English Language Level - III","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"BGE 211-2","Aesthetic Studies","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"ESD 311-1","Communication Skills - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"IIT 323-2","Human Resources Management","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","2","2","Lecture Hall"
+"SCT 101-1","Essential Mathematics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 121-1","Introductory Biology","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 131-2","General Chemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 141-1","Engineering Drawings","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 151-2","Mechanics, Waves, and Vibrations","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 121-2","English Language Level - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 103-2","Information Technology","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 151-1","(NGPA) Sinhala Language - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"ESD 161-1","(NGPA) Tamil Language - I","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"BGE 121-2","Ethics and Law Basics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 102-2","Calculus","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 132-2","Inorganic Chemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 152-2","Properties of Matter","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 111-1","Communication Skills","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"ESD 141-2","Quantitative Reasoning","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 122-2","English Language Level - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 152-1","(NGPA) Sinhala Language - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"ESD 162-1","(NGPA) Tamil Language - II","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 201-1","Abstract Algebra","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 211-2","Statistical Methods","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 231-2","Physical Chemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 252-1","Optics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 251-2","Electricity and Magnetism","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 202-3","Differential Equations and Applications","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","3","3","Lecture Hall"
+"SCT 212-1","Operational Research","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 232-2","Organic Chemistry","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 242-2","Engineering Thermodynamics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"SCT 253-1","Basic Electronics","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"BGE 213-1","History","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"BGE 214-1","Geography","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","1","1","Lecture Hall"
+"SCT 342-2","Chemistry for Materials Science","Faculty of Applied Sciences","Department of Science & Technology","FASEA3_SCT","2","2","Lecture Hall"
+"ESD 111-1","Communication Skills - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 311-1","Communication Skills - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 122-2","English Language Level - II","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"ESD 152-1","Sinhala Language - II (non-GPA)","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 162-1","Tamil Language - II (non-GPA)","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 141-2","Quantitative Reasoning","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"ESD 221-2","English Language Level - III","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"BGE 213-1","History","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"BGE 214-1","Geography","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"SCT 302-2","Applied Economics and Financial Accounting","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"IIT 323-2","Human Resource Managements and Industrial Relations","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"IIT 446-2","Intellectual Property Rights, Legislations and Commercialization","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"ESD 121-2","English Language Level - I","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"ESD 151-1","Sinhala Language - I (non-GPA)","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 161-1","Tamil Language - I (non-GPA)","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","1","1","Lecture Hall"
+"ESD 103-2","Information Technology","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"BGE 121-2","Ethics and Law Basics","Faculty of Applied Sciences","Department of Applied Earth Sciences","FASEA_MRT","2","2","Lecture Hall"
+"ESD 111-1","Communication Skills - I","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"ESD 152-1 ","Sinhala Language - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"
+"ESD 162-1","Tamil Language - II","Faculty of Applied Sciences","Department of Computer Science & Informatics","FASEA2_IIT","1","1","Lecture Hall"

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
-import { academicAPI } from "../../../services/api";
+import { academicAPI, settingsAPI } from "../../../services/api";
 
 const initialForm = {
   name: "",
@@ -12,6 +12,7 @@ const initialForm = {
   degree_id: "",
   credits: "",
   lecture_hours_per_week: "",
+  required_resource_type: "",
 };
 
 const BULK_UPLOAD_CHUNK_SIZE = 4;
@@ -38,6 +39,7 @@ export default function Courses() {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [degrees, setDegrees] = useState([]);
+  const [resourceTypes, setResourceTypes] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [facultyFilter, setFacultyFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -60,16 +62,23 @@ export default function Courses() {
     try {
       setLoading(true);
       setError("");
-      const [moduleData, deptData, facultyData, degreeData] = await Promise.all([
+      const [moduleData, deptData, facultyData, degreeData, settingsData] = await Promise.all([
         academicAPI.getModules(),
         academicAPI.getDepartments(),
         academicAPI.getFaculties(),
         academicAPI.getDegrees(),
+        settingsAPI.getSystemSettings(),
       ]);
       setCourses(moduleData);
       setDepartments(deptData);
       setFaculties(facultyData);
       setDegrees(degreeData);
+      const allSettings = settingsData || [];
+      setResourceTypes(
+        allSettings
+          .filter((item) => item.category === "RESOURCE_TYPES")
+          .map((item) => item.value)
+      );
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load courses");
     } finally {
@@ -112,6 +121,7 @@ export default function Courses() {
       degree_id: course.degree_id ? String(course.degree_id) : "",
       credits: course.credits ?? "",
       lecture_hours_per_week: course.lecture_hours_per_week ?? "",
+      required_resource_type: course.required_resource_type || "",
     });
     setModalError("");
     setIsModalOpen(true);
@@ -223,6 +233,11 @@ export default function Courses() {
       return;
     }
 
+    if (!form.required_resource_type.trim()) {
+      setModalError("Required resource type is required");
+      return;
+    }
+
     const credits = Number(form.credits);
     if (!Number.isFinite(credits) || credits <= 0) {
       setModalError("Credits must be a positive number");
@@ -242,6 +257,7 @@ export default function Courses() {
       degree_id: Number(form.degree_id),
       credits,
       lecture_hours_per_week: lectureHours,
+      required_resource_type: form.required_resource_type.trim(),
     };
 
     try {
@@ -326,6 +342,9 @@ export default function Courses() {
         ).trim();
         const creditsValue = getFirstNonEmptyValue(row, ["credits"]);
         const lectureHoursValue = getFirstNonEmptyValue(row, ["lecture_hours_per_week", "lecture_hours"]);
+        const requiredResourceType = String(
+          getFirstNonEmptyValue(row, ["required_resource_type", "resource_type", "room_type"])
+        ).trim();
 
         if (!code || !name || !departmentName || !degreeCode) {
           validationErrors.push(
@@ -416,6 +435,14 @@ export default function Courses() {
         seenDegreeCodeKeys.add(degreeCodeKey);
         seenDegreeNameKeys.add(degreeNameKey);
 
+        const resolvedResourceType = requiredResourceType || "Lecture Hall";
+        if (!resolvedResourceType) {
+          validationErrors.push(
+            `Row ${rowNumber}: required_resource_type is required (add it or set Resource Types in settings)`
+          );
+          return;
+        }
+
         payloads.push({
           rowNumber,
           payload: {
@@ -425,6 +452,7 @@ export default function Courses() {
             degree_id: degree.degree_id,
             credits,
             lecture_hours_per_week: lectureHours,
+            required_resource_type: resolvedResourceType,
           },
         });
       });
@@ -684,6 +712,7 @@ export default function Courses() {
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Course</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Department</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Degree</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Required Resource</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Credits</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
             </tr>
@@ -691,14 +720,14 @@ export default function Courses() {
           <tbody>
             {loading && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
                   Loading courses...
                 </td>
               </tr>
             )}
             {!loading && filteredCourses.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>
+                <td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>
                   No courses found.
                 </td>
               </tr>
@@ -715,6 +744,9 @@ export default function Courses() {
                     {degrees.find((degree) => degree.degree_id === course.degree_id)
                       ? `${degrees.find((degree) => degree.degree_id === course.degree_id).code} - ${degrees.find((degree) => degree.degree_id === course.degree_id).name}`
                       : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {course.required_resource_type || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{course.credits}</td>
                   <td className="px-4 py-3">
@@ -824,6 +856,20 @@ export default function Courses() {
             placeholder="Lecture Hours Per Week"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
+
+          <select
+            name="required_resource_type"
+            value={form.required_resource_type}
+            onChange={handleChange}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">Select Required Resource Type</option>
+            {resourceTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
