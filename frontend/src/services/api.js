@@ -331,6 +331,34 @@ export const semesterRegistrationAPI = {
   },
 };
 
+export const medicalAPI = {
+  getMySubmissions: async () => {
+    const response = await api.get("/api/medical-submissions/me");
+    return response.data;
+  },
+  createSubmission: async (payload) => {
+    const response = await api.post("/api/medical-submissions", payload, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+  getAdminSubmissions: async (params = {}) => {
+    const response = await api.get("/api/medical-submissions/admin", { params });
+    return response.data;
+  },
+  getAdminSummary: async () => {
+    const response = await api.get("/api/medical-submissions/admin/summary");
+    return response.data;
+  },
+  reviewSubmission: async (submissionId, payload) => {
+    const response = await api.put(
+      `/api/medical-submissions/${submissionId}/review`,
+      payload
+    );
+    return response.data;
+  },
+};
+
 export const studentAPI = {
   getCourses: async () => {
     const response = await api.get("/api/dashboard/student-courses");

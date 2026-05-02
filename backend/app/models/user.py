@@ -33,3 +33,4 @@ class User(Base):
     audit_logs = relationship("AuditLog", back_populates="user")
     vehicle_requests = relationship("VehicleRequest", back_populates="requester")
     events = relationship("Event", back_populates="organizer")
+    medical_submissions = relationship("MedicalSubmission", foreign_keys="MedicalSubmission.student_user_id", back_populates="student")

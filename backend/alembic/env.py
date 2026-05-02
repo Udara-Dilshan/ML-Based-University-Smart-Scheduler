@@ -15,6 +15,7 @@ from app.models.profiles import Lecturer, Student
 from app.models.resource import Resource
 from app.models.settings import SystemConstraint, SystemSetting
 from app.models.timetable import TimetableSession
+from app.models.medical import MedicalSubmission
 from app.models.user import User
 from sqlalchemy import engine_from_config, pool, inspect, text
 

@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardList,
+  FileHeart,
   LayoutDashboard,
   Users,
 } from "lucide-react";
@@ -176,6 +177,10 @@ export default function Sidebar() {
         <NavLink to="/admin/requests" className={navItemClass}>
           <ClipboardList size={16} />
           Requests
+        </NavLink>
+        <NavLink to="/admin/medical-submissions" className={navItemClass}>
+          <FileHeart size={16} />
+          Medical Submissions
         </NavLink>
         <NavLink to="/admin/reports" className={navItemClass}>
           <BarChart3 size={16} />

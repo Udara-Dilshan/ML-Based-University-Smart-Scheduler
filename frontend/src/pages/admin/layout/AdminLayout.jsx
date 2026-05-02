@@ -13,6 +13,7 @@ const pageTitles = {
 "/admin/timetable":"Timetable",
 "/admin/resources":"Resources",
 "/admin/requests":"Requests",
+"/admin/medical-submissions":"Medical Submissions",
 "/admin/reports":"Reports & Analytics",
 "/admin/settings":"Settings",
 "/admin/faculties":"Faculties",

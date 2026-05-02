@@ -1,9 +1,13 @@
-import { useState } from "react";
-import { Upload, FileText, Check, User, Hash, GraduationCap, Building } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Upload, FileText, User, Hash, GraduationCap, Building } from "lucide-react";
+import { getUser, medicalAPI } from "../../services/api";
 
 export default function StudentMedical() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const [submitted, setSubmitted] = useState(false);
+  const user = getUser() || {};
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [form, setForm] = useState({
@@ -12,6 +16,45 @@ export default function StudentMedical() {
     endDate: "",
     description: "",
   });
+
+  const degreeName = user?.student_profile?.degree_name || user?.degree || "-";
+  const departmentName = user?.student_profile?.department_name || user?.department || "-";
+  const registrationNumber =
+    user?.student_profile?.registration_number ||
+    user?.student_profile?.reg_no ||
+    user?.registration_number ||
+    "-";
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSubmissions = async () => {
+      try {
+        setLoading(true);
+        const data = await medicalAPI.getMySubmissions();
+        if (active) {
+          setSubmissions(data || []);
+        }
+      } catch (err) {
+        if (active) {
+          setMessage({
+            type: "error",
+            text: err?.detail || err?.message || "Failed to load submissions.",
+          });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSubmissions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // File select කරනකොට
   const handleFileChange = (e) => {
@@ -30,43 +73,55 @@ export default function StudentMedical() {
   };
 
   // Submit කරනකොට
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
-      alert("Please attach a medical document!");
+      setMessage({ type: "error", text: "Please attach a medical document." });
       return;
     }
-    setSubmitted(true);
+
+    try {
+      setSaving(true);
+      setMessage({ type: "", text: "" });
+      const formData = new FormData();
+      formData.append("reason", form.reason);
+      formData.append("start_date", form.startDate);
+      formData.append("end_date", form.endDate);
+      formData.append("description", form.description);
+      formData.append("file", file);
+
+      await medicalAPI.createSubmission(formData);
+      const latest = await medicalAPI.getMySubmissions();
+      setSubmissions(latest || []);
+      setForm({ reason: "", startDate: "", endDate: "", description: "" });
+      setFile(null);
+      setPreview(null);
+      setMessage({ type: "success", text: "Medical certificate submitted successfully." });
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err?.detail || err?.message || "Failed to submit medical certificate.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Success Page
-  if (submitted) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="bg-white rounded-xl border border-gray-200 p-10 text-center shadow-sm max-w-md">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center 
-                          justify-center mx-auto mb-4">
-            <Check size={32} className="text-green-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">Submitted Successfully!</h2>
-          <p className="text-gray-500 text-sm mt-2">
-            Your medical certificate has been submitted. 
-            Admin will review and update your status.
-          </p>
-          <button
-            onClick={() => { setSubmitted(false); setFile(null); setPreview(null); }}
-            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg 
-                       text-sm hover:bg-blue-700 transition"
-          >
-            Submit Another
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const statusBadge = useMemo(() => {
+    return (status) => {
+      const normalized = String(status || "").toUpperCase();
+      if (normalized === "APPROVED") {
+        return "bg-green-100 text-green-700";
+      }
+      if (normalized === "REJECTED") {
+        return "bg-red-100 text-red-700";
+      }
+      return "bg-yellow-100 text-yellow-700";
+    };
+  }, []);
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
 
       {/* Header */}
       <div>
@@ -78,7 +133,20 @@ export default function StudentMedical() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {message.text ? (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            message.type === "error"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {message.text}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* Student Details - Auto filled */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -111,7 +179,7 @@ export default function StudentMedical() {
                               rounded-lg px-3 py-2 bg-gray-50">
                 <Hash size={14} className="text-gray-400" />
                 <span className="text-sm text-gray-700">
-                  {user.registration_number || "UWU/ICT/21/XXX"}
+                  {registrationNumber}
                 </span>
               </div>
             </div>
@@ -124,9 +192,7 @@ export default function StudentMedical() {
               <div className="flex items-center gap-2 border border-gray-200 
                               rounded-lg px-3 py-2 bg-gray-50">
                 <GraduationCap size={14} className="text-gray-400" />
-                <span className="text-sm text-gray-700">
-                  {user.degree || "BSc in ICT"}
-                </span>
+                <span className="text-sm text-gray-700">{degreeName}</span>
               </div>
             </div>
 
@@ -138,9 +204,7 @@ export default function StudentMedical() {
               <div className="flex items-center gap-2 border border-gray-200 
                               rounded-lg px-3 py-2 bg-gray-50">
                 <Building size={14} className="text-gray-400" />
-                <span className="text-sm text-gray-700">
-                  {user.department || "Dept of ICT"}
-                </span>
+                <span className="text-sm text-gray-700">{departmentName}</span>
               </div>
             </div>
 
@@ -151,7 +215,7 @@ export default function StudentMedical() {
               </label>
               <div className="flex items-center gap-2 border border-gray-200 
                               rounded-lg px-3 py-2 bg-gray-50">
-                <span className="text-sm text-gray-700">{user.email}</span>
+                <span className="text-sm text-gray-700">{user.email || "-"}</span>
               </div>
             </div>
 
@@ -291,15 +355,51 @@ export default function StudentMedical() {
         </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full py-3 bg-blue-600 text-white rounded-xl
-                     font-medium text-sm hover:bg-blue-700 transition"
-        >
-          Submit Medical Certificate
-        </button>
+          <button
+            type="submit"
+            className="w-full py-3 bg-blue-600 text-white rounded-xl
+                       font-medium text-sm hover:bg-blue-700 transition disabled:opacity-60"
+            disabled={saving}
+          >
+            {saving ? "Submitting..." : "Submit Medical Certificate"}
+          </button>
 
-      </form>
+        </form>
+
+        <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm h-fit">
+          <h3 className="font-semibold text-gray-900">My Submissions</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Track your medical requests and approval status.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {loading ? (
+              <p className="text-sm text-gray-500">Loading submissions...</p>
+            ) : submissions.length === 0 ? (
+              <p className="text-sm text-gray-500">No submissions yet.</p>
+            ) : (
+              submissions.map((item) => (
+                <div key={item.submission_id} className="border border-gray-100 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900">{item.reason}</p>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${statusBadge(item.status)}`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {item.start_date} - {item.end_date}
+                  </p>
+                  {item.admin_comment ? (
+                    <p className="text-xs text-gray-600 mt-2">Comment: {item.admin_comment}</p>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

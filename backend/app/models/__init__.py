@@ -7,3 +7,4 @@ from .settings import SystemConstraint, SystemSetting
 from .event import Event, Vehicle, VehicleRequest
 from .audit import AuditLog
 from .timetable import TimetableSession
+from .medical import MedicalSubmission

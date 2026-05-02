@@ -9,6 +9,7 @@ import UserManagement from "./pages/admin/users/UserManagement";
 import Timetable from "./pages/admin/timetable/Timetable";
 import Resources from "./pages/admin/resources/Resources";
 import Requests from "./pages/admin/requests/Requests";
+import MedicalSubmissions from "./pages/admin/medical/MedicalSubmissions";
 import Reports from "./pages/admin/reports/Reports";
 import Settings from "./pages/admin/settings/Settings";
 import Profile from "./pages/admin/profile/Profile";
@@ -70,6 +71,7 @@ function App() {
           <Route path="/admin/timetable"   element={<Timetable />} />
           <Route path="/admin/resources"   element={<Resources />} />
           <Route path="/admin/requests"    element={<Requests />} />
+          <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />
           <Route path="/admin/settings"    element={<Settings />} />
           <Route path="/admin/profile"     element={<Profile />} />
