@@ -3,8 +3,12 @@ import AdminLayout from "../layout/AdminLayout";
 import { academicAPI } from "../../../services/api";
 
 export default function LecturerAllocations() {
+  const [faculties, setFaculties] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [selectedFacultyId, setSelectedFacultyId] = useState("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [selectedLecturerId, setSelectedLecturerId] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedModuleId, setSelectedModuleId] = useState("");
@@ -22,15 +26,57 @@ export default function LecturerAllocations() {
     [lecturers, selectedLecturerId]
   );
 
+  const departmentById = useMemo(() => {
+    return departments.reduce((acc, department) => {
+      acc[department.dept_id] = department;
+      return acc;
+    }, {});
+  }, [departments]);
+
+  const filteredDepartments = useMemo(() => {
+    if (!selectedFacultyId) {
+      return departments;
+    }
+    return departments.filter(
+      (department) => Number(department.faculty_id) === Number(selectedFacultyId)
+    );
+  }, [departments, selectedFacultyId]);
+
+  const filteredLecturers = useMemo(() => {
+    return lecturers.filter((lecturer) => {
+      const lecturerDeptId = lecturer.dept_id ? Number(lecturer.dept_id) : null;
+      if (!lecturerDeptId) {
+        return false;
+      }
+
+      if (selectedDepartmentId && lecturerDeptId !== Number(selectedDepartmentId)) {
+        return false;
+      }
+
+      if (selectedFacultyId) {
+        const department = departmentById[lecturerDeptId];
+        if (!department || Number(department.faculty_id) !== Number(selectedFacultyId)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [lecturers, departmentById, selectedDepartmentId, selectedFacultyId]);
+
   const filteredBatches = useMemo(() => {
-    if (!selectedLecturerId) {
+    const deptId = selectedDepartmentId
+      ? Number(selectedDepartmentId)
+      : selectedLecturer?.dept_id
+        ? Number(selectedLecturer.dept_id)
+        : null;
+
+    if (!deptId) {
       return [];
     }
-    if (!selectedLecturer?.dept_id) {
-      return [];
-    }
-    return batches.filter((batch) => batch.degree?.dept_id === Number(selectedLecturer.dept_id));
-  }, [batches, selectedLecturer, selectedLecturerId]);
+
+    return batches.filter((batch) => Number(batch.degree?.dept_id) === deptId);
+  }, [batches, selectedDepartmentId, selectedLecturer]);
 
   const selectedBatch = useMemo(
     () => filteredBatches.find((batch) => batch.batch_id === Number(selectedBatchId)) || null,
@@ -49,14 +95,18 @@ export default function LecturerAllocations() {
     try {
       setLoading(true);
       setError("");
-      const [lecturerData, batchData] = await Promise.all([
+      const [facultyData, departmentData, lecturerData, batchData] = await Promise.all([
+        academicAPI.getFaculties(),
+        academicAPI.getDepartments(),
         academicAPI.getLecturerAllocationLecturers(),
         academicAPI.getBatches(),
       ]);
+      setFaculties(facultyData);
+      setDepartments(departmentData);
       setLecturers(lecturerData);
       setBatches(batchData);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load lecturers and batches");
+      setError(err.response?.data?.detail || "Failed to load allocation filters and data");
     } finally {
       setLoading(false);
     }
@@ -107,7 +157,7 @@ export default function LecturerAllocations() {
   }, [selectedBatchId]);
 
   useEffect(() => {
-    if (!selectedLecturerId) {
+    if (!selectedLecturerId && !selectedDepartmentId) {
       if (selectedBatchId) {
         setSelectedBatchId("");
       }
@@ -127,7 +177,31 @@ export default function LecturerAllocations() {
         setSelectedBatchId("");
       }
     }
-  }, [selectedLecturerId, filteredBatches, selectedBatchId, selectedModuleId]);
+  }, [selectedLecturerId, selectedDepartmentId, filteredBatches, selectedBatchId, selectedModuleId]);
+
+  useEffect(() => {
+    if (!selectedDepartmentId) {
+      return;
+    }
+    const stillAllowed = filteredDepartments.some(
+      (department) => department.dept_id === Number(selectedDepartmentId)
+    );
+    if (!stillAllowed) {
+      setSelectedDepartmentId("");
+    }
+  }, [selectedDepartmentId, filteredDepartments]);
+
+  useEffect(() => {
+    if (!selectedLecturerId) {
+      return;
+    }
+    const stillAllowed = filteredLecturers.some(
+      (lecturer) => lecturer.user_id === Number(selectedLecturerId)
+    );
+    if (!stillAllowed) {
+      setSelectedLecturerId("");
+    }
+  }, [selectedLecturerId, filteredLecturers]);
 
   useEffect(() => {
     if (!message) {
@@ -193,7 +267,7 @@ export default function LecturerAllocations() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Lecturer Allocations</p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Assign Lecturers to Active Modules</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Select a lecturer first, then batch and module. Only current-semester active modules for the selected batch are shown.
+          Filter by faculty and department, then assign lecturers to modules. Only current-semester active modules for the selected batch are shown.
         </p>
       </div>
 
@@ -210,7 +284,38 @@ export default function LecturerAllocations() {
       )}
 
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <select
+            value={selectedFacultyId}
+            onChange={(event) => {
+              setSelectedFacultyId(event.target.value);
+              setSelectedDepartmentId("");
+            }}
+            disabled={loading}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Faculties</option>
+            {faculties.map((faculty) => (
+              <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                {faculty.code ? `${faculty.code} - ${faculty.name}` : faculty.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedDepartmentId}
+            onChange={(event) => setSelectedDepartmentId(event.target.value)}
+            disabled={loading}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">All Departments</option>
+            {filteredDepartments.map((department) => (
+              <option key={department.dept_id} value={department.dept_id}>
+                {department.code ? `${department.code} - ${department.name}` : department.name}
+              </option>
+            ))}
+          </select>
+
           <select
             value={selectedLecturerId}
             onChange={(event) => setSelectedLecturerId(event.target.value)}
@@ -218,7 +323,7 @@ export default function LecturerAllocations() {
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
             <option value="">Select Lecturer</option>
-            {lecturers.map((lecturer) => (
+            {filteredLecturers.map((lecturer) => (
               <option key={lecturer.user_id} value={lecturer.user_id}>
                 {lecturer.full_name} ({lecturer.email})
               </option>
@@ -228,7 +333,7 @@ export default function LecturerAllocations() {
           <select
             value={selectedBatchId}
             onChange={(event) => setSelectedBatchId(event.target.value)}
-            disabled={!selectedLecturerId || loading}
+            disabled={(!selectedLecturerId && !selectedDepartmentId) || loading}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
             <option value="">Select Batch</option>
@@ -257,7 +362,7 @@ export default function LecturerAllocations() {
             type="button"
             onClick={handleQuickAssign}
             disabled={assigningQuick || !selectedLecturerId || !selectedBatchId || !selectedModuleId}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-3 lg:col-span-2"
           >
             {assigningQuick ? "Assigning..." : "Assign Lecturer"}
           </button>
@@ -271,9 +376,9 @@ export default function LecturerAllocations() {
           </p>
         )}
 
-        {selectedLecturerId && !filteredBatches.length && (
+        {(selectedLecturerId || selectedDepartmentId) && !filteredBatches.length && (
           <p className="mt-3 text-sm text-amber-700">
-            No batches found for the selected lecturer's department.
+            No batches found for the selected filters.
           </p>
         )}
       </div>

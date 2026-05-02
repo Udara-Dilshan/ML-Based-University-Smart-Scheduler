@@ -17,6 +17,7 @@ export default function DegreeSemesterModules() {
   const [degrees, setDegrees] = useState([]);
   const [selectedDegreeId, setSelectedDegreeId] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
+  const [moduleSearch, setModuleSearch] = useState("");
   const [selectionData, setSelectionData] = useState(null);
   const [checkedModuleIds, setCheckedModuleIds] = useState(new Set());
   const [savedRows, setSavedRows] = useState([]);
@@ -188,6 +189,21 @@ export default function DegreeSemesterModules() {
     return Object.values(groups);
   }, [savedRows]);
 
+  const filteredModules = useMemo(() => {
+    const modules = selectionData?.modules || [];
+    const query = moduleSearch.trim().toLowerCase();
+
+    if (!query) {
+      return modules;
+    }
+
+    return modules.filter((module) => {
+      const code = (module.code || "").toLowerCase();
+      const name = (module.name || "").toLowerCase();
+      return code.includes(query) || name.includes(query);
+    });
+  }, [selectionData, moduleSearch]);
+
   return (
     <AdminLayout>
       <div className="mb-6 rounded-2xl border border-slate-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50 p-6 shadow-sm">
@@ -266,12 +282,23 @@ export default function DegreeSemesterModules() {
             </button>
           </div>
 
+          <div className="mt-3">
+            <input
+              type="text"
+              value={moduleSearch}
+              onChange={(event) => setModuleSearch(event.target.value)}
+              placeholder="Search modules by code or name..."
+              disabled={loadingModules || !selectedDegreeId || !selectedSemester}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+            />
+          </div>
+
           {loadingModules ? (
             <p className="mt-4 text-sm text-slate-500">Loading modules...</p>
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              {selectionData?.modules?.length ? (
-                selectionData.modules.map((module) => {
+              {filteredModules.length ? (
+                filteredModules.map((module) => {
                   const isChecked = checkedModuleIds.has(module.module_id);
                   return (
                     <label
@@ -302,7 +329,9 @@ export default function DegreeSemesterModules() {
                 })
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
-                  No modules found for this degree.
+                  {moduleSearch.trim()
+                    ? "No modules match your search."
+                    : "No modules found for this degree."}
                 </div>
               )}
             </div>
