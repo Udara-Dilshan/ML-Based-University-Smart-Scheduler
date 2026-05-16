@@ -263,6 +263,7 @@ def get_lecturer_dashboard_summary(
     today_schedule = []
     today_classes = 0
     total_timetable_minutes = 0
+    now_minutes = datetime.now().hour * 60 + datetime.now().minute
 
     for session, module, batch, resource in timetable_rows:
         start_minutes = _time_to_minutes(session.start_time)
@@ -274,24 +275,41 @@ def get_lecturer_dashboard_summary(
         if day_name != today_name:
             continue
 
+        if now_minutes < start_minutes:
+            status = "Upcoming"
+        elif now_minutes <= end_minutes:
+            status = "Ongoing"
+        else:
+            status = "Done"
+
         today_classes += 1
+        start_str = str(session.start_time)[:5]
+        end_str = str(session.end_time)[:5]
         today_schedule.append(
             {
-                "time": f"{session.start_time} - {session.end_time}",
-                "start_time": session.start_time,
+                "time": f"{start_str} - {end_str}",
+                "start_time": start_minutes,
+                "start_time_str": start_str,
+                "end_time_str": end_str,
                 "course": module.name,
+                "module_code": module.code,
                 "room": resource.name,
                 "batch": batch.batch_code,
+                "status": status,
             }
         )
 
-    today_schedule.sort(key=lambda item: _time_to_minutes(item.get("start_time")))
+    today_schedule.sort(key=lambda item: item.get("start_time", 0))
     today_schedule = [
         {
             "time": item["time"],
+            "start_time_str": item["start_time_str"],
+            "end_time_str": item["end_time_str"],
             "course": item["course"],
+            "module_code": item["module_code"],
             "room": item["room"],
             "batch": item["batch"],
+            "status": item["status"],
         }
         for item in today_schedule
     ]
