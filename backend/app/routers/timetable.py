@@ -17,6 +17,8 @@ from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.ga.data_loader import load_scheduling_context
 from app.ga.engine import run_ga
+from app.utils.dependencies import require_roles
+from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/api/timetable", tags=["timetable"])
 
@@ -464,3 +466,74 @@ def publish_timetable(req: PublishRequest, db: Session = Depends(get_db)):
         
     db.commit()
     return {"message": f"Successfully published {count} sessions."}
+
+@router.get("/lecturer/me")
+def get_lecturer_timetable(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.LECTURER))
+):
+    from app.models.timetable import TimetableSession
+    
+    if not current_user.lecturer_profile:
+        raise HTTPException(status_code=404, detail="Lecturer profile not found")
+        
+    lecturer_id = current_user.lecturer_profile.id
+    
+    sessions = db.query(TimetableSession).filter(
+        TimetableSession.lecturer_id == lecturer_id,
+        TimetableSession.status == "PUBLISHED"
+    ).all()
+    
+    result = []
+    for r in sessions:
+        result.append({
+            "session_id": r.session_id,
+            "batch_id": r.batch_id,
+            "module_id": r.module_id,
+            "lecturer_id": r.lecturer_id,
+            "resource_id": r.resource_id,
+            "day_of_week": r.day_of_week,
+            "start_time": r.start_time.strftime("%H:%M"),
+            "end_time": r.end_time.strftime("%H:%M"),
+            "status": r.status.value if hasattr(r.status, 'value') else r.status,
+            "room_name": r.resource.name if r.resource else "N/A",
+            "module_code": r.module.code if r.module else "N/A",
+            "module_name": r.module.name if r.module else "N/A"
+        })
+    return result
+
+@router.get("/student/me")
+def get_student_timetable(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STUDENT))
+):
+    from app.models.timetable import TimetableSession
+    
+    if not current_user.student_profile or not current_user.student_profile.batch:
+        raise HTTPException(status_code=404, detail="Student profile or batch not found")
+        
+    batch_id = current_user.student_profile.batch
+    
+    sessions = db.query(TimetableSession).filter(
+        TimetableSession.batch_id == batch_id,
+        TimetableSession.status == "PUBLISHED"
+    ).all()
+    
+    result = []
+    for r in sessions:
+        result.append({
+            "session_id": r.session_id,
+            "batch_id": r.batch_id,
+            "module_id": r.module_id,
+            "lecturer_id": r.lecturer_id,
+            "resource_id": r.resource_id,
+            "day_of_week": r.day_of_week,
+            "start_time": r.start_time.strftime("%H:%M"),
+            "end_time": r.end_time.strftime("%H:%M"),
+            "status": r.status.value if hasattr(r.status, 'value') else r.status,
+            "room_name": r.resource.name if r.resource else "N/A",
+            "module_code": r.module.code if r.module else "N/A",
+            "module_name": r.module.name if r.module else "N/A",
+            "lecturer_name": f"{r.lecturer.user.first_name} {r.lecturer.user.last_name}" if r.lecturer and r.lecturer.user else "N/A"
+        })
+    return result

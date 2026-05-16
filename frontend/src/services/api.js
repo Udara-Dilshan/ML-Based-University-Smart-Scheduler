@@ -312,7 +312,7 @@ export const lecturerAPI = {
     return response.data;
   },
   getTimetable: async () => {
-    const response = await api.get("/timetable/");
+    const response = await api.get("/api/timetable/lecturer/me");
     return response.data;
   },
 };
@@ -366,6 +366,10 @@ export const medicalAPI = {
 export const studentAPI = {
   getCourses: async () => {
     const response = await api.get("/api/dashboard/student-courses");
+    return response.data;
+  },
+  getTimetable: async () => {
+    const response = await api.get("/api/timetable/student/me");
     return response.data;
   },
 };

@@ -124,9 +124,7 @@ export default function LecturerTimetable() {
         );
         setTimeSlots(configuredTimes.length ? configuredTimes : generateTimeRows("08:00", "17:00"));
 
-        const filtered = (allSessions || []).filter(
-          (item) => Number(item.lecturer_id) === Number(lecturerId)
-        );
+        const filtered = Array.isArray(allSessions) ? allSessions : [];
         setSessions(filtered);
       } catch (error) {
         if (!isMounted) {
@@ -149,8 +147,9 @@ export default function LecturerTimetable() {
     };
   }, [lecturerId]);
 
-  const sessionMap = useMemo(() => {
-    const map = new Map();
+  const { sessionMap, skipMap } = useMemo(() => {
+    const sMap = new Map();
+    const skip = new Set();
 
     sessions.forEach((item) => {
       const normalizedDay = DAY_NORMALIZE[String(item.day_of_week || "").toUpperCase()];
@@ -158,13 +157,25 @@ export default function LecturerTimetable() {
         return;
       }
       const start = String(item.start_time || "").slice(0, 5);
-      if (!start) {
+      const end = String(item.end_time || "").slice(0, 5);
+      if (!start || !end) {
         return;
       }
-      map.set(`${normalizedDay}__${start}`, item);
+
+      const startMin = parseMinutes(start);
+      const endMin = parseMinutes(end);
+      const durationHours = Math.max(1, Math.ceil((endMin - startMin) / 60));
+
+      item.durationHours = durationHours;
+      sMap.set(`${normalizedDay}__${start}`, item);
+
+      for (let i = 1; i < durationHours; i++) {
+        const skipTime = minutesToTime(startMin + i * 60);
+        skip.add(`${normalizedDay}__${skipTime}`);
+      }
     });
 
-    return map;
+    return { sessionMap: sMap, skipMap: skip };
   }, [sessions]);
 
   return (
@@ -186,55 +197,73 @@ export default function LecturerTimetable() {
         </div>
       ) : null}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">
-                  Time
-                </th>
-                {days.map((day) => (
-                  <th key={day} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {timeSlots.map((timeSlot) => (
-                <tr key={timeSlot.label} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3 text-xs text-gray-400 font-medium whitespace-nowrap">
-                    {timeSlot.label}
-                  </td>
-                  {days.map((day, index) => {
-                    const session = sessionMap.get(`${day}__${timeSlot.start}`);
-                    const colorClass = CARD_COLORS[index % CARD_COLORS.length];
-
-                    return (
-                      <td key={day} className="px-4 py-3 align-top min-w-[150px]">
-                        {isLoading ? (
-                          <div className="text-xs text-gray-400">...</div>
-                        ) : session ? (
-                          <div className={`${colorClass} rounded-lg p-2`}>
-                            <p className="text-xs font-semibold">Module #{session.module_id}</p>
-                            <p className="text-xs mt-0.5 opacity-80">
-                              {session.start_time?.slice(0, 5)} - {session.end_time?.slice(0, 5)}
-                            </p>
-                            <p className="text-xs mt-0.5 opacity-80">
-                              Batch #{session.batch_id} • Room #{session.resource_id}
-                            </p>
-                          </div>
-                        ) : null}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!isLoading && !errorMessage && sessions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-gray-200 shadow-sm text-gray-500">
+          <Calendar size={48} className="text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900">No published timetable available yet</h3>
+          <p className="text-sm mt-1">Check back later or contact the admin if you think this is a mistake.</p>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">
+                    Time
+                  </th>
+                  {days.map((day) => (
+                    <th key={day} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {day}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {timeSlots.map((timeSlot) => (
+                  <tr key={timeSlot.label} className="hover:bg-gray-50 transition">
+                    <td className="px-4 py-3 text-xs text-gray-400 font-medium whitespace-nowrap">
+                      {timeSlot.label}
+                    </td>
+                    {days.map((day, index) => {
+                      const cellKey = `${day}__${timeSlot.start}`;
+
+                      if (skipMap.has(cellKey)) {
+                        return null;
+                      }
+
+                      const session = sessionMap.get(cellKey);
+                      const colorClass = CARD_COLORS[index % CARD_COLORS.length];
+
+                      return (
+                        <td 
+                          key={day} 
+                          className="px-4 py-3 align-top min-w-[150px]"
+                          rowSpan={session ? session.durationHours : 1}
+                        >
+                          {isLoading ? (
+                            <div className="text-xs text-gray-400">...</div>
+                          ) : session ? (
+                            <div className={`${colorClass} rounded-lg p-3 h-full flex flex-col`}>
+                              <p className="text-xs font-semibold">{session.module_code} - {session.module_name}</p>
+                              <p className="text-xs mt-1 opacity-80">
+                                {session.start_time?.slice(0, 5)} - {session.end_time?.slice(0, 5)}
+                              </p>
+                              <p className="text-xs mt-1 opacity-80">
+                                Batch #{session.batch_id} • {session.room_name}
+                              </p>
+                            </div>
+                          ) : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
         {days.map((day, index) => (

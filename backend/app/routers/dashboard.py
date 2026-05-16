@@ -61,10 +61,15 @@ def normalize_day(value: Optional[str]) -> Optional[str]:
     return DAY_MAP.get(token[:3])
 
 
-def _time_to_minutes(value: Optional[str]) -> int:
+from typing import Any
+
+def _time_to_minutes(value: Any) -> int:
     if not value:
         return 0
-    token = value.strip()
+    from datetime import time
+    if isinstance(value, time):
+        return (value.hour * 60) + value.minute
+    token = str(value).strip()
     try:
         hour_token, minute_token = token.split(":", maxsplit=1)
         hour = int(hour_token)
@@ -207,6 +212,7 @@ def get_lecturer_dashboard_summary(
     current_user: User = Depends(require_roles(UserRole.LECTURER)),
 ):
     lecturer_id = current_user.user_id
+    lecturer_profile_id = current_user.lecturer_profile.id if current_user.lecturer_profile else None
 
     assignment_rows = (
         db.query(LecturerModuleAssignment)
@@ -242,14 +248,16 @@ def get_lecturer_dashboard_summary(
             or 0
         )
 
-    timetable_rows = (
-        db.query(TimetableSession, Module, Batch, Resource)
-        .join(Module, Module.module_id == TimetableSession.module_id)
-        .join(Batch, Batch.batch_id == TimetableSession.batch_id)
-        .join(Resource, Resource.resource_id == TimetableSession.resource_id)
-        .filter(TimetableSession.lecturer_id == lecturer_id)
-        .all()
-    )
+    timetable_rows = []
+    if lecturer_profile_id:
+        timetable_rows = (
+            db.query(TimetableSession, Module, Batch, Resource)
+            .join(Module, Module.module_id == TimetableSession.module_id)
+            .join(Batch, Batch.batch_id == TimetableSession.batch_id)
+            .join(Resource, Resource.resource_id == TimetableSession.resource_id)
+            .filter(TimetableSession.lecturer_id == lecturer_profile_id)
+            .all()
+        )
 
     today_name = DAY_ORDER[datetime.now().weekday()]
     today_schedule = []
