@@ -94,7 +94,6 @@ class Batch(Base):
     current_semester = Column(Integer, nullable=False)
     dept_id = synonym("degree_id")
     name = synonym("batch_code")
-    academic_year = synonym("current_semester")
     degree = relationship("Degree", back_populates="batches")
     active_terms = relationship("BatchActiveTerm", back_populates="batch", cascade="all, delete-orphan")
     lecturer_assignments = relationship(
@@ -111,14 +110,13 @@ class Batch(Base):
 class BatchActiveTerm(Base):
     __tablename__ = "batch_active_terms"
     __table_args__ = (
-        UniqueConstraint("batch_id", "semester_name", "academic_year", name="uq_batch_active_terms_history"),
+        UniqueConstraint("batch_id", "semester_name", name="uq_batch_active_terms_history"),
         Index("ix_batch_active_terms_batch_active", "batch_id", "is_active"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     batch_id = Column(Integer, ForeignKey("batches.batch_id", ondelete="CASCADE"), nullable=False)
     semester_name = Column(String(50), nullable=False)
-    academic_year = Column(String(20), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
     batch = relationship("Batch", back_populates="active_terms")

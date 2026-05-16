@@ -202,7 +202,7 @@ def _validate_degree_semester(degree: Degree, semester_number: int) -> None:
         )
 
 
-def _validate_batch_active_term(batch: Batch, semester_name: str, academic_year: str) -> int:
+def _validate_batch_active_term(batch: Batch, semester_name: str) -> int:
     normalized_semester_name = semester_name.strip()
     if normalized_semester_name not in SEMESTER_NAME_TO_NUMBER:
         raise HTTPException(
@@ -219,22 +219,17 @@ def _validate_batch_active_term(batch: Batch, semester_name: str, academic_year:
             detail=f"Selected semester is out of range for this batch's degree. Maximum allowed is Year {degree_duration_years} Semester 2.",
         )
 
-    if not academic_year.strip():
-        raise HTTPException(status_code=422, detail="academic_year is required")
-
     return semester_number
 
 
 class BatchActiveTermSave(BaseModel):
     semester_name: str = Field(min_length=1)
-    academic_year: str = Field(min_length=4, max_length=20)
 
 
 class BatchActiveTermOut(BaseModel):
     id: int
     batch_id: int
     semester_name: str
-    academic_year: str
     is_active: bool
 
     class Config:
@@ -313,7 +308,6 @@ class BatchOut(BatchBase):
     student_count: int
     current_semester: int
     name: str
-    academic_year: int
     degree: Optional[DegreeOut] = None
     active_term: Optional[BatchActiveTermOut] = None
 
@@ -872,7 +866,6 @@ def assign_or_update_batch_active_term(
     db: Session = Depends(get_db),
 ):
     semester_name = payload.semester_name.strip()
-    academic_year = payload.academic_year.strip()
 
     max_retries = 3
 
@@ -882,7 +875,7 @@ def assign_or_update_batch_active_term(
             if not batch:
                 raise HTTPException(status_code=404, detail="Batch not found")
 
-            semester_number = _validate_batch_active_term(batch, semester_name, academic_year)
+            semester_number = _validate_batch_active_term(batch, semester_name)
 
             current_active_term = (
                 db.query(BatchActiveTerm)
@@ -897,7 +890,6 @@ def assign_or_update_batch_active_term(
             term = db.query(BatchActiveTerm).filter(
                 BatchActiveTerm.batch_id == batch_id,
                 BatchActiveTerm.semester_name == semester_name,
-                BatchActiveTerm.academic_year == academic_year,
             ).first()
 
             if current_active_term and (not term or current_active_term.id != term.id):
@@ -909,7 +901,6 @@ def assign_or_update_batch_active_term(
                 term = BatchActiveTerm(
                     batch_id=batch_id,
                     semester_name=semester_name,
-                    academic_year=academic_year,
                     is_active=True,
                 )
                 db.add(term)

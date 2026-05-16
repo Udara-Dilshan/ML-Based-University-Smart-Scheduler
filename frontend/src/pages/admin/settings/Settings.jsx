@@ -157,7 +157,7 @@ const pickConstraintRowsForScope = (rows, selectedScope, selectedBatchId) => {
 };
 
 export default function Settings() {
-	const [activeTab, setActiveTab] = useState("constraints");
+	const [activeTab, setActiveTab] = useState("global");
 	const [scope, setScope] = useState("global");
 	const [batches, setBatches] = useState([]);
 	const [selectedBatchId, setSelectedBatchId] = useState("");
@@ -172,7 +172,12 @@ export default function Settings() {
 	const [isLoadingConstraints, setIsLoadingConstraints] = useState(false);
 	const [isLoadingLookups, setIsLoadingLookups] = useState(false);
 	const [isSavingConstraints, setIsSavingConstraints] = useState(false);
+	const [isSavingGlobal, setIsSavingGlobal] = useState(false);
 	const [message, setMessage] = useState({ type: "", text: "" });
+	const [globalSettingsForm, setGlobalSettingsForm] = useState({
+		CURRENT_ACADEMIC_YEAR: "",
+		ACTIVE_SEMESTER_CYCLE: "",
+	});
 
 	const lookupByCategory = useMemo(() => {
 		return LOOKUP_CATEGORIES.reduce((acc, category) => {
@@ -187,6 +192,15 @@ export default function Settings() {
 		}, 5000);
 		return () => clearTimeout(timer);
 	}, [message]);
+
+	useEffect(() => {
+		const academicYear = settingsRows.find(s => s.category === "CURRENT_ACADEMIC_YEAR")?.value || "";
+		const semesterCycle = settingsRows.find(s => s.category === "ACTIVE_SEMESTER_CYCLE")?.value || "";
+		setGlobalSettingsForm({
+			CURRENT_ACADEMIC_YEAR: academicYear,
+			ACTIVE_SEMESTER_CYCLE: semesterCycle
+		});
+	}, [settingsRows]);
 
 	useEffect(() => {
 		const loadBaseData = async () => {
@@ -357,6 +371,39 @@ export default function Settings() {
 		}
 	};
 
+	const saveGlobalSettings = async () => {
+		setIsSavingGlobal(true);
+		try {
+			const academicYearSetting = settingsRows.find(s => s.category === "CURRENT_ACADEMIC_YEAR");
+			const semesterCycleSetting = settingsRows.find(s => s.category === "ACTIVE_SEMESTER_CYCLE");
+
+			const promises = [];
+			if (academicYearSetting) {
+				promises.push(settingsAPI.updateSystemSetting(academicYearSetting.id, { value: globalSettingsForm.CURRENT_ACADEMIC_YEAR }));
+			} else if (globalSettingsForm.CURRENT_ACADEMIC_YEAR) {
+				promises.push(settingsAPI.createSystemSetting({ category: "CURRENT_ACADEMIC_YEAR", value: globalSettingsForm.CURRENT_ACADEMIC_YEAR }));
+			}
+
+			if (semesterCycleSetting) {
+				promises.push(settingsAPI.updateSystemSetting(semesterCycleSetting.id, { value: globalSettingsForm.ACTIVE_SEMESTER_CYCLE }));
+			} else if (globalSettingsForm.ACTIVE_SEMESTER_CYCLE) {
+				promises.push(settingsAPI.createSystemSetting({ category: "ACTIVE_SEMESTER_CYCLE", value: globalSettingsForm.ACTIVE_SEMESTER_CYCLE }));
+			}
+
+			await Promise.all(promises);
+			const refreshed = await settingsAPI.getSystemSettings();
+			setSettingsRows(refreshed || []);
+			setMessage({ type: "success", text: "Global academic settings saved successfully." });
+		} catch (error) {
+			setMessage({
+				type: "error",
+				text: getErrorMessage(error, "Failed to save global academic settings."),
+			});
+		} finally {
+			setIsSavingGlobal(false);
+		}
+	};
+
 	const addLookupValue = async (category) => {
 		const inputValue = (lookupInput[category] || "").trim();
 		if (!inputValue) {
@@ -398,6 +445,17 @@ export default function Settings() {
 				<div className="flex flex-wrap gap-3 mb-6">
 					<button
 						type="button"
+						onClick={() => setActiveTab("global")}
+						className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+							activeTab === "global"
+								? "bg-blue-600 text-white"
+								: "bg-slate-100 text-slate-700 hover:bg-slate-200"
+						}`}
+					>
+						Global Academic Settings
+					</button>
+					<button
+						type="button"
 						onClick={() => setActiveTab("constraints")}
 						className={`px-4 py-2 rounded-md text-sm font-medium transition ${
 							activeTab === "constraints"
@@ -429,6 +487,46 @@ export default function Settings() {
 						}`}
 					>
 						{message.text}
+					</div>
+				)}
+
+				{activeTab === "global" && (
+					<div className="space-y-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<label className="block text-sm text-slate-700">
+								<span className="mb-1 block">Current Academic Year</span>
+								<input
+									type="text"
+									placeholder="e.g. 2025/2026"
+									value={globalSettingsForm.CURRENT_ACADEMIC_YEAR}
+									onChange={(event) => setGlobalSettingsForm((prev) => ({ ...prev, CURRENT_ACADEMIC_YEAR: event.target.value }))}
+									className="w-full border border-slate-300 rounded-md px-3 py-2"
+								/>
+							</label>
+
+							<label className="block text-sm text-slate-700">
+								<span className="mb-1 block">Active Semester Cycle</span>
+								<select
+									value={globalSettingsForm.ACTIVE_SEMESTER_CYCLE}
+									onChange={(event) => setGlobalSettingsForm((prev) => ({ ...prev, ACTIVE_SEMESTER_CYCLE: event.target.value }))}
+									className="w-full border border-slate-300 rounded-md px-3 py-2"
+								>
+									<option value="">Select Cycle</option>
+									<option value="Semester 1">Semester 1</option>
+									<option value="Semester 2">Semester 2</option>
+								</select>
+							</label>
+						</div>
+						<div>
+							<button
+								type="button"
+								onClick={saveGlobalSettings}
+								disabled={isSavingGlobal}
+								className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-5 py-2 rounded-md text-sm font-medium"
+							>
+								{isSavingGlobal ? "Saving..." : "Save Settings"}
+							</button>
+						</div>
 					</div>
 				)}
 
