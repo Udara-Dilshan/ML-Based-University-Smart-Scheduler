@@ -477,3 +477,80 @@ def get_lecturer_working_constraints(
         "working_hours_end": _minutes_to_hhmm(end_minutes),
         "working_days": working_days,
     }
+
+
+@router.get("/student-summary")
+def get_student_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.STUDENT)),
+):
+    student_profile = current_user.student_profile
+    batch_id = getattr(student_profile, "batch_id", None) if student_profile else None
+
+    today_name = DAY_FULL_ORDER[datetime.now().weekday()]
+    today_sessions = []
+    total_modules = 0
+    now_minutes = datetime.now().hour * 60 + datetime.now().minute
+
+    if batch_id:
+        from ..models.profiles import Lecturer as LecturerProfile
+
+        rows = (
+            db.query(TimetableSession, Module, Resource)
+            .join(Module, Module.module_id == TimetableSession.module_id)
+            .join(Resource, Resource.resource_id == TimetableSession.resource_id)
+            .filter(
+                TimetableSession.batch_id == batch_id,
+                TimetableSession.status == "PUBLISHED",
+                TimetableSession.day_of_week == today_name,
+            )
+            .order_by(TimetableSession.start_time)
+            .all()
+        )
+
+        for session, module, resource in rows:
+            start_min = _time_to_minutes(session.start_time)
+            end_min = _time_to_minutes(session.end_time)
+
+            if now_minutes < start_min:
+                status = "Upcoming"
+            elif now_minutes <= end_min:
+                status = "Ongoing"
+            else:
+                status = "Done"
+
+            # fetch lecturer name
+            lecturer_name = None
+            lecturer_row = (
+                db.query(LecturerProfile)
+                .filter(LecturerProfile.id == session.lecturer_id)
+                .first()
+            )
+            if lecturer_row:
+                lecturer_user = db.query(User).filter(User.user_id == lecturer_row.user_id).first()
+                if lecturer_user:
+                    lecturer_name = f"{lecturer_user.first_name} {lecturer_user.last_name}".strip()
+
+            today_sessions.append({
+                "session_id": session.session_id,
+                "module_name": module.name,
+                "module_code": module.code,
+                "room_name": resource.name,
+                "start_time": str(session.start_time)[:5],
+                "end_time": str(session.end_time)[:5],
+                "status": status,
+                "lecturer_name": lecturer_name,
+            })
+
+        total_modules = (
+            db.query(func.count(DegreeSemesterModule.id))
+            .join(Batch, Batch.degree_id == DegreeSemesterModule.degree_id)
+            .filter(Batch.batch_id == batch_id)
+            .scalar()
+            or 0
+        )
+
+    return {
+        "today_sessions": today_sessions,
+        "total_modules": total_modules,
+    }

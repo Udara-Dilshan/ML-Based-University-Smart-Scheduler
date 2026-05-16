@@ -372,6 +372,10 @@ export const studentAPI = {
     const response = await api.get("/api/timetable/student/me");
     return response.data;
   },
+  getDashboardSummary: async () => {
+    const response = await api.get("/api/dashboard/student-summary");
+    return response.data;
+  },
 };
 
 export const timetableAPI = {

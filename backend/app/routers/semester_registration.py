@@ -103,7 +103,7 @@ def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str, Option
 
     academic_year = None
     if active_term:
-        academic_year = active_term.academic_year
+        academic_year = getattr(active_term, "academic_year", None)
 
     if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
         semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
@@ -563,7 +563,20 @@ def _render_pdf(data: dict, modules: list[Module]) -> bytes:
         docx_path = Path(temp_dir) / "semester_registration.docx"
         pdf_path = Path(temp_dir) / "semester_registration.pdf"
         docx_path.write_bytes(docx_bytes)
-        docx_to_pdf(str(docx_path), str(pdf_path))
+        
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+            docx_to_pdf(str(docx_path), str(pdf_path))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
+        finally:
+            try:
+                import pythoncom
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
+
         if not pdf_path.exists():
             raise HTTPException(status_code=500, detail="Failed to generate PDF")
         return pdf_path.read_bytes()
@@ -661,3 +674,4 @@ def generate_form(
         media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
