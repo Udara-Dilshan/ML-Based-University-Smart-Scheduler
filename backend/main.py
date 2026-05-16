@@ -47,7 +47,7 @@ app.include_router(semester_registration.router)
 app.include_router(medical.router)
 app.include_router(resource.router)
 app.include_router(lecturer_availability.router)
-app.include_router(timetable.router)
+app.include_router(timetable.router)  # prefix: /api/timetable
 app.include_router(settings.router)
 
 # Serve static files (uploads)

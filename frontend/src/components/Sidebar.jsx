@@ -33,6 +33,7 @@ export default function Sidebar() {
   const [userRefresh, setUserRefresh] = useState(0);
   const currentUser = getUser();
   const isUsersRoute = location.pathname.startsWith("/admin/users");
+  const isTimetableRoute = location.pathname.startsWith("/admin/timetable");
   const isAcademicRoute = [
     "/admin/faculties",
     "/admin/departments",
@@ -44,6 +45,7 @@ export default function Sidebar() {
   ].includes(location.pathname);
 
   const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
+  const [isTimetableOpen, setIsTimetableOpen] = useState(isTimetableRoute);
   const [isAcademicOpen, setIsAcademicOpen] = useState(isAcademicRoute);
 
   // Listen for storage changes to update profile image
@@ -63,7 +65,10 @@ export default function Sidebar() {
     if (isAcademicRoute) {
       setIsAcademicOpen(true);
     }
-  }, [isUsersRoute, isAcademicRoute]);
+    if (isTimetableRoute) {
+      setIsTimetableOpen(true);
+    }
+  }, [isUsersRoute, isAcademicRoute, isTimetableRoute]);
 
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -84,10 +89,32 @@ export default function Sidebar() {
           <LayoutDashboard size={16} />
           Dashboard
         </NavLink>
-        <NavLink to="/admin/timetable" className={navItemClass}>
-          <CalendarDays size={16} />
-          Timetable
-        </NavLink>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setIsTimetableOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+          >
+            <div className="flex items-center gap-3">
+              <CalendarDays size={16} />
+              <span>Timetables</span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${isTimetableOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+          {isTimetableOpen && (
+            <div className="space-y-1 px-6 pt-1">
+              <NavLink to="/admin/timetable" end className={subItemClass}>
+                Generation
+              </NavLink>
+              <NavLink to="/admin/timetable/manage" className={subItemClass}>
+                Manage Timetables
+              </NavLink>
+            </div>
+          )}
+        </div>
 
         <div className="pt-2">
           <button

@@ -158,6 +158,10 @@ export const academicAPI = {
     const response = await api.post("/academic/modules", payload);
     return response.data;
   },
+  getBatches: async () => {
+    const response = await api.get("/academic/batches");
+    return response.data;
+  },
   updateModule: async (id, payload) => {
     const response = await api.put(`/academic/modules/${id}`, payload);
     return response.data;
@@ -362,6 +366,41 @@ export const medicalAPI = {
 export const studentAPI = {
   getCourses: async () => {
     const response = await api.get("/api/dashboard/student-courses");
+    return response.data;
+  },
+};
+
+export const timetableAPI = {
+  generate: async (payload) => {
+    const response = await api.post("/api/timetable/generate", payload);
+    return response.data;
+  },
+  save: async (payload) => {
+    const response = await api.post("/api/timetable/save", payload);
+    return response.data;
+  },
+  getManaged: async (params) => {
+    const response = await api.get("/api/timetable/manage", { params });
+    return response.data;
+  },
+  editSession: async (sessionId, payload) => {
+    const response = await api.put(`/api/timetable/sessions/${sessionId}`, payload);
+    return response.data;
+  },
+  suggestAlternatives: async (sessionId) => {
+    const response = await api.post("/api/timetable/suggest-alternatives", { session_id: sessionId });
+    return response.data;
+  },
+  publish: async (payload) => {
+    const response = await api.post("/api/timetable/publish", payload);
+    return response.data;
+  },
+  getContext: async ({ degree_id, dept_id, faculty_id } = {}) => {
+    const params = {};
+    if (degree_id) params.degree_id = degree_id;
+    if (dept_id) params.dept_id = dept_id;
+    if (faculty_id) params.faculty_id = faculty_id;
+    const response = await api.get("/api/timetable/context", { params });
     return response.data;
   },
 };

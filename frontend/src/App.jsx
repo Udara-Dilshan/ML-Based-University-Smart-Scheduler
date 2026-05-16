@@ -7,6 +7,7 @@ import StudentSignupPage from "./pages/StudentSignupPage";
 import Dashboard from "./pages/admin/dashboard/Dashboard";
 import UserManagement from "./pages/admin/users/UserManagement";
 import Timetable from "./pages/admin/timetable/Timetable";
+import ManageTimetables from "./pages/admin/timetable/ManageTimetables";
 import Resources from "./pages/admin/resources/Resources";
 import Requests from "./pages/admin/requests/Requests";
 import MedicalSubmissions from "./pages/admin/medical/MedicalSubmissions";
@@ -69,6 +70,7 @@ function App() {
           <Route path="/admin/users/resource-managers"
             element={<UserManagement forcedRole="ResourceManager" titleOverride="Resource Managers" />} />
           <Route path="/admin/timetable"   element={<Timetable />} />
+          <Route path="/admin/timetable/manage" element={<ManageTimetables />} />
           <Route path="/admin/resources"   element={<Resources />} />
           <Route path="/admin/requests"    element={<Requests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
