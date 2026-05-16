@@ -159,8 +159,8 @@ const pickConstraintRowsForScope = (rows, selectedScope, selectedBatchId) => {
 export default function Settings() {
 	const [activeTab, setActiveTab] = useState("global");
 	const [scope, setScope] = useState("global");
+	const [selectedYear, setSelectedYear] = useState("");
 	const [batches, setBatches] = useState([]);
-	const [selectedBatchId, setSelectedBatchId] = useState("");
 	const [constraintRows, setConstraintRows] = useState([]);
 	const [constraintForm, setConstraintForm] = useState(DEFAULT_CONSTRAINT_FORM);
 	const [settingsRows, setSettingsRows] = useState([]);
@@ -185,6 +185,18 @@ export default function Settings() {
 			return acc;
 		}, {});
 	}, [settingsRows]);
+
+	const availableYears = useMemo(() => {
+		const years = new Set(batches.map(b => Math.ceil(b.current_semester / 2)).filter(y => !isNaN(y) && y > 0));
+		return Array.from(years).sort((a, b) => a - b);
+	}, [batches]);
+
+	const targetBatches = useMemo(() => {
+		if (scope === "year" && selectedYear) {
+			return batches.filter(b => Math.ceil(b.current_semester / 2) === Number(selectedYear));
+		}
+		return [];
+	}, [scope, selectedYear, batches]);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -241,7 +253,7 @@ export default function Settings() {
 
 	useEffect(() => {
 		const loadConstraintData = async () => {
-			if (scope === "batch" && !selectedBatchId) {
+			if (scope === "year" && !selectedYear) {
 				setConstraintRows([]);
 				setConstraintForm(DEFAULT_CONSTRAINT_FORM);
 				return;
@@ -249,14 +261,19 @@ export default function Settings() {
 
 			setIsLoadingConstraints(true);
 			try {
+				let representativeBatchId = null;
+				if (scope === "year" && targetBatches.length > 0) {
+					representativeBatchId = targetBatches[0].batch_id;
+				}
+
 				const payload =
-					scope === "batch"
-						? { scope: "all", batchId: selectedBatchId }
+					scope === "year"
+						? { scope: "all", batchId: representativeBatchId }
 						: { scope: "global" };
 				const rows = await settingsAPI.getSystemConstraints(payload);
 				setConstraintRows(rows || []);
 
-				const formRows = pickConstraintRowsForScope(rows || [], scope, selectedBatchId);
+				const formRows = pickConstraintRowsForScope(rows || [], scope, representativeBatchId);
 				setConstraintForm(formFromConstraints(formRows));
 			} catch (error) {
 				setMessage({
@@ -269,7 +286,7 @@ export default function Settings() {
 		};
 
 		loadConstraintData();
-	}, [scope, selectedBatchId]);
+	}, [scope, selectedYear, targetBatches]);
 
 	const toggleWorkingDay = (dayValue) => {
 		setConstraintForm((prev) => {
@@ -302,8 +319,13 @@ export default function Settings() {
 	});
 
 	const saveConstraints = async () => {
-		if (scope === "batch" && !selectedBatchId) {
-			setMessage({ type: "error", text: "Select a batch before saving batch-specific constraints." });
+		if (scope === "year" && !selectedYear) {
+			setMessage({ type: "error", text: "Select a year before saving year-specific constraints." });
+			return;
+		}
+
+		if (scope === "year" && targetBatches.length === 0) {
+			setMessage({ type: "error", text: "No batches found for the selected year." });
 			return;
 		}
 
@@ -327,38 +349,49 @@ export default function Settings() {
 			return;
 		}
 
-		const targetBatchId = scope === "batch" ? Number(selectedBatchId) : null;
-		const scopedRows = constraintRows.filter((row) => {
-			if (targetBatchId === null) {
-				return row.batch_id === null;
-			}
-			return row.batch_id === targetBatchId;
-		});
-
-		const values = buildConstraintValueMap();
-		const updates = Object.entries(values).map(([name, value]) => {
-			const existing = scopedRows.find((row) => row.name === name);
-			const payload = {
-				name,
-				value,
-				type: "HARD",
-				batch_id: targetBatchId,
-			};
-
-			if (existing) {
-				return settingsAPI.updateSystemConstraint(existing.constraint_id, payload);
-			}
-			return settingsAPI.createSystemConstraint(payload);
-		});
+		const batchIdsToUpdate = scope === "year" ? targetBatches.map(b => b.batch_id) : [null];
 
 		setIsSavingConstraints(true);
 		try {
+			const values = buildConstraintValueMap();
+			const allConstraints = await settingsAPI.getSystemConstraints({ scope: "all" });
+
+			const updates = [];
+
+			for (const targetBatchId of batchIdsToUpdate) {
+				const scopedRows = allConstraints.filter((row) => {
+					if (targetBatchId === null) return row.batch_id === null;
+					return row.batch_id === targetBatchId;
+				});
+
+				Object.entries(values).forEach(([name, value]) => {
+					const existing = scopedRows.find((row) => row.name === name);
+					const payload = {
+						name,
+						value,
+						type: "HARD",
+						batch_id: targetBatchId,
+					};
+
+					if (existing) {
+						updates.push(settingsAPI.updateSystemConstraint(existing.constraint_id, payload));
+					} else {
+						updates.push(settingsAPI.createSystemConstraint(payload));
+					}
+				});
+			}
+
 			await Promise.all(updates);
+
+			let representativeBatchId = null;
+			if (scope === "year" && targetBatches.length > 0) {
+				representativeBatchId = targetBatches[0].batch_id;
+			}
 			const refreshed = await settingsAPI.getSystemConstraints(
-				scope === "batch" ? { scope: "all", batchId: selectedBatchId } : { scope: "global" }
+				scope === "year" ? { scope: "all", batchId: representativeBatchId } : { scope: "global" }
 			);
 			setConstraintRows(refreshed || []);
-			const formRows = pickConstraintRowsForScope(refreshed || [], scope, selectedBatchId);
+			const formRows = pickConstraintRowsForScope(refreshed || [], scope, representativeBatchId);
 			setConstraintForm(formFromConstraints(formRows));
 			setMessage({ type: "success", text: "Timetable constraints saved successfully." });
 		} catch (error) {
@@ -548,23 +581,23 @@ export default function Settings() {
 								<input
 									type="radio"
 									name="scope"
-									value="batch"
-									checked={scope === "batch"}
-									onChange={() => setScope("batch")}
+									value="year"
+									checked={scope === "year"}
+									onChange={() => setScope("year")}
 								/>
-								Batch-specific
+								Year-specific
 							</label>
 
-							{scope === "batch" && (
+							{scope === "year" && (
 								<select
-									value={selectedBatchId}
-									onChange={(event) => setSelectedBatchId(event.target.value)}
+									value={selectedYear}
+									onChange={(event) => setSelectedYear(event.target.value)}
 									className="ml-0 sm:ml-2 border border-slate-300 rounded-md px-3 py-2 text-sm"
 								>
-									<option value="">Select Batch</option>
-									{batches.map((batch) => (
-										<option key={batch.batch_id} value={batch.batch_id}>
-											{batch.batch_code || batch.name || `Batch ${batch.batch_id}`}
+									<option value="">Select Year</option>
+									{availableYears.map((year) => (
+										<option key={year} value={year}>
+											Year {year}
 										</option>
 									))}
 								</select>
