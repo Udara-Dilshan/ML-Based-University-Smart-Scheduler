@@ -5,108 +5,99 @@ import { academicAPI } from "../../../services/api";
 export default function LecturerAllocations() {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [degrees, setDegrees] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [batches, setBatches] = useState([]);
+
   const [selectedFacultyId, setSelectedFacultyId] = useState("");
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
-  const [selectedLecturerId, setSelectedLecturerId] = useState("");
+  const [selectedDegreeId, setSelectedDegreeId] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState("");
-  const [selectedModuleId, setSelectedModuleId] = useState("");
+
   const [activeModulesPayload, setActiveModulesPayload] = useState(null);
   const [rowLecturerByModule, setRowLecturerByModule] = useState({});
   const [savingByModule, setSavingByModule] = useState({});
-  const [assigningQuick, setAssigningQuick] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [loadingModules, setLoadingModules] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const selectedLecturer = useMemo(
-    () => lecturers.find((lecturer) => lecturer.user_id === Number(selectedLecturerId)) || null,
-    [lecturers, selectedLecturerId]
+  // ── derived data ──────────────────────────────────────────────────────────
+
+  const departmentById = useMemo(() =>
+    departments.reduce((acc, d) => { acc[d.dept_id] = d; return acc; }, {}),
+    [departments]
   );
 
-  const departmentById = useMemo(() => {
-    return departments.reduce((acc, department) => {
-      acc[department.dept_id] = department;
-      return acc;
-    }, {});
-  }, [departments]);
-
   const filteredDepartments = useMemo(() => {
-    if (!selectedFacultyId) {
-      return departments;
-    }
-    return departments.filter(
-      (department) => Number(department.faculty_id) === Number(selectedFacultyId)
-    );
+    if (!selectedFacultyId) return departments;
+    return departments.filter(d => Number(d.faculty_id) === Number(selectedFacultyId));
   }, [departments, selectedFacultyId]);
 
-  const filteredLecturers = useMemo(() => {
-    return lecturers.filter((lecturer) => {
-      const lecturerDeptId = lecturer.dept_id ? Number(lecturer.dept_id) : null;
-      if (!lecturerDeptId) {
-        return false;
-      }
-
-      if (selectedDepartmentId && lecturerDeptId !== Number(selectedDepartmentId)) {
-        return false;
-      }
-
+  const filteredDegrees = useMemo(() => {
+    return degrees.filter(deg => {
+      if (selectedDepartmentId && Number(deg.dept_id) !== Number(selectedDepartmentId)) return false;
       if (selectedFacultyId) {
-        const department = departmentById[lecturerDeptId];
-        if (!department || Number(department.faculty_id) !== Number(selectedFacultyId)) {
-          return false;
-        }
+        const dept = departmentById[deg.dept_id];
+        if (!dept || Number(dept.faculty_id) !== Number(selectedFacultyId)) return false;
       }
-
       return true;
     });
-  }, [lecturers, departmentById, selectedDepartmentId, selectedFacultyId]);
+  }, [degrees, selectedDepartmentId, selectedFacultyId, departmentById]);
 
   const filteredBatches = useMemo(() => {
-    const deptId = selectedDepartmentId
-      ? Number(selectedDepartmentId)
-      : selectedLecturer?.dept_id
-        ? Number(selectedLecturer.dept_id)
-        : null;
-
-    if (!deptId) {
-      return [];
-    }
-
-    return batches.filter((batch) => Number(batch.degree?.dept_id) === deptId);
-  }, [batches, selectedDepartmentId, selectedLecturer]);
+    return batches.filter(batch => {
+      const deg = batch.degree;
+      if (!deg) return false;
+      if (selectedDegreeId && Number(deg.degree_id) !== Number(selectedDegreeId)) return false;
+      if (selectedDepartmentId && Number(deg.dept_id) !== Number(selectedDepartmentId)) return false;
+      if (selectedFacultyId) {
+        const dept = departmentById[deg.dept_id];
+        if (!dept || Number(dept.faculty_id) !== Number(selectedFacultyId)) return false;
+      }
+      return true;
+    });
+  }, [batches, selectedDegreeId, selectedDepartmentId, selectedFacultyId, departmentById]);
 
   const selectedBatch = useMemo(
-    () => filteredBatches.find((batch) => batch.batch_id === Number(selectedBatchId)) || null,
+    () => filteredBatches.find(b => b.batch_id === Number(selectedBatchId)) || null,
     [filteredBatches, selectedBatchId]
   );
 
   const departmentLecturers = useMemo(() => {
     const deptId = selectedBatch?.degree?.dept_id;
-    if (!deptId) {
-      return [];
-    }
-    return lecturers.filter((lecturer) => Number(lecturer.dept_id) === Number(deptId));
+    if (!deptId) return lecturers;
+    return lecturers.filter(l => Number(l.dept_id) === Number(deptId));
   }, [lecturers, selectedBatch]);
+
+  // rows that have a lecturer selected
+  const assignableRows = useMemo(() =>
+    (activeModulesPayload?.modules || []).filter(m => rowLecturerByModule[m.module_id]),
+    [activeModulesPayload, rowLecturerByModule]
+  );
+
+  // ── loaders ───────────────────────────────────────────────────────────────
 
   const loadInitial = async () => {
     try {
       setLoading(true);
       setError("");
-      const [facultyData, departmentData, lecturerData, batchData] = await Promise.all([
+      const [facultyData, deptData, degreeData, lecturerData, batchData] = await Promise.all([
         academicAPI.getFaculties(),
         academicAPI.getDepartments(),
+        academicAPI.getDegrees(),
         academicAPI.getLecturerAllocationLecturers(),
         academicAPI.getBatches(),
       ]);
       setFaculties(facultyData);
-      setDepartments(departmentData);
+      setDepartments(deptData);
+      setDegrees(degreeData);
       setLecturers(lecturerData);
       setBatches(batchData);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load allocation filters and data");
+      setError(err.response?.data?.detail || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -115,114 +106,65 @@ export default function LecturerAllocations() {
   const loadActiveModules = async (batchId) => {
     if (!batchId) {
       setActiveModulesPayload(null);
-      setSelectedModuleId("");
       setRowLecturerByModule({});
       return;
     }
-
     try {
       setLoadingModules(true);
       setError("");
       const payload = await academicAPI.getLecturerAllocationActiveModules(batchId);
       setActiveModulesPayload(payload);
-
-      const rowDefaults = {};
-      payload.modules.forEach((module) => {
-        rowDefaults[module.module_id] = module.assigned_lecturer_user_id
-          ? String(module.assigned_lecturer_user_id)
-          : "";
+      const defaults = {};
+      payload.modules.forEach(m => {
+        defaults[m.module_id] = m.assigned_lecturer_user_id ? String(m.assigned_lecturer_user_id) : "";
       });
-      setRowLecturerByModule(rowDefaults);
-
-      const moduleExists = payload.modules.some((module) => module.module_id === Number(selectedModuleId));
-      if (!moduleExists) {
-        setSelectedModuleId("");
-      }
+      setRowLecturerByModule(defaults);
     } catch (err) {
       setActiveModulesPayload(null);
-      setSelectedModuleId("");
       setRowLecturerByModule({});
-      setError(err.response?.data?.detail || "Failed to load active modules for selected batch");
+      setError(err.response?.data?.detail || "Failed to load active modules");
     } finally {
       setLoadingModules(false);
     }
   };
 
-  useEffect(() => {
-    loadInitial();
-  }, []);
-
+  useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
     loadActiveModules(selectedBatchId ? Number(selectedBatchId) : null);
   }, [selectedBatchId]);
 
+  // reset downstream when batch no longer in filtered list
   useEffect(() => {
-    if (!selectedLecturerId && !selectedDepartmentId) {
-      if (selectedBatchId) {
-        setSelectedBatchId("");
-      }
-      if (selectedModuleId) {
-        setSelectedModuleId("");
-      }
-      setActiveModulesPayload(null);
-      setRowLecturerByModule({});
-      return;
+    if (selectedBatchId && !filteredBatches.some(b => b.batch_id === Number(selectedBatchId))) {
+      setSelectedBatchId("");
     }
-
-    if (selectedBatchId) {
-      const stillAllowed = filteredBatches.some(
-        (batch) => batch.batch_id === Number(selectedBatchId)
-      );
-      if (!stillAllowed) {
-        setSelectedBatchId("");
-      }
-    }
-  }, [selectedLecturerId, selectedDepartmentId, filteredBatches, selectedBatchId, selectedModuleId]);
+  }, [filteredBatches]);
 
   useEffect(() => {
-    if (!selectedDepartmentId) {
-      return;
-    }
-    const stillAllowed = filteredDepartments.some(
-      (department) => department.dept_id === Number(selectedDepartmentId)
-    );
-    if (!stillAllowed) {
+    if (selectedDepartmentId && !filteredDepartments.some(d => d.dept_id === Number(selectedDepartmentId))) {
       setSelectedDepartmentId("");
     }
-  }, [selectedDepartmentId, filteredDepartments]);
+  }, [filteredDepartments]);
 
   useEffect(() => {
-    if (!selectedLecturerId) {
-      return;
+    if (selectedDegreeId && !filteredDegrees.some(d => d.degree_id === Number(selectedDegreeId))) {
+      setSelectedDegreeId("");
     }
-    const stillAllowed = filteredLecturers.some(
-      (lecturer) => lecturer.user_id === Number(selectedLecturerId)
-    );
-    if (!stillAllowed) {
-      setSelectedLecturerId("");
-    }
-  }, [selectedLecturerId, filteredLecturers]);
+  }, [filteredDegrees]);
 
+  // auto-clear message
   useEffect(() => {
-    if (!message) {
-      return;
-    }
-    const timer = window.setTimeout(() => setMessage(""), 4000);
-    return () => window.clearTimeout(timer);
+    if (!message) return;
+    const t = window.setTimeout(() => setMessage(""), 4000);
+    return () => window.clearTimeout(t);
   }, [message]);
 
-  const saveAssignment = async (moduleId, lecturerUserId) => {
-    if (!selectedBatchId) {
-      setError("Select a batch first");
-      return;
-    }
-    if (!lecturerUserId) {
-      setError("Select a lecturer before saving");
-      return;
-    }
+  // ── save actions ──────────────────────────────────────────────────────────
 
+  const saveAssignment = async (moduleId, lecturerUserId) => {
+    if (!selectedBatchId || !lecturerUserId) return;
     try {
-      setSavingByModule((prev) => ({ ...prev, [moduleId]: true }));
+      setSavingByModule(prev => ({ ...prev, [moduleId]: true }));
       setError("");
       await academicAPI.assignLecturerToModule({
         batch_id: Number(selectedBatchId),
@@ -232,232 +174,399 @@ export default function LecturerAllocations() {
       setMessage("Lecturer assignment saved");
       await loadActiveModules(Number(selectedBatchId));
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to save lecturer assignment");
+      setError(err.response?.data?.detail || "Failed to save assignment");
     } finally {
-      setSavingByModule((prev) => ({ ...prev, [moduleId]: false }));
+      setSavingByModule(prev => ({ ...prev, [moduleId]: false }));
     }
   };
 
-  const handleQuickAssign = async () => {
-    if (!selectedLecturerId || !selectedBatchId || !selectedModuleId) {
-      setError("Select lecturer, batch and module before assigning");
-      return;
-    }
-
+  const handleSaveAll = async () => {
+    if (!selectedBatchId || assignableRows.length === 0) return;
     try {
-      setAssigningQuick(true);
+      setSavingAll(true);
       setError("");
-      await academicAPI.assignLecturerToModule({
-        batch_id: Number(selectedBatchId),
-        module_id: Number(selectedModuleId),
-        lecturer_user_id: Number(selectedLecturerId),
-      });
-      setMessage("Lecturer assigned successfully");
+      await Promise.all(
+        assignableRows.map(m =>
+          academicAPI.assignLecturerToModule({
+            batch_id: Number(selectedBatchId),
+            module_id: Number(m.module_id),
+            lecturer_user_id: Number(rowLecturerByModule[m.module_id]),
+          })
+        )
+      );
+      setMessage(`All ${assignableRows.length} assignments saved successfully!`);
       await loadActiveModules(Number(selectedBatchId));
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to assign lecturer");
+      setError(err.response?.data?.detail || "Failed to save all assignments");
     } finally {
-      setAssigningQuick(false);
+      setSavingAll(false);
     }
   };
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+
+  const clearFilters = () => {
+    setSelectedFacultyId("");
+    setSelectedDepartmentId("");
+    setSelectedDegreeId("");
+    setSelectedBatchId("");
+  };
+
+  const hasActiveFilters = selectedFacultyId || selectedDepartmentId || selectedDegreeId || selectedBatchId;
+
+  // ── render ────────────────────────────────────────────────────────────────
 
   return (
     <AdminLayout>
+      {/* Header */}
       <div className="mb-6 rounded-2xl border border-slate-200 bg-gradient-to-r from-cyan-50 via-white to-blue-50 p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">Lecturer Allocations</p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Assign Lecturers to Active Modules</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Filter by faculty and department, then assign lecturers to modules. Only current-semester active modules for the selected batch are shown.
+        <p className="mt-2 text-sm text-slate-500">
+          Use the filters below to narrow down batches, then assign lecturers to each module.
         </p>
       </div>
 
+      {/* Alerts */}
       {error && (
-        <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="mt-0.5 text-base">⚠️</span>
+          <span>{error}</span>
         </div>
       )}
-
       {message && (
-        <div className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {message}
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <span className="mt-0.5 text-base">✅</span>
+          <span>{message}</span>
         </div>
       )}
 
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <select
-            value={selectedFacultyId}
-            onChange={(event) => {
-              setSelectedFacultyId(event.target.value);
-              setSelectedDepartmentId("");
-            }}
-            disabled={loading}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">All Faculties</option>
-            {faculties.map((faculty) => (
-              <option key={faculty.faculty_id} value={faculty.faculty_id}>
-                {faculty.code ? `${faculty.code} - ${faculty.name}` : faculty.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedDepartmentId}
-            onChange={(event) => setSelectedDepartmentId(event.target.value)}
-            disabled={loading}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">All Departments</option>
-            {filteredDepartments.map((department) => (
-              <option key={department.dept_id} value={department.dept_id}>
-                {department.code ? `${department.code} - ${department.name}` : department.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedLecturerId}
-            onChange={(event) => setSelectedLecturerId(event.target.value)}
-            disabled={loading}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">Select Lecturer</option>
-            {filteredLecturers.map((lecturer) => (
-              <option key={lecturer.user_id} value={lecturer.user_id}>
-                {lecturer.full_name} ({lecturer.email})
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedBatchId}
-            onChange={(event) => setSelectedBatchId(event.target.value)}
-            disabled={(!selectedLecturerId && !selectedDepartmentId) || loading}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">Select Batch</option>
-            {filteredBatches.map((batch) => (
-              <option key={batch.batch_id} value={batch.batch_id}>
-                {(batch.batch_code || batch.name)} - {batch.degree ? `${batch.degree.code}` : "No Degree"}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedModuleId}
-            onChange={(event) => setSelectedModuleId(event.target.value)}
-            disabled={!selectedBatchId || loadingModules}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="">Select Active Module</option>
-            {(activeModulesPayload?.modules || []).map((module) => (
-              <option key={module.module_id} value={module.module_id}>
-                {module.code} - {module.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={handleQuickAssign}
-            disabled={assigningQuick || !selectedLecturerId || !selectedBatchId || !selectedModuleId}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-3 lg:col-span-2"
-          >
-            {assigningQuick ? "Assigning..." : "Assign Lecturer"}
-          </button>
+      {/* ── Filter Panel ── */}
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+        {/* panel header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            Filter Batches
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+            >
+              ✕ Clear all
+            </button>
+          )}
         </div>
 
-        {selectedBatch && activeModulesPayload && (
-          <p className="mt-3 text-sm text-slate-600">
-            Batch: <span className="font-medium text-slate-800">{selectedBatch.batch_code || selectedBatch.name}</span>
-            {" | "}
-            Semester: <span className="font-medium text-slate-800">{activeModulesPayload.semester_name}</span>
-          </p>
+        {/* filter dropdowns */}
+        <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Faculty */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Faculty</label>
+            <select
+              value={selectedFacultyId}
+              onChange={e => {
+                setSelectedFacultyId(e.target.value);
+                setSelectedDepartmentId("");
+                setSelectedDegreeId("");
+                setSelectedBatchId("");
+              }}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+            >
+              <option value="">All Faculties</option>
+              {faculties.map(f => (
+                <option key={f.faculty_id} value={f.faculty_id}>
+                  {f.code ? `${f.code} – ${f.name}` : f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Department */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Department</label>
+            <select
+              value={selectedDepartmentId}
+              onChange={e => {
+                setSelectedDepartmentId(e.target.value);
+                setSelectedDegreeId("");
+                setSelectedBatchId("");
+              }}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+            >
+              <option value="">All Departments</option>
+              {filteredDepartments.map(d => (
+                <option key={d.dept_id} value={d.dept_id}>
+                  {d.code ? `${d.code} – ${d.name}` : d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Degree */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Degree</label>
+            <select
+              value={selectedDegreeId}
+              onChange={e => {
+                setSelectedDegreeId(e.target.value);
+                setSelectedBatchId("");
+              }}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+            >
+              <option value="">All Degrees</option>
+              {filteredDegrees.map(deg => (
+                <option key={deg.degree_id} value={deg.degree_id}>
+                  {deg.code ? `${deg.code} – ${deg.name}` : deg.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Batch */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Batch</label>
+            <select
+              value={selectedBatchId}
+              onChange={e => setSelectedBatchId(e.target.value)}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+            >
+              <option value="">Select Batch</option>
+              {filteredBatches.map(b => (
+                <option key={b.batch_id} value={b.batch_id}>
+                  {b.batch_code || b.name}
+                  {b.degree ? ` – ${b.degree.code}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Active filter chips */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3">
+            <span className="text-xs text-slate-400">Active filters:</span>
+            {selectedFacultyId && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                {faculties.find(f => f.faculty_id === Number(selectedFacultyId))?.code || "Faculty"}
+                <button onClick={() => { setSelectedFacultyId(""); setSelectedDepartmentId(""); setSelectedDegreeId(""); setSelectedBatchId(""); }} className="hover:text-blue-900">✕</button>
+              </span>
+            )}
+            {selectedDepartmentId && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                {departments.find(d => d.dept_id === Number(selectedDepartmentId))?.code || "Dept"}
+                <button onClick={() => { setSelectedDepartmentId(""); setSelectedDegreeId(""); setSelectedBatchId(""); }} className="hover:text-violet-900">✕</button>
+              </span>
+            )}
+            {selectedDegreeId && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                {degrees.find(d => d.degree_id === Number(selectedDegreeId))?.code || "Degree"}
+                <button onClick={() => { setSelectedDegreeId(""); setSelectedBatchId(""); }} className="hover:text-emerald-900">✕</button>
+              </span>
+            )}
+            {selectedBatchId && selectedBatch && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                {selectedBatch.batch_code || selectedBatch.name}
+                <button onClick={() => setSelectedBatchId("")} className="hover:text-amber-900">✕</button>
+              </span>
+            )}
+          </div>
         )}
 
-        {(selectedLecturerId || selectedDepartmentId) && !filteredBatches.length && (
-          <p className="mt-3 text-sm text-amber-700">
-            No batches found for the selected filters.
-          </p>
+        {/* Batch info strip */}
+        {selectedBatch && activeModulesPayload && (
+          <div className="flex items-center gap-4 border-t border-slate-100 bg-slate-50 px-5 py-2.5 rounded-b-xl">
+            <span className="text-xs text-slate-500">
+              Batch: <strong className="text-slate-700">{selectedBatch.batch_code || selectedBatch.name}</strong>
+            </span>
+            <span className="text-xs text-slate-400">|</span>
+            <span className="text-xs text-slate-500">
+              Semester: <strong className="text-slate-700">{activeModulesPayload.semester_name}</strong>
+            </span>
+            <span className="text-xs text-slate-400">|</span>
+            <span className="text-xs text-slate-500">
+              Modules: <strong className="text-slate-700">{activeModulesPayload.modules?.length ?? 0}</strong>
+            </span>
+          </div>
+        )}
+
+        {selectedBatchId && !loadingModules && filteredBatches.length === 0 && (
+          <p className="px-5 pb-4 text-sm text-amber-600">No batches match the selected filters.</p>
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[860px]">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Module</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Credits</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Assigned Lecturer</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Save</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loadingModules && (
-              <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
-                  Loading active modules...
-                </td>
-              </tr>
-            )}
+      {/* ── Module Table ── */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        {/* table toolbar */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+          <p className="text-sm font-semibold text-slate-700">
+            {activeModulesPayload
+              ? `Active Modules (${activeModulesPayload.modules?.length ?? 0})`
+              : "Active Modules"}
+          </p>
+          {activeModulesPayload && activeModulesPayload.modules?.length > 0 && (
+            <button
+              type="button"
+              id="save-all-btn"
+              onClick={handleSaveAll}
+              disabled={savingAll || assignableRows.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors shadow-sm"
+            >
+              {savingAll ? (
+                <>
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Saving All…
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
+                  </svg>
+                  Save All ({assignableRows.length})
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
-            {!loadingModules && !selectedBatchId && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-slate-50">
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
-                  Select a batch to load current semester active modules.
-                </td>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Code</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Module Name</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Credits</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Assigned Lecturer</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Save</th>
               </tr>
-            )}
-
-            {!loadingModules && selectedBatchId && (activeModulesPayload?.modules || []).length === 0 && (
-              <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
-                  No active modules found for current semester in this batch.
-                </td>
-              </tr>
-            )}
-
-            {!loadingModules &&
-              (activeModulesPayload?.modules || []).map((module) => (
-                <tr key={module.module_id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-700">{module.code}</td>
-                  <td className="px-4 py-3 text-sm text-gray-800">{module.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{module.credits}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
-                    <select
-                      value={rowLecturerByModule[module.module_id] || ""}
-                      onChange={(event) =>
-                        setRowLecturerByModule((prev) => ({
-                          ...prev,
-                          [module.module_id]: event.target.value,
-                        }))
-                      }
-                      className="w-full min-w-[260px] rounded-md border border-gray-300 px-2 py-1.5 text-xs outline-none focus:border-blue-500"
-                    >
-                      <option value="">Select lecturer</option>
-                      {departmentLecturers.map((lecturer) => (
-                        <option key={lecturer.user_id} value={lecturer.user_id}>
-                          {lecturer.full_name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => saveAssignment(module.module_id, rowLecturerByModule[module.module_id])}
-                      disabled={Boolean(savingByModule[module.module_id]) || !rowLecturerByModule[module.module_id]}
-                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {savingByModule[module.module_id] ? "Saving..." : "Save"}
-                    </button>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {/* Loading */}
+              {loadingModules && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                      <span className="text-sm">Loading modules…</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
-          </tbody>
-        </table>
+              )}
+
+              {/* No batch selected */}
+              {!loadingModules && !selectedBatchId && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <svg className="h-10 w-10 text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <span className="text-sm">Select a batch to view active modules</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {/* No modules */}
+              {!loadingModules && selectedBatchId && (activeModulesPayload?.modules || []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
+                    No active modules found for the current semester in this batch.
+                  </td>
+                </tr>
+              )}
+
+              {/* Module rows */}
+              {!loadingModules &&
+                (activeModulesPayload?.modules || []).map(module => {
+                  const currentVal = rowLecturerByModule[module.module_id] || "";
+                  const isSaving = Boolean(savingByModule[module.module_id]);
+                  const hasLecturer = Boolean(currentVal);
+
+                  return (
+                    <tr key={module.module_id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3">
+                        <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          {module.code}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-800 font-medium">{module.name}</td>
+                      <td className="px-5 py-3">
+                        <span className="text-sm text-slate-500">{module.credits} cr</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <select
+                          value={currentVal}
+                          onChange={e =>
+                            setRowLecturerByModule(prev => ({
+                              ...prev,
+                              [module.module_id]: e.target.value,
+                            }))
+                          }
+                          className="w-full min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                        >
+                          <option value="">— Select lecturer —</option>
+                          {departmentLecturers.map(l => (
+                            <option key={l.user_id} value={l.user_id}>
+                              {l.full_name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-5 py-3">
+                        <button
+                          type="button"
+                          id={`save-module-${module.module_id}`}
+                          onClick={() => saveAssignment(module.module_id, currentVal)}
+                          disabled={isSaving || !hasLecturer}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                        >
+                          {isSaving ? (
+                            <>
+                              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+                              Saving…
+                            </>
+                          ) : "Save"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bottom Save All bar */}
+        {activeModulesPayload && activeModulesPayload.modules?.length > 0 && (
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3">
+            <p className="text-xs text-slate-500">
+              {assignableRows.length} of {activeModulesPayload.modules.length} module(s) ready to save
+            </p>
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={savingAll || assignableRows.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors shadow-sm"
+            >
+              {savingAll ? (
+                <>
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Saving All…
+                </>
+              ) : (
+                <>💾 Save All ({assignableRows.length})</>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
