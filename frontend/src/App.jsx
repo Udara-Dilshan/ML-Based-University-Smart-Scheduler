@@ -2,6 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import StudentSignupPage from "./pages/StudentSignupPage";
+import ResourceLayout from "./pages/resource/layout/ResourceLayout";
+import ManageRooms from "./pages/resource/ManageRooms";
+import ManageEquipment from "./pages/resource/ManageEquipment";
+import ManageVehicles from "./pages/resource/ManageVehicles";
 
 // Admin
 import Dashboard from "./pages/admin/dashboard/Dashboard";
@@ -122,7 +126,12 @@ function App() {
 
         {/* Resource Manager */}
         <Route element={<ProtectedRoute allowedRoles={["ResourceManager"]} />}>
-          <Route path="/resource/dashboard" element={<ResourceDashboard />} />
+          <Route element={<ResourceLayout />}>
+            <Route path="/resource/dashboard" element={<ResourceDashboard />} />
+            <Route path="/resource/rooms" element={<ManageRooms />} />
+            <Route path="/resource/equipment" element={<ManageEquipment />} />
+            <Route path="/resource/vehicles" element={<ManageVehicles />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
