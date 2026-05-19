@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2, Calendar, Clock } from 'lucide-react';
-import { authAPI, getHomeRouteByRole, setAuthToken, setUser } from '../services/api';
+import { authAPI, getHomeRouteByRole, getUser, isAuthenticated, setAuthToken, setUser } from '../services/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -16,6 +16,13 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const existingUser = getUser();
+    if (isAuthenticated() && existingUser?.role) {
+      navigate(getHomeRouteByRole(existingUser.role), { replace: true });
+    }
+  }, [navigate]);
 
   // Handle input changes
   const handleChange = (e) => {
