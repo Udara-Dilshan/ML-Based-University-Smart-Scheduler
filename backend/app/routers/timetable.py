@@ -355,31 +355,46 @@ def update_session(session_id: int, req: EditSessionRequest, db: Session = Depen
     from app.models.settings import SystemConstraint
     
     constraints = db.query(SystemConstraint).filter(
-        SystemConstraint.name.in_(["lunch_break_start", "lunch_break_end"])
+        SystemConstraint.name.in_([
+            "lunch_break_start", "lunch_break_end",
+            "working_hours_start", "working_hours_end"
+        ])
     ).all()
     
     global_lunch_start = 720
     global_lunch_end = 780
+    global_work_start = 480
+    global_work_end = 1020
+
     for c in constraints:
         if c.batch_id is None:
-            if c.name == "lunch_break_start":
-                global_lunch_start = int(c.value)
-            elif c.name == "lunch_break_end":
-                global_lunch_end = int(c.value)
+            if c.name == "lunch_break_start": global_lunch_start = int(c.value)
+            elif c.name == "lunch_break_end": global_lunch_end = int(c.value)
+            elif c.name == "working_hours_start": global_work_start = int(c.value)
+            elif c.name == "working_hours_end": global_work_end = int(c.value)
                 
     batch_lunch_start = global_lunch_start
     batch_lunch_end = global_lunch_end
+    batch_work_start = global_work_start
+    batch_work_end = global_work_end
+
     for c in constraints:
         if c.batch_id == session.batch_id:
-            if c.name == "lunch_break_start":
-                batch_lunch_start = int(c.value)
-            elif c.name == "lunch_break_end":
-                batch_lunch_end = int(c.value)
+            if c.name == "lunch_break_start": batch_lunch_start = int(c.value)
+            elif c.name == "lunch_break_end": batch_lunch_end = int(c.value)
+            elif c.name == "working_hours_start": batch_work_start = int(c.value)
+            elif c.name == "working_hours_end": batch_work_end = int(c.value)
                 
     if start_mins < batch_lunch_end and batch_lunch_start < end_mins:
         raise HTTPException(
             status_code=409, 
             detail=f"Conflict: This time overlaps with the batch's lunch break ({batch_lunch_start//60:02d}:{batch_lunch_start%60:02d} - {batch_lunch_end//60:02d}:{batch_lunch_end%60:02d})."
+        )
+        
+    if start_mins < batch_work_start or end_mins > batch_work_end:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Validation Error: Time is outside the batch's working hours ({batch_work_start//60:02d}:{batch_work_start%60:02d} - {batch_work_end//60:02d}:{batch_work_end%60:02d})."
         )
 
     # Validation: Check conflicts with other sessions
@@ -439,10 +454,10 @@ def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
     global_cs = {c.name: c.value for c in db.query(SystemConstraint).filter(SystemConstraint.batch_id == None).all()}
     batch_cs = {c.name: c.value for c in db.query(SystemConstraint).filter(SystemConstraint.batch_id == session.batch_id).all()}
     
-    w_start = global_cs.get("working_hours_start", 480)
-    w_end = global_cs.get("working_hours_end", 1020)
-    l_start = batch_cs.get("lunch_break_start", global_cs.get("lunch_break_start", 720))
-    l_end = batch_cs.get("lunch_break_end", global_cs.get("lunch_break_end", 780))
+    w_start = int(batch_cs.get("working_hours_start", global_cs.get("working_hours_start", 480)))
+    w_end = int(batch_cs.get("working_hours_end", global_cs.get("working_hours_end", 1020)))
+    l_start = int(batch_cs.get("lunch_break_start", global_cs.get("lunch_break_start", 720)))
+    l_end = int(batch_cs.get("lunch_break_end", global_cs.get("lunch_break_end", 780)))
     
     # Lecturer unavailability records
     unavail = db.query(LecturerAvailability).filter(

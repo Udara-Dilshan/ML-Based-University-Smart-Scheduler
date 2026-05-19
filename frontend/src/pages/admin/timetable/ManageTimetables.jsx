@@ -547,15 +547,11 @@ export default function ManageTimetables() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
-                    <input
-                      type="time"
+                    <select
                       value={editForm.start_time}
                       onChange={(e) => {
                         const newStart = e.target.value;
-                        if (!newStart) {
-                          setEditForm({ ...editForm, start_time: newStart });
-                          return;
-                        }
+                        if (!newStart) return;
                         
                         const [hours, mins] = newStart.split(":").map(Number);
                         const duration = editSession?.duration_hours || 1;
@@ -569,15 +565,20 @@ export default function ManageTimetables() {
                         });
                       }}
                       className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                    />
+                    >
+                      {generateTimeSlots(480, 1020).map(slot => {
+                        const startOnly = slot.split(" - ")[0];
+                        return <option key={startOnly} value={startOnly}>{startOnly}</option>;
+                      })}
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">End Time (Auto-calculated)</label>
                     <input
                       type="time"
                       value={editForm.end_time}
-                      onChange={(e) => setEditForm({...editForm, end_time: e.target.value})}
-                      className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      disabled
+                      className="w-full border-gray-300 rounded-lg shadow-sm bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
                     />
                   </div>
                 </div>
