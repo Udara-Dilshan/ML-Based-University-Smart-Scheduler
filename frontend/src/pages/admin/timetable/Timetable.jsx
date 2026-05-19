@@ -622,12 +622,33 @@ export default function Timetable() {
                         )}
                         <p className="font-bold text-gray-900 mb-1">{b.batch_code}</p>
                         <p className="text-xs text-gray-500 mb-2">Semester {b.current_semester} • {b.student_count} Students</p>
-                        {b.specific_constraints && (
-                          <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
-                            <p className="text-xs font-semibold text-blue-600 mb-1">Custom Batch Constraints applied</p>
-                            <p className="text-[10px] text-gray-500">Working: {b.specific_constraints.working_hours}</p>
-                          </div>
-                        )}
+                        {b.specific_constraints && (() => {
+                          const diff = [];
+                          const global = contextPreview.global_constraints;
+                          const specific = b.specific_constraints;
+
+                          if (specific.working_hours !== global.working_hours) {
+                            diff.push(<p key="working" className="text-[10px] text-gray-500">Working: <span className="font-semibold text-gray-800">{specific.working_hours}</span></p>);
+                          }
+                          if (specific.lunch_break !== global.lunch_break) {
+                            diff.push(<p key="lunch" className="text-[10px] text-gray-500">Lunch Break: <span className="font-semibold text-gray-800">{specific.lunch_break}</span></p>);
+                          }
+                          if (specific.max_consecutive_students !== global.max_consecutive_students) {
+                            diff.push(<p key="students" className="text-[10px] text-gray-500">Max Student Hrs: <span className="font-semibold text-gray-800">{specific.max_consecutive_students}</span></p>);
+                          }
+                          if (specific.max_consecutive_lecturers !== global.max_consecutive_lecturers) {
+                            diff.push(<p key="lecturers" className="text-[10px] text-gray-500">Max Lecturer Hrs: <span className="font-semibold text-gray-800">{specific.max_consecutive_lecturers}</span></p>);
+                          }
+
+                          return diff.length > 0 ? (
+                            <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
+                              <p className="text-xs font-semibold text-blue-600 mb-1.5">Custom Batch Constraints</p>
+                              <div className="grid grid-cols-1 gap-1">
+                                {diff}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     ))}
                   </div>
