@@ -1,113 +1,65 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Briefcase, Building, Car, CheckCircle } from 'lucide-react';
+import { Building2, Package, Car, CheckCircle } from "lucide-react";
 
-const ResourceDashboard = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
-
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+export default function ResourceDashboard() {
+  const stats = [
+    { label: "Total Rooms", value: 24, icon: Building2, color: "text-blue-600" },
+    { label: "Equipment", value: 42, icon: Package, color: "text-purple-600" },
+    { label: "Vehicles", value: 6, icon: Car, color: "text-green-600" },
+    { label: "Available Today", value: 18, icon: CheckCircle, color: "text-green-500" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Resource Manager Dashboard</h1>
-            <p className="text-sm text-gray-600">Welcome back, {user.first_name} {user.last_name}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6">
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Rooms</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label}
+              className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.value}
+                  </p>
+                </div>
+                <Icon size={26} className={stat.color} />
               </div>
-              <Building className="text-blue-600" size={40} />
             </div>
-          </div>
+          );
+        })}
+      </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Equipment</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Briefcase className="text-purple-600" size={40} />
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { title: "Manage Rooms", desc: "Add or update room details" },
+            { title: "Equipment", desc: "Manage equipment inventory" },
+            { title: "Vehicles", desc: "Manage vehicle fleet" },
+          ].map((item) => (
+            <div key={item.title}
+              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer">
+              <p className="font-semibold text-gray-800">{item.title}</p>
+              <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
             </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Vehicles</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-              </div>
-              <Car className="text-green-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Available</p>
-                <p className="text-2xl font-bold text-green-600">0</p>
-              </div>
-              <CheckCircle className="text-green-600" size={40} />
-            </div>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left">
-              <Building className="text-blue-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">Manage Rooms</h3>
-              <p className="text-sm text-gray-600">Add or update room details</p>
-            </button>
+      {/* Availability */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="font-semibold text-gray-900 mb-2">
+          Resource Availability
+        </h3>
+        <p className="text-sm text-gray-500">
+          No resource bookings for today.
+        </p>
+      </div>
 
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-all text-left">
-              <Briefcase className="text-purple-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">Equipment</h3>
-              <p className="text-sm text-gray-600">Manage equipment inventory</p>
-            </button>
-
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-600 hover:bg-green-50 transition-all text-left">
-              <Car className="text-green-600 mb-2" size={24} />
-              <h3 className="font-semibold text-gray-900">Vehicles</h3>
-              <p className="text-sm text-gray-600">Manage vehicle fleet</p>
-            </button>
-          </div>
-        </div>
-
-        {/* Resource Availability */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Resource Availability</h2>
-          <p className="text-gray-600">No resource bookings for today.</p>
-        </div>
-      </main>
     </div>
   );
-};
-
-export default ResourceDashboard;
+}
