@@ -251,6 +251,128 @@ def evaluate(
     return (penalties,)
 
 
+def _get_conflicts(individual: List[Tuple], tasks: List[SessionTask], ctx: SchedulingContext) -> List[str]:
+    """Mirror evaluate logic but return string descriptions of what went wrong."""
+    resource_map = {r.resource_id: r for r in ctx.resources}
+    gc = ctx.global_constraints
+    scheduled = []
+    conflict_messages = []
+
+    for idx, gene in enumerate(individual):
+        task_idx, day_idx, slot_idx, resource_id = gene
+        task = tasks[task_idx]
+        day = DAYS[day_idx]
+        slot_start = ctx.timeslots[slot_idx][0]
+        slot_end = slot_start + (task.hours_per_week * 60)
+
+        batch_info = ctx.batches.get(task.batch_id)
+        lec_info = ctx.lecturers.get(task.lecturer_user_id)
+        res_info = resource_map.get(resource_id)
+        module_info = ctx.modules.get(task.module_id)
+        mod_name = module_info.name if module_info else f"Module {task.module_id}"
+
+        if not batch_info or not lec_info or not res_info:
+            conflict_messages.append(f"Missing core data (Batch/Lecturer/Room) for {mod_name}")
+            scheduled.append(None)
+            continue
+
+        scheduled.append((
+            task.batch_id,
+            task.lecturer_user_id,
+            resource_id,
+            day,
+            slot_start,
+            slot_end,
+            res_info.building,
+            mod_name
+        ))
+
+        if res_info.capacity < batch_info.student_count:
+            conflict_messages.append(f"Room capacity exceeded for {mod_name} ({res_info.name} holds {res_info.capacity}, but batch has {batch_info.student_count})")
+
+        if res_info.type.lower() != task.required_resource_type.lower():
+            conflict_messages.append(f"Invalid room type for {mod_name} (Requires {task.required_resource_type}, got {res_info.type})")
+
+        for (uday, ustart, uend) in lec_info.unavailable_slots:
+            if uday == day and _overlaps(slot_start, slot_end, ustart, uend):
+                conflict_messages.append(f"Lecturer unavailable for {mod_name} on {day} ({_minutes_to_time_str(slot_start)}-{_minutes_to_time_str(slot_end)})")
+                break
+
+        c = batch_info.constraints if batch_info and batch_info.constraints else gc
+        if slot_start < c.working_start or slot_end > c.working_end:
+            conflict_messages.append(f"Outside working hours for {mod_name} on {day} ({_minutes_to_time_str(slot_start)}-{_minutes_to_time_str(slot_end)})")
+        if _overlaps(slot_start, slot_end, c.lunch_start, c.lunch_end):
+            conflict_messages.append(f"Overlaps lunch break for {mod_name} on {day} ({_minutes_to_time_str(slot_start)}-{_minutes_to_time_str(slot_end)})")
+
+    # Double bookings
+    for i in range(len(scheduled)):
+        if scheduled[i] is None: continue
+        bi, li, ri, di, ss, se, bldg_i, mod_i = scheduled[i]
+        for j in range(i + 1, len(scheduled)):
+            if scheduled[j] is None: continue
+            bj, lj, rj, dj, sss, see, bldg_j, mod_j = scheduled[j]
+            if di != dj: continue
+            if not _overlaps(ss, se, sss, see): continue
+            
+            if ri == rj:
+                conflict_messages.append(f"Room double-booked: {mod_i} and {mod_j} in room ID {ri} on {di}")
+            if li == lj:
+                conflict_messages.append(f"Lecturer double-booked: {mod_i} and {mod_j} on {di}")
+            if bi == bj:
+                conflict_messages.append(f"Batch double-booked: {mod_i} and {mod_j} on {di}")
+
+    batch_day_slots = {}
+    lec_day_slots = {}
+
+    for item in scheduled:
+        if item is None: continue
+        bi, li, ri, di, ss, se, bldg, mod_name = item
+        batch_day_slots.setdefault(bi, {}).setdefault(di, []).append((ss, se, bldg, mod_name))
+        lec_day_slots.setdefault(li, {}).setdefault(di, []).append((ss, se, bldg, mod_name))
+
+    for batch_id, days in batch_day_slots.items():
+        b_info = ctx.batches.get(batch_id)
+        c = b_info.constraints if b_info and b_info.constraints else gc
+        limit = c.max_consecutive_students
+        for day, slots in days.items():
+            slots_sorted = sorted(slots, key=lambda x: x[0])
+            consec = 0
+            for k in range(len(slots_sorted)):
+                duration_hrs = (slots_sorted[k][1] - slots_sorted[k][0]) // 60
+                if k > 0 and slots_sorted[k][0] == slots_sorted[k - 1][1]:
+                    consec += duration_hrs
+                    if slots_sorted[k][2] and slots_sorted[k-1][2] and slots_sorted[k][2] != slots_sorted[k-1][2]:
+                        conflict_messages.append(f"Back-to-back classes in different buildings on {day} ({slots_sorted[k-1][3]} -> {slots_sorted[k][3]})")
+                else:
+                    consec = duration_hrs
+                if consec > limit:
+                    conflict_messages.append(f"Batch max consecutive hours exceeded on {day} (limit {limit}h)")
+
+    for lec_uid, days in lec_day_slots.items():
+        limit = gc.max_consecutive_lecturers
+        for day, slots in days.items():
+            slots_sorted = sorted(slots, key=lambda x: x[0])
+            consec = 0
+            for k in range(len(slots_sorted)):
+                duration_hrs = (slots_sorted[k][1] - slots_sorted[k][0]) // 60
+                if k > 0 and slots_sorted[k][0] == slots_sorted[k - 1][1]:
+                    consec += duration_hrs
+                else:
+                    consec = duration_hrs
+                if consec > limit:
+                    conflict_messages.append(f"Lecturer max consecutive hours exceeded on {day} (limit {limit}h)")
+
+    # Deduplicate keeping order
+    seen = set()
+    unique_conflicts = []
+    for msg in conflict_messages:
+        if msg not in seen:
+            seen.add(msg)
+            unique_conflicts.append(msg)
+            
+    return unique_conflicts
+
+
 # ─── Mutation ────────────────────────────────────────────────────────────────
 
 def _mutate_gene(
@@ -358,6 +480,10 @@ def run_ga(
 
     # Decode best individual → structured output
     timetable = _decode_individual(best_individual, tasks, ctx)
+    
+    conflicts_list = []
+    if best_fitness > 0:
+        conflicts_list = _get_conflicts(best_individual, tasks, ctx)
 
     # Build evolution log (every 10 gens)
     evolution_log = []
@@ -382,6 +508,7 @@ def run_ga(
             "active_semester": ctx.active_semester_name,
             "batches_scheduled": len(ctx.batches),
             "total_tasks": len(tasks),
+            "conflicts": conflicts_list
         }
     }
 

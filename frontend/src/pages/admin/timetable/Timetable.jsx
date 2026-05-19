@@ -39,6 +39,7 @@ export default function Timetable() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [contextPreview, setContextPreview] = useState(null);
+  const [showConflictsModal, setShowConflictsModal] = useState(false);
 
   // Filters
   const [faculties, setFaculties] = useState([]);
@@ -490,10 +491,13 @@ export default function Timetable() {
                       Conflict Free
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                    <button 
+                      onClick={() => setShowConflictsModal(true)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors cursor-pointer"
+                    >
                       <XCircle className="w-4 h-4" />
                       Has Conflicts
-                    </span>
+                    </button>
                   )}
                   <button 
                     onClick={handleSaveDraft}
@@ -674,6 +678,58 @@ export default function Timetable() {
 
         </div>
       </div>
+      
+      {/* Conflicts Modal */}
+      {showConflictsModal && result && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <XCircle className="w-6 h-6 text-red-500" />
+                Unresolved Conflicts
+              </h2>
+              <button 
+                onClick={() => setShowConflictsModal(false)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {result.metadata?.conflicts?.length > 0 ? (
+                <ul className="space-y-3">
+                  {result.metadata.conflicts.map((conflict, idx) => (
+                    <li key={idx} className="bg-red-50 text-red-800 px-4 py-3 rounded-lg text-sm border border-red-100 flex items-start gap-3">
+                      <span className="font-bold text-red-400 mt-0.5">•</span>
+                      <span>{conflict}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 text-sm">No specific conflict details found, but the overall penalty score was not zero.</p>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <h3 className="font-semibold text-gray-800 mb-2 text-sm">How to resolve this?</h3>
+              <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                <li>Check your <strong>Timetable Constraints</strong> (e.g. increase Lecturer max hours).</li>
+                <li>Ensure there are enough rooms with sufficient capacity for the student batches.</li>
+                <li>Increase the <strong>Population Size</strong> and <strong>Generations</strong> to give the algorithm more time to find a solution.</li>
+              </ul>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowConflictsModal(false)}
+                  className="bg-gray-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
