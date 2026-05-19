@@ -404,7 +404,7 @@ export default function Timetable() {
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
               <h2 className="font-semibold text-gray-800">Algorithm Parameters</h2>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-5">
               <div>
                 <div className="flex justify-between mb-1">
                   <label className="block text-sm font-medium text-gray-700">Population Size</label>
@@ -419,6 +419,7 @@ export default function Timetable() {
                   onChange={(e) => setPopulationSize(parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">Number of candidate schedules per generation.</p>
               </div>
 
               <div>
@@ -435,6 +436,7 @@ export default function Timetable() {
                   onChange={(e) => setGenerations(parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">Higher values improve accuracy but take longer to process.</p>
               </div>
             </div>
           </div>

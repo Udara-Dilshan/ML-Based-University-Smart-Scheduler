@@ -136,6 +136,28 @@ def get_managed_timetables(
         
     results = query.all()
     
+    from app.models.settings import SystemConstraint
+    
+    # Preload constraints
+    all_constraints = db.query(SystemConstraint).filter(SystemConstraint.name.in_(["lunch_break_start", "lunch_break_end"])).all()
+    global_lunch_start = 720
+    global_lunch_end = 780
+    batch_lunch_map = {}
+    
+    for c in all_constraints:
+        if c.batch_id is None:
+            if c.name == "lunch_break_start":
+                global_lunch_start = int(c.value)
+            elif c.name == "lunch_break_end":
+                global_lunch_end = int(c.value)
+        else:
+            if c.batch_id not in batch_lunch_map:
+                batch_lunch_map[c.batch_id] = {"start": None, "end": None}
+            if c.name == "lunch_break_start":
+                batch_lunch_map[c.batch_id]["start"] = int(c.value)
+            elif c.name == "lunch_break_end":
+                batch_lunch_map[c.batch_id]["end"] = int(c.value)
+
     sessions = []
     for r in results:
         # Avoid division by zero and format correctly
@@ -143,6 +165,17 @@ def get_managed_timetables(
         end_mins = r.end_time.hour * 60 + r.end_time.minute
         duration = max(1, (end_mins - start_mins) // 60)
         
+        # Determine lunch
+        l_start = global_lunch_start
+        l_end = global_lunch_end
+        if r.batch_id in batch_lunch_map:
+            if batch_lunch_map[r.batch_id]["start"] is not None:
+                l_start = batch_lunch_map[r.batch_id]["start"]
+            if batch_lunch_map[r.batch_id]["end"] is not None:
+                l_end = batch_lunch_map[r.batch_id]["end"]
+
+        lunch_str = f"{l_start//60:02d}:{l_start%60:02d}"
+
         sessions.append({
             "session_id": r.session_id,
             "batch_id": r.batch_id,
@@ -162,7 +195,8 @@ def get_managed_timetables(
             "status": r.status.value if hasattr(r.status, 'value') else r.status,
             "duration_hours": duration,
             "faculty_id": r.batch.degree.department.faculty_id,
-            "dept_id": r.batch.degree.dept_id
+            "dept_id": r.batch.degree.dept_id,
+            "lunch_start": lunch_str
         })
         
     return {"sessions": sessions}
@@ -317,6 +351,36 @@ def update_session(session_id: int, req: EditSessionRequest, db: Session = Depen
         
     start_mins = new_start.hour * 60 + new_start.minute
     end_mins = new_end.hour * 60 + new_end.minute
+
+    from app.models.settings import SystemConstraint
+    
+    constraints = db.query(SystemConstraint).filter(
+        SystemConstraint.name.in_(["lunch_break_start", "lunch_break_end"])
+    ).all()
+    
+    global_lunch_start = 720
+    global_lunch_end = 780
+    for c in constraints:
+        if c.batch_id is None:
+            if c.name == "lunch_break_start":
+                global_lunch_start = int(c.value)
+            elif c.name == "lunch_break_end":
+                global_lunch_end = int(c.value)
+                
+    batch_lunch_start = global_lunch_start
+    batch_lunch_end = global_lunch_end
+    for c in constraints:
+        if c.batch_id == session.batch_id:
+            if c.name == "lunch_break_start":
+                batch_lunch_start = int(c.value)
+            elif c.name == "lunch_break_end":
+                batch_lunch_end = int(c.value)
+                
+    if start_mins < batch_lunch_end and batch_lunch_start < end_mins:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Conflict: This time overlaps with the batch's lunch break ({batch_lunch_start//60:02d}:{batch_lunch_start%60:02d} - {batch_lunch_end//60:02d}:{batch_lunch_end%60:02d})."
+        )
 
     # Validation: Check conflicts with other sessions
     conflicts = db.query(TimetableSession).filter(

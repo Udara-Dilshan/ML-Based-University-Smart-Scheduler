@@ -233,9 +233,8 @@ export default function ManageTimetables() {
     // Generate default time slots for standard working day (8 AM to 5 PM)
     const timeSlots = generateTimeSlots(480, 1020); 
 
-    // For manage view, maybe we don't have the exact context preview easily accessible.
-    // In future we can fetch batch constraints, but for now fallback to 12:00
-    let lunchStart = "12:00";
+    // Determine lunch start from the batch sessions, fallback to 12:00
+    const lunchStart = batchSessions.length > 0 && batchSessions[0].lunch_start ? batchSessions[0].lunch_start : "12:00";
 
     const skipRows = { MONDAY: 0, TUESDAY: 0, WEDNESDAY: 0, THURSDAY: 0, FRIDAY: 0 };
 
