@@ -43,8 +43,22 @@ export default function FacultyManagement() {
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [facultySearch, setFacultySearch] = useState("");
 
   const modalTitle = useMemo(() => (editId ? "Edit Faculty" : "Add Faculty"), [editId]);
+  const filteredFaculties = useMemo(() => {
+    const query = normalizeText(facultySearch);
+    if (!query) {
+      return faculties;
+    }
+
+    return faculties.filter((faculty) => {
+      const deanName = faculty.dean_name || "";
+      return [faculty.name, faculty.code, deanName].some((value) =>
+        normalizeText(value).includes(query)
+      );
+    });
+  }, [faculties, facultySearch]);
 
   const loadFaculties = async () => {
     try {
@@ -321,11 +335,11 @@ export default function FacultyManagement() {
   };
 
   const downloadDisplayedResults = () => {
-    if (!faculties.length) {
+    if (!filteredFaculties.length) {
       return;
     }
 
-    const exportRows = faculties.map((faculty) => ({
+    const exportRows = filteredFaculties.map((faculty) => ({
       code: faculty.code || "",
       faculty_name: faculty.name || "",
       dean_name: faculty.dean_name || "",
@@ -408,16 +422,24 @@ export default function FacultyManagement() {
         </div>
       )}
 
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-sm text-gray-600">Showing {faculties.length} result(s)</p>
-        <button
-          type="button"
-          onClick={downloadDisplayedResults}
-          disabled={!faculties.length}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Export Displayed Results
-        </button>
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr]">
+        <input
+          value={facultySearch}
+          onChange={(event) => setFacultySearch(event.target.value)}
+          placeholder="Search faculty name, code, dean"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600">Showing {filteredFaculties.length} result(s)</p>
+          <button
+            type="button"
+            onClick={downloadDisplayedResults}
+            disabled={!filteredFaculties.length}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Export Displayed Results
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -438,7 +460,7 @@ export default function FacultyManagement() {
                 </td>
               </tr>
             )}
-            {!loading && faculties.length === 0 && (
+            {!loading && filteredFaculties.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>
                   No faculties found.
@@ -446,7 +468,7 @@ export default function FacultyManagement() {
               </tr>
             )}
             {!loading &&
-              faculties.map((faculty) => (
+              filteredFaculties.map((faculty) => (
                 <tr key={faculty.faculty_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-700">{faculty.code || "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{faculty.name}</td>

@@ -33,7 +33,11 @@ const getFirstNonEmptyValue = (row, keys) => {
 export default function Degrees() {
   const [degrees, setDegrees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [faculties, setFaculties] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [degreeSearch, setDegreeSearch] = useState("");
+  const [facultyFilter, setFacultyFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,18 +56,61 @@ export default function Degrees() {
     try {
       setLoading(true);
       setError("");
-      const [degreeData, departmentData] = await Promise.all([
+      const [degreeData, departmentData, facultyData] = await Promise.all([
         academicAPI.getDegrees(),
         academicAPI.getDepartments(),
+        academicAPI.getFaculties(),
       ]);
       setDegrees(degreeData);
       setDepartments(departmentData);
+      setFaculties(facultyData);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load degrees");
     } finally {
       setLoading(false);
     }
   };
+
+  const getDepartmentName = (deptId) => {
+    const department = departments.find((item) => item.dept_id === deptId);
+    return department?.name || "-";
+  };
+
+  const departmentsForFilter = useMemo(() => {
+    if (!facultyFilter) {
+      return departments;
+    }
+
+    return departments.filter((department) =>
+      String(department.faculty_id) === String(facultyFilter)
+    );
+  }, [departments, facultyFilter]);
+
+  const filteredDegrees = useMemo(() => {
+    const query = normalizeText(degreeSearch);
+
+    return degrees.filter((degree) => {
+      if (departmentFilter && String(degree.dept_id) !== String(departmentFilter)) {
+        return false;
+      }
+
+      if (facultyFilter) {
+        const department = departments.find((item) => item.dept_id === degree.dept_id);
+        if (!department || String(department.faculty_id) !== String(facultyFilter)) {
+          return false;
+        }
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const departmentName = getDepartmentName(degree.dept_id);
+      return [degree.name, degree.code, departmentName].some((value) =>
+        normalizeText(value).includes(query)
+      );
+    });
+  }, [degrees, departments, facultyFilter, departmentFilter, degreeSearch]);
 
   useEffect(() => {
     loadData();
@@ -387,11 +434,11 @@ export default function Degrees() {
   };
 
   const downloadDisplayedResults = () => {
-    if (!degrees.length) {
+    if (!filteredDegrees.length) {
       return;
     }
 
-    const exportRows = degrees.map((degree) => ({
+    const exportRows = filteredDegrees.map((degree) => ({
       code: degree.code || "",
       degree_name: degree.name || "",
       department_name: getDepartmentName(degree.dept_id),
@@ -402,11 +449,6 @@ export default function Degrees() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Degrees");
     XLSX.writeFile(workbook, "degrees_displayed_results.xlsx");
-  };
-
-  const getDepartmentName = (deptId) => {
-    const department = departments.find((item) => item.dept_id === deptId);
-    return department?.name || "-";
   };
 
   return (
@@ -480,16 +522,51 @@ export default function Degrees() {
         </div>
       )}
 
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-sm text-gray-600">Showing {degrees.length} result(s)</p>
-        <button
-          type="button"
-          onClick={downloadDisplayedResults}
-          disabled={!degrees.length}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr,1fr,auto]">
+        <input
+          value={degreeSearch}
+          onChange={(event) => setDegreeSearch(event.target.value)}
+          placeholder="Search degree name, code"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+        <select
+          value={facultyFilter}
+          onChange={(event) => {
+            setFacultyFilter(event.target.value);
+            setDepartmentFilter("");
+          }}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          Export Displayed Results
-        </button>
+          <option value="">All Faculties</option>
+          {faculties.map((faculty) => (
+            <option key={faculty.faculty_id} value={faculty.faculty_id}>
+              {faculty.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={departmentFilter}
+          onChange={(event) => setDepartmentFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">All Departments</option>
+          {departmentsForFilter.map((department) => (
+            <option key={department.dept_id} value={department.dept_id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600">Showing {filteredDegrees.length} result(s)</p>
+          <button
+            type="button"
+            onClick={downloadDisplayedResults}
+            disabled={!filteredDegrees.length}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Export Displayed Results
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -511,7 +588,7 @@ export default function Degrees() {
                 </td>
               </tr>
             )}
-            {!loading && degrees.length === 0 && (
+            {!loading && filteredDegrees.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>
                   No degrees found.
@@ -519,7 +596,7 @@ export default function Degrees() {
               </tr>
             )}
             {!loading &&
-              degrees.map((degree) => (
+              filteredDegrees.map((degree) => (
                 <tr key={degree.degree_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-800">{degree.code}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{degree.name}</td>

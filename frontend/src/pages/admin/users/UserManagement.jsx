@@ -86,10 +86,14 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   const [lecturerFacultyFilter, setLecturerFacultyFilter] = useState("");
   const [lecturerDepartmentFilter, setLecturerDepartmentFilter] = useState("");
   const [lecturerStatusFilter, setLecturerStatusFilter] = useState("all");
+  const [generalSearch, setGeneralSearch] = useState("");
+  const [generalStatusFilter, setGeneralStatusFilter] = useState("all");
+  const [generalRoleFilter, setGeneralRoleFilter] = useState("");
   const fileInputRef = useRef(null);
 
   const isStudentManagementView = forcedRole === "Student";
   const isLecturerManagementView = forcedRole === "Lecturer";
+  const isGenericManagementView = !isStudentManagementView && !isLecturerManagementView;
   const selectedRole = forcedRole || form.role;
   const showRoleColumn = !forcedRole;
   const modalTitle = useMemo(() => (editId ? "Edit User" : "Add User"), [editId]);
@@ -547,8 +551,35 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
   };
 
   const filteredUsers = useMemo(() => {
-    if (!isStudentManagementView && !isLecturerManagementView) {
-      return users;
+    if (isGenericManagementView) {
+      const query = normalizeText(generalSearch);
+      const roleFilter = showRoleColumn ? generalRoleFilter : "";
+
+      return users.filter((user) => {
+        if (generalStatusFilter === "active" && !user.is_active) {
+          return false;
+        }
+        if (generalStatusFilter === "inactive" && user.is_active) {
+          return false;
+        }
+
+        if (roleFilter && user.role !== roleFilter) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        const email = user.email || "";
+        const role = user.role || "";
+        const contact = user.contact_number || "";
+
+        return [fullName, email, role, contact].some((value) =>
+          normalizeText(value).includes(query)
+        );
+      });
     }
 
     if (isLecturerManagementView) {
@@ -619,17 +650,20 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       );
     });
   }, [
-    isStudentManagementView,
+    isGenericManagementView,
     isLecturerManagementView,
     users,
-    studentStatusFilter,
-    studentBatchFilter,
-    studentSearch,
+    generalSearch,
+    generalStatusFilter,
+    generalRoleFilter,
+    showRoleColumn,
+    lecturerSearch,
     lecturerFacultyFilter,
     lecturerDepartmentFilter,
-    lecturerSearch,
     lecturerStatusFilter,
-    batches,
+    studentSearch,
+    studentStatusFilter,
+    studentBatchFilter,
     departments,
   ]);
 
@@ -1300,6 +1334,42 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+        </div>
+      )}
+
+      {isGenericManagementView && (
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+          <input
+            value={generalSearch}
+            onChange={(event) => setGeneralSearch(event.target.value)}
+            placeholder="Search name, email, role"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <select
+            value={generalStatusFilter}
+            onChange={(event) => setGeneralStatusFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          {showRoleColumn ? (
+            <select
+              value={generalRoleFilter}
+              onChange={(event) => setGeneralRoleFilter(event.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="">All Roles</option>
+              {roleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="hidden md:block" />
+          )}
         </div>
       )}
 

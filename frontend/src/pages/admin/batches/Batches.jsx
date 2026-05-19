@@ -74,6 +74,7 @@ export default function Batches() {
   const [form, setForm] = useState(initialForm);
   const [facultyFilter, setFacultyFilter] = useState("");
   const [degreeFilter, setDegreeFilter] = useState("");
+  const [batchSearch, setBatchSearch] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -124,9 +125,20 @@ export default function Batches() {
             department.faculty_id === Number(facultyFilter)
         );
       const byDegree = !degreeFilter || batch.degree_id === Number(degreeFilter);
-      return byFaculty && byDegree;
+      if (!byFaculty || !byDegree) {
+        return false;
+      }
+
+      const query = normalizeText(batchSearch);
+      if (!query) {
+        return true;
+      }
+
+      const degreeLabel = degree ? `${degree.code} ${degree.name}` : "";
+      const batchCode = batch.batch_code || batch.name || "";
+      return [batchCode, degreeLabel].some((value) => normalizeText(value).includes(query));
     });
-  }, [batches, degrees, departments, facultyFilter, degreeFilter]);
+  }, [batches, degrees, departments, facultyFilter, degreeFilter, batchSearch]);
 
   const loadData = async () => {
     try {
@@ -688,7 +700,13 @@ export default function Batches() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+        <input
+          value={batchSearch}
+          onChange={(event) => setBatchSearch(event.target.value)}
+          placeholder="Search batch code"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
         <select
           value={facultyFilter}
           onChange={(event) => {

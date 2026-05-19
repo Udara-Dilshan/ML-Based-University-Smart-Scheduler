@@ -44,6 +44,7 @@ export default function Courses() {
   const [facultyFilter, setFacultyFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [degreeFilter, setDegreeFilter] = useState("");
+  const [courseSearch, setCourseSearch] = useState("");
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -224,7 +225,21 @@ export default function Courses() {
 
     const byDegree = !degreeFilter || course.degree_id === Number(degreeFilter);
 
-    return byFaculty && byDepartment && byDegree;
+    if (!byFaculty || !byDepartment || !byDegree) {
+      return false;
+    }
+
+    const query = normalizeText(courseSearch);
+    if (!query) {
+      return true;
+    }
+
+    const departmentName = course.department?.name || "";
+    const degree = degrees.find((item) => item.degree_id === course.degree_id);
+    const degreeLabel = degree ? `${degree.code} ${degree.name}` : "";
+    return [course.name, course.code, departmentName, degreeLabel].some((value) =>
+      normalizeText(value).includes(query)
+    );
   });
 
   const handleSubmit = async () => {
@@ -644,7 +659,13 @@ export default function Courses() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4">
+        <input
+          value={courseSearch}
+          onChange={(event) => setCourseSearch(event.target.value)}
+          placeholder="Search course name, code"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
         <select
           value={facultyFilter}
           onChange={(event) => {

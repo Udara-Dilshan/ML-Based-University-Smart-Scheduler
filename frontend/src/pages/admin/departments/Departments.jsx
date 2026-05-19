@@ -44,11 +44,30 @@ export default function Departments() {
   const [uploadError, setUploadError] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [departmentSearch, setDepartmentSearch] = useState("");
+  const [facultyFilter, setFacultyFilter] = useState("");
 
   const modalTitle = useMemo(
     () => (editId ? "Edit Department" : "Add Department"),
     [editId]
   );
+  const filteredDepartments = useMemo(() => {
+    const query = normalizeText(departmentSearch);
+    return departments.filter((department) => {
+      if (facultyFilter && String(department.faculty_id) !== String(facultyFilter)) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const facultyName = faculties.find((faculty) => faculty.faculty_id === department.faculty_id)?.name || "";
+      return [department.name, department.code, facultyName].some((value) =>
+        normalizeText(value).includes(query)
+      );
+    });
+  }, [departments, faculties, departmentSearch, facultyFilter]);
 
   const loadData = async () => {
     try {
@@ -356,11 +375,11 @@ export default function Departments() {
   };
 
   const downloadDisplayedResults = () => {
-    if (!departments.length) {
+    if (!filteredDepartments.length) {
       return;
     }
 
-    const exportRows = departments.map((department) => ({
+    const exportRows = filteredDepartments.map((department) => ({
       code: department.code || "",
       department_name: department.name || "",
       faculty_name: department.faculty?.name || "",
@@ -443,16 +462,36 @@ export default function Departments() {
         </div>
       )}
 
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p className="text-sm text-gray-600">Showing {departments.length} result(s)</p>
-        <button
-          type="button"
-          onClick={downloadDisplayedResults}
-          disabled={!departments.length}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr,auto]">
+        <input
+          value={departmentSearch}
+          onChange={(event) => setDepartmentSearch(event.target.value)}
+          placeholder="Search department name, code"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+        <select
+          value={facultyFilter}
+          onChange={(event) => setFacultyFilter(event.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          Export Displayed Results
-        </button>
+          <option value="">All Faculties</option>
+          {faculties.map((faculty) => (
+            <option key={faculty.faculty_id} value={faculty.faculty_id}>
+              {faculty.name}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600">Showing {filteredDepartments.length} result(s)</p>
+          <button
+            type="button"
+            onClick={downloadDisplayedResults}
+            disabled={!filteredDepartments.length}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Export Displayed Results
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -473,7 +512,7 @@ export default function Departments() {
                 </td>
               </tr>
             )}
-            {!loading && departments.length === 0 && (
+            {!loading && filteredDepartments.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>
                   No departments found.
@@ -481,7 +520,7 @@ export default function Departments() {
               </tr>
             )}
             {!loading &&
-              departments.map((department) => (
+              filteredDepartments.map((department) => (
                 <tr key={department.dept_id} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm text-gray-700">{department.code}</td>
                   <td className="px-4 py-3 text-sm text-gray-800">{department.name}</td>
