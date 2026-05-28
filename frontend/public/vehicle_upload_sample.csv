@@ -1,0 +1,4 @@
+reg_number,type,capacity,driver_name,is_available
+WP-1234,Bus,45,Kamal Perera,true
+CP-5678,Van,15,Sunil Silva,false
+SP-9012,Car,4,Nimal Fernando,true

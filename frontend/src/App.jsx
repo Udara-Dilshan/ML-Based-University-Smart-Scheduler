@@ -15,6 +15,7 @@ import UserManagement from "./pages/admin/users/UserManagement";
 import Timetable from "./pages/admin/timetable/Timetable";
 import ManageTimetables from "./pages/admin/timetable/ManageTimetables";
 import Resources from "./pages/admin/resources/Resources";
+import Vehicles from "./pages/admin/vehicles/Vehicles";
 import Requests from "./pages/admin/requests/Requests";
 import MedicalSubmissions from "./pages/admin/medical/MedicalSubmissions";
 import Reports from "./pages/admin/reports/Reports";
@@ -78,6 +79,7 @@ function App() {
           <Route path="/admin/timetable"   element={<Timetable />} />
           <Route path="/admin/timetable/manage" element={<ManageTimetables />} />
           <Route path="/admin/resources"   element={<Resources />} />
+          <Route path="/admin/vehicles"    element={<Vehicles />} />
           <Route path="/admin/requests"    element={<Requests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />

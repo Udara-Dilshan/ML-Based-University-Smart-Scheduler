@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileHeart,
   LayoutDashboard,
+  Car,
   Users,
 } from "lucide-react";
 import { getUser } from "../services/api";
@@ -200,6 +201,10 @@ export default function Sidebar() {
         <NavLink to="/admin/resources" className={navItemClass}>
           <Boxes size={16} />
           Resources
+        </NavLink>
+        <NavLink to="/admin/vehicles" className={navItemClass}>
+          <Car size={16} />
+          Vehicles
         </NavLink>
         <NavLink to="/admin/requests" className={navItemClass}>
           <ClipboardList size={16} />

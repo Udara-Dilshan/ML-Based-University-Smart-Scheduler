@@ -12,6 +12,8 @@ const pageTitles = {
 "/admin/users/resource-managers":"Resource Managers",
 "/admin/timetable":"Timetable",
 "/admin/resources":"Resources",
+
+"/admin/vehicles":"Vehicles",
 "/admin/requests":"Requests",
 "/admin/medical-submissions":"Medical Submissions",
 "/admin/reports":"Reports & Analytics",
