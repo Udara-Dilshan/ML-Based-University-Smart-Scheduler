@@ -4,7 +4,9 @@ import {
   Building2,
   Package,
   Car,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  FileText
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -49,6 +51,14 @@ export default function ResourceSidebar() {
 
         <NavLink to="/resource/vehicles" className={navItemClass}>
           <Car size={16} />Vehicles
+        </NavLink>
+
+        <NavLink to="/resource/event-requests" className={navItemClass}>
+          <Calendar size={16} />Venue Requests
+        </NavLink>
+
+        <NavLink to="/resource/vehicle-requests" className={navItemClass}>
+          <FileText size={16} />Vehicle Requests
         </NavLink>
 
       </nav>

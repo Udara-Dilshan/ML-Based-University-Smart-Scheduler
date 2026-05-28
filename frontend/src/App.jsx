@@ -6,6 +6,8 @@ import ResourceLayout from "./pages/resource/layout/ResourceLayout";
 import ManageRooms from "./pages/resource/ManageRooms";
 import ManageEquipment from "./pages/resource/ManageEquipment";
 import ManageVehicles from "./pages/resource/ManageVehicles";
+import EventRequests from "./pages/resource/EventRequests";
+import VehicleRequests from "./pages/resource/VehicleRequests";
 
 // Admin
 import Dashboard from "./pages/admin/dashboard/Dashboard";
@@ -131,6 +133,8 @@ function App() {
             <Route path="/resource/rooms" element={<ManageRooms />} />
             <Route path="/resource/equipment" element={<ManageEquipment />} />
             <Route path="/resource/vehicles" element={<ManageVehicles />} />
+            <Route path="/resource/event-requests" element={<EventRequests />} />
+            <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
           </Route>
         </Route>
 
