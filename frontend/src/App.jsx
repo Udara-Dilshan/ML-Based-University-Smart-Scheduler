@@ -6,6 +6,7 @@ import ResourceLayout from "./pages/resource/layout/ResourceLayout";
 import ManageRooms from "./pages/resource/ManageRooms";
 import ManageEquipment from "./pages/resource/ManageEquipment";
 import ManageVehicles from "./pages/resource/ManageVehicles";
+import ManageEvents from "./pages/resource/ManageEvents";
 import EventRequests from "./pages/resource/EventRequests";
 import VehicleRequests from "./pages/resource/VehicleRequests";
 
@@ -14,6 +15,9 @@ import Dashboard from "./pages/admin/dashboard/Dashboard";
 import UserManagement from "./pages/admin/users/UserManagement";
 import Timetable from "./pages/admin/timetable/Timetable";
 import ManageTimetables from "./pages/admin/timetable/ManageTimetables";
+import AdminEventRequests from "./pages/admin/requests/AdminEventRequests";
+import AdminVehicleRequests from "./pages/admin/requests/AdminVehicleRequests";
+import AdminManageEvents from "./pages/admin/AdminManageEvents";
 import Resources from "./pages/admin/resources/Resources";
 import Vehicles from "./pages/admin/vehicles/Vehicles";
 import Requests from "./pages/admin/requests/Requests";
@@ -43,6 +47,9 @@ import LecturerAvailability from "./pages/lecturer/LecturerAvailability";
 import LecturerCourses from "./pages/lecturer/LecturerCourses";
 import LecturerProfile from "./pages/lecturer/LecturerProfile";
 import LecturerSettings from "./pages/lecturer/LecturerSettings";
+import LecturerRequestEvent from "./pages/lecturer/LecturerRequestEvent";
+import LecturerRequestVehicle from "./pages/lecturer/LecturerRequestVehicle";
+import LecturerMyRequests from "./pages/lecturer/LecturerMyRequests";
 
 // Student
 import StudentLayout from "./pages/student/layout/StudentLayout";
@@ -82,7 +89,9 @@ function App() {
           <Route path="/admin/timetable/manage" element={<ManageTimetables />} />
           <Route path="/admin/resources"   element={<Resources />} />
           <Route path="/admin/vehicles"    element={<Vehicles />} />
-          <Route path="/admin/requests"    element={<Requests />} />
+          <Route path="/admin/events"           element={<AdminManageEvents />} />
+          <Route path="/admin/requests/events"  element={<AdminEventRequests />} />
+          <Route path="/admin/requests/vehicles" element={<AdminVehicleRequests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />
           <Route path="/admin/settings"    element={<Settings />} />
@@ -110,6 +119,9 @@ function App() {
             <Route path="/lecturer/courses"      element={<LecturerCourses />}      />
             <Route path="/lecturer/profile"      element={<LecturerProfile />}      />
             <Route path="/lecturer/settings"     element={<LecturerSettings />}     />
+            <Route path="/lecturer/request-event"   element={<LecturerRequestEvent />}   />
+            <Route path="/lecturer/request-vehicle" element={<LecturerRequestVehicle />} />
+            <Route path="/lecturer/my-requests"     element={<LecturerMyRequests />}     />
           </Route>
         </Route>
 
@@ -137,6 +149,7 @@ function App() {
             <Route path="/resource/rooms" element={<ManageRooms />} />
             <Route path="/resource/equipment" element={<ManageEquipment />} />
             <Route path="/resource/vehicles" element={<ManageVehicles />} />
+            <Route path="/resource/events" element={<ManageEvents />} />
             <Route path="/resource/event-requests" element={<EventRequests />} />
             <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
             <Route path="/resource/profile" element={<ResourceProfile />} />

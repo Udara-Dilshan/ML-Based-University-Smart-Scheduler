@@ -17,6 +17,7 @@ from app.models.settings import SystemConstraint, SystemSetting
 from app.models.timetable import TimetableSession
 from app.models.medical import MedicalSubmission
 from app.models.user import User
+from app.models.event import Event, Vehicle, VehicleRequest, EventRequest
 from sqlalchemy import engine_from_config, pool, inspect, text
 
 config = context.config

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Car,
   Users,
+  CalendarPlus,
 } from "lucide-react";
 import { getUser } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
@@ -44,10 +45,15 @@ export default function Sidebar() {
     "/admin/curriculum/degree-semester-modules",
     "/admin/lecturer-allocations",
   ].includes(location.pathname);
+  const isRequestsRoute = [
+    "/admin/requests/events",
+    "/admin/requests/vehicles",
+  ].includes(location.pathname);
 
   const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
   const [isTimetableOpen, setIsTimetableOpen] = useState(isTimetableRoute);
   const [isAcademicOpen, setIsAcademicOpen] = useState(isAcademicRoute);
+  const [isRequestsOpen, setIsRequestsOpen] = useState(isRequestsRoute);
 
   // Listen for storage changes to update profile image
   useEffect(() => {
@@ -60,16 +66,11 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    if (isUsersRoute) {
-      setIsUsersOpen(true);
-    }
-    if (isAcademicRoute) {
-      setIsAcademicOpen(true);
-    }
-    if (isTimetableRoute) {
-      setIsTimetableOpen(true);
-    }
-  }, [isUsersRoute, isAcademicRoute, isTimetableRoute]);
+    if (isUsersRoute) setIsUsersOpen(true);
+    if (isAcademicRoute) setIsAcademicOpen(true);
+    if (isTimetableRoute) setIsTimetableOpen(true);
+    if (isRequestsRoute) setIsRequestsOpen(true);
+  }, [isUsersRoute, isAcademicRoute, isTimetableRoute, isRequestsRoute]);
 
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -206,10 +207,38 @@ export default function Sidebar() {
           <Car size={16} />
           Vehicles
         </NavLink>
-        <NavLink to="/admin/requests" className={navItemClass}>
-          <ClipboardList size={16} />
-          Requests
+        <NavLink to="/admin/events" className={navItemClass}>
+          <CalendarPlus size={16} />
+          Manage Events
         </NavLink>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setIsRequestsOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardList size={16} />
+              <span>Requests</span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${isRequestsOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+          {isRequestsOpen && (
+            <div className="space-y-1 px-6 pt-1">
+              <NavLink to="/admin/requests/events" className={subItemClass}>
+                Event Requests
+              </NavLink>
+              <NavLink to="/admin/requests/vehicles" className={subItemClass}>
+                Vehicle Requests
+              </NavLink>
+            </div>
+          )}
+        </div>
+
         <NavLink to="/admin/medical-submissions" className={navItemClass}>
           <FileHeart size={16} />
           Medical Submissions

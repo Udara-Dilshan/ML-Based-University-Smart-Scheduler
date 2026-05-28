@@ -3,12 +3,15 @@ import Navbar from "../../../components/Navbar";
 import { Outlet, useLocation } from "react-router-dom";
 
 const pageTitles = {
-  "/lecturer/dashboard":    "Dashboard",
-  "/lecturer/timetable":    "My Timetable",
-  "/lecturer/availability": "My Availability",
-  "/lecturer/courses":      "My Courses",
-  "/lecturer/profile":      "My Profile",
-  "/lecturer/settings":     "Settings",
+  "/lecturer/dashboard":       "Dashboard",
+  "/lecturer/timetable":       "My Timetable",
+  "/lecturer/availability":    "My Availability",
+  "/lecturer/courses":         "My Courses",
+  "/lecturer/profile":         "My Profile",
+  "/lecturer/settings":        "Settings",
+  "/lecturer/request-event":   "Request a Venue",
+  "/lecturer/request-vehicle": "Request a Vehicle",
+  "/lecturer/my-requests":     "My Resource Requests",
 };
 
 export default function LecturerLayout() {

@@ -7,6 +7,9 @@ import {
   User,
   Settings,
   ChevronDown,
+  Calendar,
+  Car,
+  FileText,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -63,6 +66,29 @@ export default function LecturerSidebar() {
           <BookOpen size={16} />
           My Courses
         </NavLink>
+
+        <div className="pt-2 pb-1">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Resource Requests</p>
+        </div>
+
+        <NavLink to="/lecturer/request-event" className={navItemClass}>
+          <Calendar size={16} />
+          Request Venue
+        </NavLink>
+
+        <NavLink to="/lecturer/request-vehicle" className={navItemClass}>
+          <Car size={16} />
+          Request Vehicle
+        </NavLink>
+
+        <NavLink to="/lecturer/my-requests" className={navItemClass}>
+          <FileText size={16} />
+          My Requests
+        </NavLink>
+
+        <div className="pt-2 pb-1">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Account</p>
+        </div>
 
         <NavLink to="/lecturer/profile" className={navItemClass}>
           <User size={16} />

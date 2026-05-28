@@ -27,3 +27,4 @@ class Resource(Base):
     department = relationship("Department")
     departments = relationship("Department", secondary=resource_departments)
     events = relationship("Event", back_populates="resource")
+    event_requests = relationship("EventRequest", foreign_keys="EventRequest.resource_id", back_populates="resource")

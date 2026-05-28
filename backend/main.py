@@ -11,6 +11,7 @@ from app.routers import (
     semester_registration,
     medical,
 )
+from app.routers import booking_requests
 
 app = FastAPI(title="University Smart Scheduling System API")
 
@@ -49,6 +50,7 @@ app.include_router(resource.router)
 app.include_router(lecturer_availability.router)
 app.include_router(timetable.router)  # prefix: /api/timetable
 app.include_router(settings.router)
+app.include_router(booking_requests.router)  # prefix: /booking-requests
 
 # Serve static files (uploads)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

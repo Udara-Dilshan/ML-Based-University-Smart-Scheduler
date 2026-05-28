@@ -1,183 +1,433 @@
-import { useState } from "react";
-import { Check, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import {
+  CheckCircle2, XCircle, AlertTriangle, Clock, ChevronDown,
+  ChevronUp, RefreshCw, Calendar, Users, MapPin, Sparkles
+} from "lucide-react";
+import { bookingAPI, resourceAPI } from "../../services/api";
 
-const EventRequests = () => {
-  const [requests, setRequests] = useState([
-    {
-      id: 1,
-      requester: "John Doe (Student)",
-      event: "Batch Party",
-      venue: "Main Auditorium",
-      date: "2024-11-15",
-      time: "14:00 - 16:00",
-      status: "Pending",
-      conflict: false,
-    },
-    {
-      id: 2,
-      requester: "Dr. Smith (Lecturer)",
-      event: "Guest Lecture",
-      venue: "A1 Smart",
-      date: "2024-11-16",
-      time: "10:00 - 12:00",
-      status: "Pending",
-      conflict: true,
-      conflictReason: "AI Timetable: CS101 Class Scheduled",
-    },
-  ]);
+// ─── Status badge helpers ────────────────────────────────────────────────────
+const AI_STATUS_CONFIG = {
+  CLEAR: {
+    label: "Clear",
+    icon: <CheckCircle2 size={13} />,
+    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  },
+  CLASH: {
+    label: "Clash Detected",
+    icon: <XCircle size={13} />,
+    cls: "bg-red-50 text-red-700 border border-red-200",
+  },
+  CAPACITY_MISMATCH: {
+    label: "Capacity Mismatch",
+    icon: <AlertTriangle size={13} />,
+    cls: "bg-amber-50 text-amber-700 border border-amber-200",
+  },
+};
 
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectingId, setRejectingId] = useState(null);
+const REQUEST_STATUS_CONFIG = {
+  PENDING: "bg-yellow-100 text-yellow-800",
+  APPROVED: "bg-emerald-100 text-emerald-800",
+  REJECTED: "bg-red-100 text-red-800",
+};
+
+function AiBadge({ aiStatus }) {
+  const config = AI_STATUS_CONFIG[aiStatus] || AI_STATUS_CONFIG.CLEAR;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${config.cls}`}>
+      {config.icon} {config.label}
+    </span>
+  );
+}
+
+// ─── Action Modal ─────────────────────────────────────────────────────────────
+function ActionModal({ request, onClose, onRefresh }) {
+  const [mode, setMode] = useState(null); // "approve" | "reject" | "alt"
+  const [selectedAlt, setSelectedAlt] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleApprove = (id, hasConflict) => {
-    if (hasConflict) {
-      if (!window.confirm("Warning: There is a conflict with the AI Timetable. Are you sure you want to approve this?")) {
-        return;
-      }
+  const handleApprove = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const payload = selectedAlt ? { allocated_resource_id: selectedAlt } : {};
+      await bookingAPI.approveEventRequest(request.req_id, payload);
+      onRefresh();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to approve request");
+    } finally {
+      setSaving(false);
     }
-    setRequests(requests.map(r => r.id === id ? { ...r, status: "Approved" } : r));
   };
 
-  const openRejectModal = (id) => {
-    setRejectingId(id);
-    setRejectReason("");
-    setRejectModalOpen(true);
-  };
-
-  const handleRejectSubmit = (e) => {
+  const handleReject = async (e) => {
     e.preventDefault();
-    setRequests(requests.map(r => r.id === rejectingId ? { ...r, status: "Rejected", reason: rejectReason } : r));
-    setRejectModalOpen(false);
-    setRejectingId(null);
+    try {
+      setSaving(true);
+      setError("");
+      await bookingAPI.rejectEventRequest(request.req_id, rejectReason);
+      onRefresh();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to reject request");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const canDirectApprove = request.ai_status === "CLEAR";
+  const hasAlternatives = (request.ai_alternatives || []).length > 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-5">
+          <div>
+            <h3 className="text-base font-bold text-gray-900">{request.event_name}</h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {request.requester_name} · {request.event_date} · {request.start_time}–{request.end_time}
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+            <XCircle size={20} />
+          </button>
+        </div>
+
+        {/* AI Status Banner */}
+        <div className={`px-5 py-3 text-sm font-medium flex items-center gap-2 ${
+          request.ai_status === "CLEAR"
+            ? "bg-emerald-50 text-emerald-800"
+            : request.ai_status === "CLASH"
+            ? "bg-red-50 text-red-800"
+            : "bg-amber-50 text-amber-800"
+        }`}>
+          <Sparkles size={14} />
+          AI Check: <AiBadge aiStatus={request.ai_status} />
+          {request.ai_clash_detail && (
+            <span className="ml-1 text-xs font-normal opacity-80">— {request.ai_clash_detail}</span>
+          )}
+        </div>
+
+        {/* Details */}
+        <div className="grid grid-cols-2 gap-3 p-5 text-sm">
+          <div className="flex items-center gap-2 text-gray-600">
+            <MapPin size={14} className="text-blue-500" />
+            <span><span className="font-medium text-gray-900">{request.resource_name}</span> (Cap: {request.resource_capacity})</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Users size={14} className="text-purple-500" />
+            <span>{request.participant_count} participants</span>
+          </div>
+          {request.purpose && (
+            <div className="col-span-2 text-gray-600">
+              <span className="font-medium text-gray-900">Purpose: </span>{request.purpose}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="mx-5 mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Action area */}
+        {!mode && (
+          <div className="flex flex-wrap gap-3 border-t border-gray-100 p-5">
+            {canDirectApprove && (
+              <button
+                onClick={() => { setMode("approve"); }}
+                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                <CheckCircle2 size={15} /> Direct Approve
+              </button>
+            )}
+            {hasAlternatives && (
+              <button
+                onClick={() => setMode("alt")}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                <Sparkles size={15} /> Approve with Alt Venue
+              </button>
+            )}
+            {request.ai_status === "CLASH" && !hasAlternatives && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                No alternative venues available. Please reject this request.
+              </p>
+            )}
+            <button
+              onClick={() => setMode("reject")}
+              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+            >
+              <XCircle size={15} /> Reject
+            </button>
+          </div>
+        )}
+
+        {/* Direct Approve confirm */}
+        {mode === "approve" && (
+          <div className="border-t border-gray-100 p-5 space-y-3">
+            <p className="text-sm text-gray-700">Confirm approval for <strong>{request.event_name}</strong> at <strong>{request.resource_name}</strong>?</p>
+            <div className="flex gap-3">
+              <button onClick={handleApprove} disabled={saving}
+                className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
+                {saving ? "Approving..." : "Confirm Approve"}
+              </button>
+              <button onClick={() => setMode(null)} className="rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Alt Venue selection */}
+        {mode === "alt" && (
+          <div className="border-t border-gray-100 p-5 space-y-3">
+            <p className="text-sm font-semibold text-gray-800">AI Suggested Alternative Venues:</p>
+            <div className="space-y-2">
+              {(request.ai_alternatives || []).map((alt) => (
+                <label key={alt.resource_id}
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition ${
+                    selectedAlt === alt.resource_id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-blue-300"
+                  }`}>
+                  <input type="radio" name="alt_venue" value={alt.resource_id}
+                    checked={selectedAlt === alt.resource_id}
+                    onChange={() => setSelectedAlt(alt.resource_id)}
+                    className="accent-blue-600" />
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{alt.name}</p>
+                    <p className="text-xs text-gray-500">{alt.type} · Cap: {alt.capacity} · {alt.location || "—"}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleApprove} disabled={!selectedAlt || saving}
+                className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                {saving ? "Approving..." : "Approve with Selected Venue"}
+              </button>
+              <button onClick={() => setMode(null)} className="rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reject form */}
+        {mode === "reject" && (
+          <form onSubmit={handleReject} className="border-t border-gray-100 p-5 space-y-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Reason for Rejection <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g. Venue is under maintenance on this date"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button type="submit" disabled={saving}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">
+                {saving ? "Rejecting..." : "Confirm Rejection"}
+              </button>
+              <button type="button" onClick={() => setMode(null)}
+                className="rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                Back
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function EventRequests() {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("PENDING");
+  const [selectedRequest, setSelectedRequest] = useState(null);
+
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await bookingAPI.getEventRequests(statusFilter || null);
+      setRequests(data || []);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to load event requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadRequests(); }, [statusFilter]);
+
+  const counts = useMemo(() => ({
+    pending: requests.filter((r) => r.status === "PENDING").length,
+    clashes: requests.filter((r) => r.ai_status === "CLASH").length,
+    clear: requests.filter((r) => r.ai_status === "CLEAR").length,
+  }), [requests]);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Event / Venue Requests
-        </h2>
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Event / Venue Requests</h2>
+          <p className="mt-0.5 text-sm text-gray-500">Lecturer-submitted event and hall booking requests</p>
+        </div>
+        <button onClick={loadRequests}
+          className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+          <RefreshCw size={14} /> Refresh
+        </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+      {/* Summary Pills */}
+      {statusFilter === "PENDING" && (
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-2 text-sm">
+            <span className="font-bold text-yellow-800">{counts.pending}</span>
+            <span className="ml-1.5 text-yellow-700">Pending</span>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm">
+            <span className="font-bold text-emerald-800">{counts.clear}</span>
+            <span className="ml-1.5 text-emerald-700">Clear</span>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm">
+            <span className="font-bold text-red-800">{counts.clashes}</span>
+            <span className="ml-1.5 text-red-700">Clashes</span>
+          </div>
+        </div>
+      )}
+
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2">
+        {["PENDING", "APPROVED", "REJECTED", ""].map((s) => (
+          <button key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              statusFilter === s
+                ? "bg-blue-600 text-white"
+                : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+            }`}>
+            {s || "All"}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead className="bg-gray-50 text-left">
             <tr>
-              <th className="px-4 py-3 text-left">Requester</th>
-              <th className="px-4 py-3 text-left">Event Details</th>
-              <th className="px-4 py-3 text-left">Venue & Time</th>
-              <th className="px-4 py-3 text-left">AI Timetable Check</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Actions</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Requester</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Event</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Venue & Time</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Participants</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">System Status (AI Check)</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Status</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {requests.map((req) => (
-              <tr key={req.id} className="hover:bg-gray-50/50">
-                <td className="px-4 py-3 font-medium text-gray-900">{req.requester}</td>
-                <td className="px-4 py-3 text-gray-600">{req.event}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  <div className="font-medium text-gray-800">{req.venue}</div>
-                  <div className="text-xs">{req.date} | {req.time}</div>
+          <tbody>
+            {loading && (
+              <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-500">
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCw size={16} className="animate-spin" /> Loading requests...
+                </div>
+              </td></tr>
+            )}
+            {!loading && requests.length === 0 && (
+              <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400">
+                No event requests found.
+              </td></tr>
+            )}
+            {!loading && requests.map((req) => (
+              <tr key={req.req_id} className="border-t border-gray-100 hover:bg-gray-50/50">
+                <td className="px-4 py-3">
+                  <p className="font-medium text-gray-900">{req.requester_name}</p>
+                  <p className="text-xs text-gray-500">{req.requester_email}</p>
                 </td>
                 <td className="px-4 py-3">
-                  {req.conflict ? (
-                    <div className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-md max-w-fit">
-                      <AlertTriangle size={14} />
-                      <span className="text-xs font-medium">Conflict: {req.conflictReason}</span>
+                  <p className="font-medium text-gray-900">{req.event_name}</p>
+                  {req.purpose && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{req.purpose}</p>}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1 font-medium text-gray-800">
+                    <MapPin size={12} className="text-blue-500" />
+                    {req.allocated_resource_name
+                      ? <><span className="line-through text-gray-400 text-xs">{req.resource_name}</span> → <span className="text-blue-700">{req.allocated_resource_name}</span></>
+                      : req.resource_name}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                    <Calendar size={11} />{req.event_date}
+                    <Clock size={11} className="ml-1" />{req.start_time}–{req.end_time}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                    <Users size={11} /> {req.participant_count}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {req.status === "PENDING" ? (
+                    <div className="space-y-1">
+                      <AiBadge aiStatus={req.ai_status} />
+                      {req.ai_clash_detail && (
+                        <p className="text-xs text-gray-500 leading-tight">{req.ai_clash_detail}</p>
+                      )}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md max-w-fit">
-                      <CheckCircle size={14} />
-                      <span className="text-xs font-medium">No Conflict</span>
-                    </div>
+                    <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    req.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                    req.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${REQUEST_STATUS_CONFIG[req.status] || ""}`}>
                     {req.status}
                   </span>
-                  {req.reason && <div className="text-xs text-gray-500 mt-1">Reason: {req.reason}</div>}
+                  {req.rejection_reason && (
+                    <p className="mt-1 text-xs text-gray-400 line-clamp-2">{req.rejection_reason}</p>
+                  )}
                 </td>
-                <td className="px-4 py-3 flex gap-2">
-                  {req.status === "Pending" && (
-                    <>
-                      <button 
-                        onClick={() => handleApprove(req.id, req.conflict)}
-                        className="flex items-center gap-1 bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors"
-                      >
-                        <Check size={14} /> Approve
-                      </button>
-                      <button 
-                        onClick={() => openRejectModal(req.id)}
-                        className="flex items-center gap-1 bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-colors"
-                      >
-                        <X size={14} /> Reject
-                      </button>
-                    </>
+                <td className="px-4 py-3">
+                  {req.status === "PENDING" && (
+                    <button
+                      onClick={() => setSelectedRequest(req)}
+                      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      Review
+                    </button>
                   )}
                 </td>
               </tr>
             ))}
-            {requests.length === 0 && (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                  No venue requests found.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
 
-      {rejectModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100">
-              <h3 className="font-semibold text-lg text-gray-900">Reject Request</h3>
-              <button onClick={() => setRejectModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleRejectSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection <span className="text-red-500">*</span></label>
-                <textarea 
-                  required
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="e.g. The venue is undergoing maintenance."
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-gray-100">
-                <button 
-                  type="button" 
-                  onClick={() => setRejectModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Confirm Reject
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {selectedRequest && (
+        <ActionModal
+          request={selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          onRefresh={loadRequests}
+        />
       )}
     </div>
   );
-};
-
-export default EventRequests;
+}

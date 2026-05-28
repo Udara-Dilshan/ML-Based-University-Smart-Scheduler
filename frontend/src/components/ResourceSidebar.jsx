@@ -2,11 +2,11 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
-  Package,
   Car,
   ChevronDown,
   Calendar,
-  FileText
+  FileText,
+  CalendarPlus,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -54,11 +54,15 @@ export default function ResourceSidebar() {
         </NavLink>
 
         <NavLink to="/resource/event-requests" className={navItemClass}>
-          <Calendar size={16} />Venue Requests
+          <Calendar size={16} />Event Requests
         </NavLink>
 
         <NavLink to="/resource/vehicle-requests" className={navItemClass}>
           <FileText size={16} />Vehicle Requests
+        </NavLink>
+
+        <NavLink to="/resource/events" className={navItemClass}>
+          <CalendarPlus size={16} />Manage Events
         </NavLink>
 
       </nav>

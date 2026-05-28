@@ -280,6 +280,89 @@ export const resourceAPI = {
   },
 };
 
+export const bookingAPI = {
+  // ── Resource Manager: Event Requests ──────────────────────────────────
+  getEventRequests: async (statusFilter) => {
+    const params = statusFilter ? { status: statusFilter } : undefined;
+    const response = await api.get("/booking-requests/events", { params });
+    return response.data;
+  },
+  getEventRequest: async (id) => {
+    const response = await api.get(`/booking-requests/events/${id}`);
+    return response.data;
+  },
+  approveEventRequest: async (id, payload = {}) => {
+    const response = await api.put(`/booking-requests/events/${id}/approve`, payload);
+    return response.data;
+  },
+  rejectEventRequest: async (id, rejection_reason) => {
+    const response = await api.put(`/booking-requests/events/${id}/reject`, { rejection_reason });
+    return response.data;
+  },
+
+  // ── Resource Manager: Vehicle Requests ────────────────────────────────
+  getVehicleRequests: async (statusFilter) => {
+    const params = statusFilter ? { status: statusFilter } : undefined;
+    const response = await api.get("/booking-requests/vehicles", { params });
+    return response.data;
+  },
+  approveVehicleRequest: async (id, assigned_vehicle_id) => {
+    const response = await api.put(`/booking-requests/vehicles/${id}/approve`, { assigned_vehicle_id });
+    return response.data;
+  },
+  rejectVehicleRequest: async (id, rejection_reason) => {
+    const response = await api.put(`/booking-requests/vehicles/${id}/reject`, { rejection_reason });
+    return response.data;
+  },
+
+  // ── Resource Manager: Direct Event CRUD ──────────────────────────────
+  getDirectEvents: async () => {
+    const response = await api.get("/booking-requests/direct-events");
+    return response.data;
+  },
+  createDirectEvent: async (payload) => {
+    const response = await api.post("/booking-requests/direct-events", payload);
+    return response.data;
+  },
+  updateDirectEvent: async (id, payload) => {
+    const response = await api.put(`/booking-requests/direct-events/${id}`, payload);
+    return response.data;
+  },
+  deleteDirectEvent: async (id) => {
+    await api.delete(`/booking-requests/direct-events/${id}`);
+  },
+
+  // ── Dashboard summary badges ───────────────────────────────────────────
+  getBookingSummary: async () => {
+    const response = await api.get("/booking-requests/summary");
+    return response.data;
+  },
+
+  // ── Lecturer: Submit Requests ─────────────────────────────────────────
+  submitEventRequest: async (payload) => {
+    const response = await api.post("/booking-requests/events", payload);
+    return response.data;
+  },
+  submitVehicleRequest: async (payload) => {
+    const response = await api.post("/booking-requests/vehicles", payload);
+    return response.data;
+  },
+  getMyEventRequests: async () => {
+    const response = await api.get("/booking-requests/events/my");
+    return response.data;
+  },
+  getMyVehicleRequests: async () => {
+    const response = await api.get("/booking-requests/vehicles/my");
+    return response.data;
+  },
+
+  // ── Student: Approved events (campus events page) ─────────────────────
+  getApprovedEvents: async () => {
+    const response = await api.get("/booking-requests/events-list");
+    return response.data;
+  },
+};
+
 export const settingsAPI = {
   getSystemConstraints: async ({ scope = "all", batchId } = {}) => {
     const params = { scope };

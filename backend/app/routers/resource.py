@@ -7,15 +7,17 @@ from ..models.resource import Resource
 from ..models.academic import Faculty, Department
 from ..models.event import Vehicle
 from ..models.settings import SystemSetting
-from ..models.user import UserRole
+from ..models.user import UserRole, User
 from ..utils.db_errors import commit_delete_or_raise
 from ..utils.dependencies import require_roles
 
 router = APIRouter(
     prefix="/resources",
     tags=["resources"],
-    dependencies=[Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))],
+    dependencies=[Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER, UserRole.SCHEDULER, UserRole.LECTURER))],
 )
+
+admin_only = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))
 
 
 LEGACY_TYPE_ALIASES = {
@@ -225,7 +227,7 @@ def get_resource_system_settings(category: Optional[str] = None, db: Session = D
 
 
 @router.post("/", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
-def create_resource(resource: ResourceBase, db: Session = Depends(get_db)):
+def create_resource(resource: ResourceBase, db: Session = Depends(get_db), current_user: User = admin_only):
     duplicate = db.query(Resource).filter(Resource.name == resource.name.strip()).first()
     if duplicate:
         raise HTTPException(status_code=409, detail="Resource name already exists")
@@ -263,7 +265,7 @@ def get_resources(db: Session = Depends(get_db)):
 
 
 @router.put("/{resource_id}", response_model=ResourceOut)
-def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = Depends(get_db)):
+def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = Depends(get_db), current_user: User = admin_only):
     db_resource = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not db_resource:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -318,7 +320,7 @@ def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = De
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_resource(resource_id: int, db: Session = Depends(get_db)):
+def delete_resource(resource_id: int, db: Session = Depends(get_db), current_user: User = admin_only):
     db_res = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not db_res:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -332,7 +334,7 @@ def get_vehicles(db: Session = Depends(get_db)):
 
 
 @router.post("/vehicles", response_model=VehicleOut, status_code=status.HTTP_201_CREATED)
-def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db)):
+def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db), current_user: User = admin_only):
     reg_number = payload.reg_number.strip().upper()
     duplicate = db.query(Vehicle).filter(Vehicle.reg_number == reg_number).first()
     if duplicate:
@@ -352,7 +354,7 @@ def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db)):
 
 
 @router.put("/vehicles/{vehicle_id}", response_model=VehicleOut)
-def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depends(get_db)):
+def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depends(get_db), current_user: User = admin_only):
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -384,7 +386,7 @@ def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depend
 
 
 @router.delete("/vehicles/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
+def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db), current_user: User = admin_only):
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
