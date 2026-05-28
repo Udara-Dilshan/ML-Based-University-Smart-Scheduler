@@ -45,9 +45,9 @@ export default function ResourceSidebar() {
           <Building2 size={16} />Manage Rooms
         </NavLink>
 
-        <NavLink to="/resource/equipment" className={navItemClass}>
+        {/* <NavLink to="/resource/equipment" className={navItemClass}>
           <Package size={16} />Equipment
-        </NavLink>
+        </NavLink> */}
 
         <NavLink to="/resource/vehicles" className={navItemClass}>
           <Car size={16} />Vehicles

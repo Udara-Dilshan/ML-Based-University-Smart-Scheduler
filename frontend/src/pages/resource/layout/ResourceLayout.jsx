@@ -9,6 +9,8 @@ const pageTitles = {
   "/resource/vehicles": "Vehicles",
   "/resource/event-requests": "Venue Requests",
   "/resource/vehicle-requests": "Vehicle Requests",
+  "/resource/profile": "Profile",
+  "/resource/settings": "Settings",
 };
 
 export default function ResourceLayout() {

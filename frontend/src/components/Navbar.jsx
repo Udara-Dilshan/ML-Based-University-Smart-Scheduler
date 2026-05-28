@@ -262,6 +262,18 @@ const SEARCH_TARGETS = [
     keywords: ["vehicles"],
     roles: ["ResourceManager"],
   },
+  {
+    label: "Resource Manager Profile",
+    path: "/resource/profile",
+    keywords: ["account", "my profile"],
+    roles: ["ResourceManager"],
+  },
+  {
+    label: "Resource Manager Settings",
+    path: "/resource/settings",
+    keywords: ["preferences", "password"],
+    roles: ["ResourceManager"],
+  },
 ];
 
 const normalizeSearchText = (value) =>
@@ -404,6 +416,8 @@ export default function Navbar({ title }) {
       navigate("/lecturer/profile");
     } else if (isStudent) {
       navigate("/student/profile");
+    } else if (currentUser?.role === "ResourceManager") {
+      navigate("/resource/profile");
     } else {
       navigate("/admin/profile");
     }
@@ -415,6 +429,8 @@ export default function Navbar({ title }) {
       navigate("/lecturer/settings");
     } else if (isStudent) {
       navigate("/student/settings");
+    } else if (currentUser?.role === "ResourceManager") {
+      navigate("/resource/settings");
     } else {
       navigate("/admin/settings");
     }

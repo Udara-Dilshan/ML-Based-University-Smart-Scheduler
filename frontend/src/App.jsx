@@ -32,6 +32,8 @@ import LecturerAllocations from "./pages/admin/allocations/LecturerAllocations";
 // Other portals
 import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
 import ResourceDashboard from "./pages/resource/ResourceDashboard";
+import ResourceProfile from "./pages/resource/ResourceProfile";
+import ResourceSettings from "./pages/resource/ResourceSettings";
 
 // Lecturer
 import LecturerLayout from "./pages/lecturer/layout/LecturerLayout";
@@ -137,6 +139,8 @@ function App() {
             <Route path="/resource/vehicles" element={<ManageVehicles />} />
             <Route path="/resource/event-requests" element={<EventRequests />} />
             <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
+            <Route path="/resource/profile" element={<ResourceProfile />} />
+            <Route path="/resource/settings" element={<ResourceSettings />} />
           </Route>
         </Route>
 

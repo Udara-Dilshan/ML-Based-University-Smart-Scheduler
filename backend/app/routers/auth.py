@@ -135,6 +135,12 @@ def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
             "designation": None,
         }
 
+    resource_manager_profile = None
+    if user.resource_manager_profile:
+        resource_manager_profile = {
+            "assigned_section": user.resource_manager_profile.assigned_section,
+        }
+
     return {
         "user_id": user.user_id,
         "email": user.email,
@@ -147,7 +153,7 @@ def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
         "profile_image": user.profile_image,
         "student_profile": student_profile,
         "lecturer_profile": lecturer_profile,
-        "resource_manager_profile": None,
+        "resource_manager_profile": resource_manager_profile,
     }
 
 
