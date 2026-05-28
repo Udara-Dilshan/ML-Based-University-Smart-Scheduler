@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { Plus, Edit, Trash2, X, Bus, Car, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, X, Bus, Car, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { resourceAPI } from "../../services/api";
 
 const initialForm = {
   reg_number: "",
@@ -50,37 +51,14 @@ const getAvailabilityBadge = (isAvailable) => (
   </span>
 );
 
-const ManageVehicles = () => {
-  const [vehicles, setVehicles] = useState([
-    {
-      id: 1,
-      reg_number: "WP-1234",
-      type: "Bus",
-      capacity: 45,
-      driver_name: "Kamal Perera",
-      is_available: true,
-    },
-    {
-      id: 2,
-      reg_number: "CP-5678",
-      type: "Van",
-      capacity: 15,
-      driver_name: "Sunil Silva",
-      is_available: false,
-    },
-    {
-      id: 3,
-      reg_number: "SP-9012",
-      type: "Car",
-      capacity: 4,
-      driver_name: "Nimal Fernando",
-      is_available: true,
-    },
-  ]);
-
+export default function ManageVehicles() {
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState(initialForm);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("");
@@ -110,10 +88,26 @@ const ManageVehicles = () => {
         return true;
       }
 
-      return [vehicle.reg_number, vehicle.type, vehicle.driver_name]
-        .some((value) => normalizeText(value).includes(query));
+      return [vehicle.reg_number, vehicle.type, vehicle.driver_name].some((value) => normalizeText(value).includes(query));
     });
   }, [vehicles, search, typeFilter, availabilityFilter]);
+
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await resourceAPI.getVehicles();
+      setVehicles(data || []);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to load vehicles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadVehicles();
+  }, []);
 
   useEffect(() => {
     if (!uploadMessage && !uploadError) {
@@ -130,13 +124,13 @@ const ManageVehicles = () => {
 
   const handleOpenModal = (vehicle = null) => {
     if (vehicle) {
-      setEditingVehicle(vehicle.id);
+      setEditingVehicle(vehicle.vehicle_id);
       setFormData({
         reg_number: vehicle.reg_number,
-        type: vehicle.type,
+        type: vehicle.type || "Bus",
         capacity: String(vehicle.capacity),
-        driver_name: vehicle.driver_name,
-        is_available: String(vehicle.is_available),
+        driver_name: vehicle.driver_name || "",
+        is_available: String(Boolean(vehicle.is_available)),
       });
     } else {
       setEditingVehicle(null);
@@ -146,47 +140,58 @@ const ManageVehicles = () => {
   };
 
   const handleCloseModal = () => {
+    if (saving) {
+      return;
+    }
     setIsModalOpen(false);
     setEditingVehicle(null);
+    setFormData(initialForm);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
 
     const payload = {
       reg_number: formData.reg_number.trim(),
-      type: formData.type.trim(),
+      type: formData.type.trim() || null,
       capacity: Number(formData.capacity),
-      driver_name: formData.driver_name.trim(),
+      driver_name: formData.driver_name.trim() || null,
       is_available: formData.is_available === "true",
     };
 
-    if (!payload.reg_number || !payload.type || !Number.isFinite(payload.capacity) || payload.capacity <= 0 || !payload.driver_name) {
-      alert("Please fill reg number, type, capacity and driver name.");
+    if (!payload.reg_number || !Number.isFinite(payload.capacity) || payload.capacity <= 0) {
+      setError("Registration number and valid capacity are required.");
       return;
     }
 
-    if (editingVehicle) {
-      setVehicles(
-        vehicles.map((vehicle) => (
-          vehicle.id === editingVehicle ? { ...payload, id: editingVehicle } : vehicle
-        ))
-      );
-    } else {
-      const duplicate = vehicles.some((vehicle) => normalizeText(vehicle.reg_number) === normalizeText(payload.reg_number));
-      if (duplicate) {
-        alert("Registration number already exists.");
-        return;
+    try {
+      setSaving(true);
+      setError("");
+      if (editingVehicle) {
+        await resourceAPI.updateVehicle(editingVehicle, payload);
+      } else {
+        await resourceAPI.createVehicle(payload);
       }
-      setVehicles([...vehicles, { ...payload, id: Date.now() }]);
+      await loadVehicles();
+      handleCloseModal();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to save vehicle");
+    } finally {
+      setSaving(false);
     }
-
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this vehicle?")) {
-      setVehicles(vehicles.filter((vehicle) => vehicle.id !== id));
+  const handleDelete = async (vehicleId) => {
+    if (!window.confirm("Are you sure you want to delete this vehicle?")) {
+      return;
+    }
+
+    try {
+      setError("");
+      await resourceAPI.deleteVehicle(vehicleId);
+      await loadVehicles();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to delete vehicle");
     }
   };
 
@@ -227,8 +232,8 @@ const ManageVehicles = () => {
         const driverName = String(row.driver_name || row.driver || "").trim();
         const availabilityValue = row.is_available ?? row.available ?? row.status ?? "true";
 
-        if (!regNumber || !driverName) {
-          validationErrors.push(`Row ${rowNumber}: reg_number and driver_name are required`);
+        if (!regNumber) {
+          validationErrors.push(`Row ${rowNumber}: reg_number is required`);
           return;
         }
 
@@ -255,7 +260,7 @@ const ManageVehicles = () => {
             reg_number: regNumber,
             type,
             capacity,
-            driver_name: driverName,
+            driver_name: driverName || null,
             is_available: toBoolean(availabilityValue),
           },
         });
@@ -282,13 +287,16 @@ const ManageVehicles = () => {
 
       for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
         const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
-        chunk.forEach((item) => {
-          const duplicate = vehicles.some((vehicle) => normalizeText(vehicle.reg_number) === normalizeText(item.payload.reg_number));
-          if (duplicate) {
-            failedRows.push(`Row ${item.rowNumber}: reg number already exists`);
-          } else {
+        const results = await Promise.allSettled(
+          chunk.map((item) => resourceAPI.createVehicle(item.payload))
+        );
+
+        results.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
             createdCount += 1;
-            setVehicles((current) => [...current, { ...item.payload, id: Date.now() + Math.random() }]);
+          } else {
+            const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+            failedRows.push(`Row ${chunk[chunkIndex].rowNumber}: ${detail}`);
           }
         });
 
@@ -304,6 +312,8 @@ const ManageVehicles = () => {
           await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
         }
       }
+
+      await loadVehicles();
 
       const baseMessage = `Created ${createdCount} vehicle record(s)`;
       const validationPart = validationErrors.length ? ` | ${validationErrors.length} row(s) skipped during validation` : "";
@@ -375,6 +385,12 @@ const ManageVehicles = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {uploadMessage && (
         <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {uploadMessage}
@@ -436,31 +452,36 @@ const ManageVehicles = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredVehicles.map((vehicle) => (
-              <tr key={vehicle.id} className="border-t border-gray-100 hover:bg-gray-50/50">
+            {loading && (
+              <tr>
+                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading vehicles...</td>
+              </tr>
+            )}
+            {!loading && filteredVehicles.map((vehicle) => (
+              <tr key={vehicle.vehicle_id} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-medium text-gray-900">{vehicle.reg_number}</td>
                 <td className="px-4 py-3 text-gray-600">
                   <span className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
                     {getVehicleTypeIcon(vehicle.type)}
-                    {vehicle.type}
+                    {vehicle.type || "-"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{vehicle.capacity}</td>
-                <td className="px-4 py-3 text-gray-600">{vehicle.driver_name}</td>
-                <td className="px-4 py-3">{getAvailabilityBadge(vehicle.is_available)}</td>
+                <td className="px-4 py-3 text-gray-600">{vehicle.driver_name || "-"}</td>
+                <td className="px-4 py-3">{getAvailabilityBadge(Boolean(vehicle.is_available))}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleOpenModal(vehicle)} className="rounded bg-yellow-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-600">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(vehicle.id)} className="rounded bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                    <button onClick={() => handleDelete(vehicle.vehicle_id)} className="rounded bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
                       Delete
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
-            {filteredVehicles.length === 0 && (
+            {!loading && filteredVehicles.length === 0 && (
               <tr>
                 <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                   No vehicles found. Add a vehicle to get started.
@@ -494,9 +515,8 @@ const ManageVehicles = () => {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle Type <span className="text-red-500">*</span></label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle Type</label>
                 <select
-                  required
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -521,10 +541,9 @@ const ManageVehicles = () => {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Driver Name <span className="text-red-500">*</span></label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Driver Name</label>
                 <input
                   type="text"
-                  required
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={formData.driver_name}
                   onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
@@ -555,9 +574,10 @@ const ManageVehicles = () => {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  disabled={saving}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  {editingVehicle ? "Save Changes" : "Add Vehicle"}
+                  {saving ? "Saving..." : editingVehicle ? "Save Changes" : "Add Vehicle"}
                 </button>
               </div>
             </form>
@@ -566,6 +586,4 @@ const ManageVehicles = () => {
       )}
     </div>
   );
-};
-
-export default ManageVehicles;
+}

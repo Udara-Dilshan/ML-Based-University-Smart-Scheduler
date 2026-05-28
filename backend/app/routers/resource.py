@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.resource import Resource
 from ..models.academic import Faculty, Department
+from ..models.event import Vehicle
 from ..models.settings import SystemSetting
 from ..models.user import UserRole
 from ..utils.db_errors import commit_delete_or_raise
@@ -146,6 +147,29 @@ class ResourceOut(ResourceBase):
     department_name: Optional[str] = None
     dept_ids: List[int] = Field(default_factory=list)
     department_names: List[str] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+
+class VehicleBase(BaseModel):
+    reg_number: str = Field(min_length=1, max_length=20)
+    type: Optional[str] = Field(default=None, max_length=50)
+    capacity: int = Field(gt=0)
+    driver_name: Optional[str] = Field(default=None, max_length=100)
+    is_available: bool = True
+
+
+class VehicleUpdate(BaseModel):
+    reg_number: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    type: Optional[str] = Field(default=None, max_length=50)
+    capacity: Optional[int] = Field(default=None, gt=0)
+    driver_name: Optional[str] = Field(default=None, max_length=100)
+    is_available: Optional[bool] = None
+
+
+class VehicleOut(VehicleBase):
+    vehicle_id: int
 
     class Config:
         from_attributes = True
@@ -300,3 +324,70 @@ def delete_resource(resource_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Resource not found")
     db.delete(db_res)
     commit_delete_or_raise(db, "Cannot delete resource because it is linked to other records.")
+
+
+@router.get("/vehicles", response_model=List[VehicleOut])
+def get_vehicles(db: Session = Depends(get_db)):
+    return db.query(Vehicle).order_by(Vehicle.reg_number.asc()).all()
+
+
+@router.post("/vehicles", response_model=VehicleOut, status_code=status.HTTP_201_CREATED)
+def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db)):
+    reg_number = payload.reg_number.strip().upper()
+    duplicate = db.query(Vehicle).filter(Vehicle.reg_number == reg_number).first()
+    if duplicate:
+        raise HTTPException(status_code=409, detail="Registration number already exists")
+
+    vehicle = Vehicle(
+        reg_number=reg_number,
+        type=(payload.type or "").strip() or None,
+        capacity=payload.capacity,
+        driver_name=(payload.driver_name or "").strip() or None,
+        is_available=payload.is_available,
+    )
+    db.add(vehicle)
+    db.commit()
+    db.refresh(vehicle)
+    return vehicle
+
+
+@router.put("/vehicles/{vehicle_id}", response_model=VehicleOut)
+def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depends(get_db)):
+    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    if "reg_number" in data:
+        reg_number = data["reg_number"].strip().upper()
+        duplicate = db.query(Vehicle).filter(
+            Vehicle.reg_number == reg_number,
+            Vehicle.vehicle_id != vehicle_id,
+        ).first()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="Registration number already exists")
+        data["reg_number"] = reg_number
+
+    if "type" in data:
+        data["type"] = (data["type"] or "").strip() or None
+
+    if "driver_name" in data:
+        data["driver_name"] = (data["driver_name"] or "").strip() or None
+
+    for key, value in data.items():
+        setattr(vehicle, key, value)
+
+    db.commit()
+    db.refresh(vehicle)
+    return vehicle
+
+
+@router.delete("/vehicles/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
+    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    db.delete(vehicle)
+    commit_delete_or_raise(db, "Cannot delete vehicle because it is linked to other records.")

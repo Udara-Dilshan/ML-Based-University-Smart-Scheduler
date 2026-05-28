@@ -239,6 +239,21 @@ export const resourceAPI = {
     const response = await api.get("/resources/");
     return response.data;
   },
+  getVehicles: async () => {
+    const response = await api.get("/resources/vehicles");
+    return response.data;
+  },
+  createVehicle: async (payload) => {
+    const response = await api.post("/resources/vehicles", payload);
+    return response.data;
+  },
+  updateVehicle: async (id, payload) => {
+    const response = await api.put(`/resources/vehicles/${id}`, payload);
+    return response.data;
+  },
+  deleteVehicle: async (id) => {
+    await api.delete(`/resources/vehicles/${id}`);
+  },
   getFaculties: async () => {
     const response = await api.get("/resources/faculties");
     return response.data;

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
-import { Plus, Edit, Trash2, X, Bus, Car, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, X, Bus, Car, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { resourceAPI } from "../../../services/api";
 
 const initialForm = {
   reg_number: "",
@@ -52,14 +53,13 @@ const getAvailabilityBadge = (isAvailable) => (
 );
 
 export default function Vehicles() {
-  const [vehicles, setVehicles] = useState([
-    { id: 1, reg_number: "WP-1234", type: "Bus", capacity: 45, driver_name: "Kamal Perera", is_available: true },
-    { id: 2, reg_number: "CP-5678", type: "Van", capacity: 15, driver_name: "Sunil Silva", is_available: false },
-    { id: 3, reg_number: "SP-9012", type: "Car", capacity: 4, driver_name: "Nimal Fernando", is_available: true },
-  ]);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState(initialForm);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("");
@@ -71,33 +71,67 @@ export default function Vehicles() {
 
   const filteredVehicles = useMemo(() => {
     const query = normalizeText(search);
+
     return vehicles.filter((vehicle) => {
-      if (typeFilter && vehicle.type !== typeFilter) return false;
-      if (availabilityFilter === "available" && !vehicle.is_available) return false;
-      if (availabilityFilter === "unavailable" && vehicle.is_available) return false;
-      if (!query) return true;
+      if (typeFilter && vehicle.type !== typeFilter) {
+        return false;
+      }
+
+      if (availabilityFilter === "available" && !vehicle.is_available) {
+        return false;
+      }
+
+      if (availabilityFilter === "unavailable" && vehicle.is_available) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
       return [vehicle.reg_number, vehicle.type, vehicle.driver_name].some((value) => normalizeText(value).includes(query));
     });
   }, [vehicles, search, typeFilter, availabilityFilter]);
 
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await resourceAPI.getVehicles();
+      setVehicles(data || []);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to load vehicles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!uploadMessage && !uploadError) return;
+    loadVehicles();
+  }, []);
+
+  useEffect(() => {
+    if (!uploadMessage && !uploadError) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
       setUploadMessage("");
       setUploadError("");
     }, 5000);
+
     return () => window.clearTimeout(timeoutId);
   }, [uploadMessage, uploadError]);
 
   const handleOpenModal = (vehicle = null) => {
     if (vehicle) {
-      setEditingVehicle(vehicle.id);
+      setEditingVehicle(vehicle.vehicle_id);
       setFormData({
         reg_number: vehicle.reg_number,
-        type: vehicle.type,
+        type: vehicle.type || "Bus",
         capacity: String(vehicle.capacity),
-        driver_name: vehicle.driver_name,
-        is_available: String(vehicle.is_available),
+        driver_name: vehicle.driver_name || "",
+        is_available: String(Boolean(vehicle.is_available)),
       });
     } else {
       setEditingVehicle(null);
@@ -107,42 +141,58 @@ export default function Vehicles() {
   };
 
   const handleCloseModal = () => {
+    if (saving) {
+      return;
+    }
     setIsModalOpen(false);
     setEditingVehicle(null);
+    setFormData(initialForm);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+
     const payload = {
       reg_number: formData.reg_number.trim(),
-      type: formData.type.trim(),
+      type: formData.type.trim() || null,
       capacity: Number(formData.capacity),
-      driver_name: formData.driver_name.trim(),
+      driver_name: formData.driver_name.trim() || null,
       is_available: formData.is_available === "true",
     };
 
-    if (!payload.reg_number || !payload.type || !Number.isFinite(payload.capacity) || payload.capacity <= 0 || !payload.driver_name) {
-      alert("Please fill reg number, type, capacity and driver name.");
+    if (!payload.reg_number || !Number.isFinite(payload.capacity) || payload.capacity <= 0) {
+      setError("Registration number and valid capacity are required.");
       return;
     }
 
-    if (editingVehicle) {
-      setVehicles(vehicles.map((vehicle) => (vehicle.id === editingVehicle ? { ...payload, id: editingVehicle } : vehicle)));
-    } else {
-      const duplicate = vehicles.some((vehicle) => normalizeText(vehicle.reg_number) === normalizeText(payload.reg_number));
-      if (duplicate) {
-        alert("Registration number already exists.");
-        return;
+    try {
+      setSaving(true);
+      setError("");
+      if (editingVehicle) {
+        await resourceAPI.updateVehicle(editingVehicle, payload);
+      } else {
+        await resourceAPI.createVehicle(payload);
       }
-      setVehicles([...vehicles, { ...payload, id: Date.now() }]);
+      await loadVehicles();
+      handleCloseModal();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to save vehicle");
+    } finally {
+      setSaving(false);
     }
-
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this vehicle?")) {
-      setVehicles(vehicles.filter((vehicle) => vehicle.id !== id));
+  const handleDelete = async (vehicleId) => {
+    if (!window.confirm("Are you sure you want to delete this vehicle?")) {
+      return;
+    }
+
+    try {
+      setError("");
+      await resourceAPI.deleteVehicle(vehicleId);
+      await loadVehicles();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to delete vehicle");
     }
   };
 
@@ -183,8 +233,8 @@ export default function Vehicles() {
         const driverName = String(row.driver_name || row.driver || "").trim();
         const availabilityValue = row.is_available ?? row.available ?? row.status ?? "true";
 
-        if (!regNumber || !driverName) {
-          validationErrors.push(`Row ${rowNumber}: reg_number and driver_name are required`);
+        if (!regNumber) {
+          validationErrors.push(`Row ${rowNumber}: reg_number is required`);
           return;
         }
 
@@ -211,7 +261,7 @@ export default function Vehicles() {
             reg_number: regNumber,
             type,
             capacity,
-            driver_name: driverName,
+            driver_name: driverName || null,
             is_available: toBoolean(availabilityValue),
           },
         });
@@ -229,27 +279,42 @@ export default function Vehicles() {
       let createdCount = 0;
       let processedCount = 0;
 
-      setUploadProgress({ processed: 0, total: payloads.length, created: 0, failed: 0 });
+      setUploadProgress({
+        processed: 0,
+        total: payloads.length,
+        created: 0,
+        failed: 0,
+      });
 
       for (let index = 0; index < payloads.length; index += BULK_UPLOAD_CHUNK_SIZE) {
         const chunk = payloads.slice(index, index + BULK_UPLOAD_CHUNK_SIZE);
-        chunk.forEach((item) => {
-          const duplicate = vehicles.some((vehicle) => normalizeText(vehicle.reg_number) === normalizeText(item.payload.reg_number));
-          if (duplicate) {
-            failedRows.push(`Row ${item.rowNumber}: reg number already exists`);
-          } else {
+        const results = await Promise.allSettled(
+          chunk.map((item) => resourceAPI.createVehicle(item.payload))
+        );
+
+        results.forEach((result, chunkIndex) => {
+          if (result.status === "fulfilled") {
             createdCount += 1;
-            setVehicles((current) => [...current, { ...item.payload, id: Date.now() + Math.random() }]);
+          } else {
+            const detail = result.reason?.response?.data?.detail || result.reason?.message || "Failed to create";
+            failedRows.push(`Row ${chunk[chunkIndex].rowNumber}: ${detail}`);
           }
         });
 
         processedCount += chunk.length;
-        setUploadProgress({ processed: processedCount, total: payloads.length, created: createdCount, failed: failedRows.length });
+        setUploadProgress({
+          processed: processedCount,
+          total: payloads.length,
+          created: createdCount,
+          failed: failedRows.length,
+        });
 
         if (processedCount < payloads.length) {
           await wait(BULK_UPLOAD_CHUNK_DELAY_MS);
         }
       }
+
+      await loadVehicles();
 
       const baseMessage = `Created ${createdCount} vehicle record(s)`;
       const validationPart = validationErrors.length ? ` | ${validationErrors.length} row(s) skipped during validation` : "";
@@ -279,10 +344,16 @@ export default function Vehicles() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Manage Vehicles</h2>
+
           <div className="flex flex-wrap items-center gap-2">
-            <a href="/vehicle_upload_sample.csv" download className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100">
+            <a
+              href="/vehicle_upload_sample.csv"
+              download
+              className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            >
               Download CSV Template
             </a>
+
             <label className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               {uploadFile ? uploadFile.name : "Choose Excel File"}
               <input
@@ -297,26 +368,73 @@ export default function Vehicles() {
                 }}
               />
             </label>
-            <button type="button" onClick={handleBulkUpload} disabled={!uploadFile || uploading} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+
+            <button
+              type="button"
+              onClick={handleBulkUpload}
+              disabled={!uploadFile || uploading}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
               {uploading ? "Uploading..." : "Upload Excel"}
             </button>
-            <button onClick={() => handleOpenModal()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+
+            <button
+              onClick={() => handleOpenModal()}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
               <Plus size={16} /> Add Vehicle
             </button>
           </div>
         </div>
 
-        {uploadMessage && <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{uploadMessage}</div>}
-        {uploadError && <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{uploadError}</div>}
-        {uploading && uploadProgress && <div className="rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}</div>}
+        {error && (
+          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {uploadMessage && (
+          <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {uploadMessage}
+          </div>
+        )}
+
+        {uploadError && (
+          <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            {uploadError}
+          </div>
+        )}
+
+        {uploading && uploadProgress && (
+          <div className="rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            Uploading rows {uploadProgress.processed} / {uploadProgress.total} | Created: {uploadProgress.created} | Failed: {uploadProgress.failed}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search reg number, type or driver" className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search reg number, type or driver"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <select
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
             <option value="">All Types</option>
-            {VEHICLE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+            {VEHICLE_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
-          <select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+          <select
+            value={availabilityFilter}
+            onChange={(event) => setAvailabilityFilter(event.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
             <option value="">All Availability</option>
             <option value="available">Available</option>
             <option value="unavailable">Unavailable</option>
@@ -336,24 +454,40 @@ export default function Vehicles() {
               </tr>
             </thead>
             <tbody>
-              {filteredVehicles.map((vehicle) => (
-                <tr key={vehicle.id} className="border-t border-gray-100 hover:bg-gray-50/50">
+              {loading && (
+                <tr>
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading vehicles...</td>
+                </tr>
+              )}
+              {!loading && filteredVehicles.map((vehicle) => (
+                <tr key={vehicle.vehicle_id} className="border-t border-gray-100 hover:bg-gray-50/50">
                   <td className="px-4 py-3 font-medium text-gray-900">{vehicle.reg_number}</td>
-                  <td className="px-4 py-3 text-gray-600"><span className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">{getVehicleTypeIcon(vehicle.type)}{vehicle.type}</span></td>
+                  <td className="px-4 py-3 text-gray-600">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
+                      {getVehicleTypeIcon(vehicle.type)}
+                      {vehicle.type || "-"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{vehicle.capacity}</td>
-                  <td className="px-4 py-3 text-gray-600">{vehicle.driver_name}</td>
-                  <td className="px-4 py-3">{getAvailabilityBadge(vehicle.is_available)}</td>
+                  <td className="px-4 py-3 text-gray-600">{vehicle.driver_name || "-"}</td>
+                  <td className="px-4 py-3">{getAvailabilityBadge(Boolean(vehicle.is_available))}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => handleOpenModal(vehicle)} className="rounded bg-yellow-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-600">Edit</button>
-                      <button onClick={() => handleDelete(vehicle.id)} className="rounded bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">Delete</button>
+                      <button onClick={() => handleOpenModal(vehicle)} className="rounded bg-yellow-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-600">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDelete(vehicle.vehicle_id)} className="rounded bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {filteredVehicles.length === 0 && (
+              {!loading && filteredVehicles.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">No vehicles found. Add a vehicle to get started.</td>
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                    No vehicles found. Add a vehicle to get started.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -365,37 +499,88 @@ export default function Vehicles() {
             <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-lg">
               <div className="flex items-center justify-between border-b border-gray-100 p-4">
                 <h3 className="text-lg font-semibold text-gray-900">{editingVehicle ? "Edit Vehicle" : "Add Vehicle"}</h3>
-                <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
               </div>
               <form onSubmit={handleSave} className="space-y-4 p-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Reg Number <span className="text-red-500">*</span></label>
-                  <input type="text" required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.reg_number} onChange={(e) => setFormData({ ...formData, reg_number: e.target.value })} placeholder="e.g. WP-1234" />
+                  <input
+                    type="text"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={formData.reg_number}
+                    onChange={(e) => setFormData({ ...formData, reg_number: e.target.value })}
+                    placeholder="e.g. WP-1234"
+                  />
                 </div>
+
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle Type <span className="text-red-500">*</span></label>
-                  <select required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
-                    {VEHICLE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle Type</label>
+                  <select
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  >
+                    {VEHICLE_TYPES.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Capacity <span className="text-red-500">*</span></label>
-                  <input type="number" required min="1" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: e.target.value })} placeholder="e.g. 45" />
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                    placeholder="e.g. 45"
+                  />
                 </div>
+
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Driver Name <span className="text-red-500">*</span></label>
-                  <input type="text" required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.driver_name} onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })} placeholder="e.g. Kamal Perera" />
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Driver Name</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={formData.driver_name}
+                    onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
+                    placeholder="e.g. Kamal Perera"
+                  />
                 </div>
+
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Availability <span className="text-red-500">*</span></label>
-                  <select required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.is_available} onChange={(e) => setFormData({ ...formData, is_available: e.target.value })}>
+                  <select
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={formData.is_available}
+                    onChange={(e) => setFormData({ ...formData, is_available: e.target.value })}
+                  >
                     <option value="true">Available</option>
                     <option value="false">Unavailable</option>
                   </select>
                 </div>
+
                 <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-                  <button type="button" onClick={handleCloseModal} className="rounded-lg bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
-                  <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">{editingVehicle ? "Save Changes" : "Add Vehicle"}</button>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="rounded-lg bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {saving ? "Saving..." : editingVehicle ? "Save Changes" : "Add Vehicle"}
+                  </button>
                 </div>
               </form>
             </div>
