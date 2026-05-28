@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from ..database.connection import Base
 
+
 class Student(Base):
     __tablename__ = "students"
 
@@ -50,3 +51,14 @@ class ResourceManager(Base):
     )
 
     user = relationship("User", back_populates="resource_manager_profile")
+
+
+class SchedulerProfile(Base):
+    __tablename__ = "scheduler_profiles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
+    faculty_id = Column(Integer, ForeignKey("faculties.faculty_id"), nullable=False)
+
+    user = relationship("User", back_populates="scheduler_profile")
+    faculty = relationship("Faculty")

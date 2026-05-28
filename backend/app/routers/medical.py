@@ -14,7 +14,7 @@ from app.models.academic import Batch, Degree, Department
 from app.models.medical import MedicalSubmission, MedicalSubmissionStatus
 from app.models.profiles import Student
 from app.models.user import User, UserRole
-from app.utils.dependencies import require_admin_user, require_roles
+from app.utils.dependencies import require_admin_user, require_admin_or_scheduler, get_scheduler_faculty_id, require_roles
 
 router = APIRouter(prefix="/api/medical-submissions", tags=["medical-submissions"])
 
@@ -122,13 +122,15 @@ def get_my_submissions(
 @router.get("/admin/summary", response_model=MedicalSubmissionSummary)
 def get_admin_summary(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
-    pending_count = (
-        db.query(MedicalSubmission)
-        .filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING)
-        .count()
-    )
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(MedicalSubmission).filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING)
+    
+    if faculty_id is not None:
+        query = query.join(Department, Department.dept_id == MedicalSubmission.dept_id).filter(Department.faculty_id == faculty_id)
+        
+    pending_count = query.count()
     return MedicalSubmissionSummary(pending_count=int(pending_count))
 
 
@@ -139,9 +141,13 @@ def get_admin_submissions(
     batch_id: Optional[int] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
+    faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(MedicalSubmission)
+
+    if faculty_id is not None:
+        query = query.join(Department, Department.dept_id == MedicalSubmission.dept_id).filter(Department.faculty_id == faculty_id)
 
     if status:
         query = query.filter(MedicalSubmission.status == _normalize_status(status))
@@ -236,9 +242,15 @@ def review_submission(
     submission_id: int,
     payload: MedicalSubmissionReview,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
-    submission = db.query(MedicalSubmission).filter(MedicalSubmission.submission_id == submission_id).first()
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(MedicalSubmission).filter(MedicalSubmission.submission_id == submission_id)
+    
+    if faculty_id is not None:
+        query = query.join(Department, Department.dept_id == MedicalSubmission.dept_id).filter(Department.faculty_id == faculty_id)
+        
+    submission = query.first()
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
 

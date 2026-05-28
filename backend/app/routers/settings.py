@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 from ..database.connection import get_db
 from ..models.academic import Batch
 from ..models.settings import SystemConstraint, SystemSetting
-from ..utils.dependencies import require_admin_user
+from ..models.user import User
+from ..utils.dependencies import require_admin_user, get_current_user
 
 
 router = APIRouter(
     prefix="/settings",
     tags=["settings"],
-    dependencies=[Depends(require_admin_user)],
 )
 
 
@@ -79,6 +79,7 @@ def get_system_constraints(
     scope: str = "all",
     batch_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ):
     query = db.query(SystemConstraint)
 
@@ -99,7 +100,7 @@ def get_system_constraints(
 
 
 @router.post("/system-constraints", response_model=SystemConstraintOut, status_code=status.HTTP_201_CREATED)
-def create_system_constraint(payload: SystemConstraintBase, db: Session = Depends(get_db)):
+def create_system_constraint(payload: SystemConstraintBase, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     _validate_batch(payload.batch_id, db)
 
     constraint_type = _normalize_constraint_type(payload.type)
@@ -127,7 +128,7 @@ def create_system_constraint(payload: SystemConstraintBase, db: Session = Depend
 
 
 @router.put("/system-constraints/{constraint_id}", response_model=SystemConstraintOut)
-def update_system_constraint(constraint_id: int, payload: SystemConstraintUpdate, db: Session = Depends(get_db)):
+def update_system_constraint(constraint_id: int, payload: SystemConstraintUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(SystemConstraint).filter(SystemConstraint.constraint_id == constraint_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Constraint not found")
@@ -167,7 +168,7 @@ def update_system_constraint(constraint_id: int, payload: SystemConstraintUpdate
 
 
 @router.delete("/system-constraints/{constraint_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_system_constraint(constraint_id: int, db: Session = Depends(get_db)):
+def delete_system_constraint(constraint_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(SystemConstraint).filter(SystemConstraint.constraint_id == constraint_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Constraint not found")
@@ -177,7 +178,7 @@ def delete_system_constraint(constraint_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/system-settings", response_model=List[SystemSettingOut])
-def get_system_settings(category: Optional[str] = None, db: Session = Depends(get_db)):
+def get_system_settings(category: Optional[str] = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     query = db.query(SystemSetting)
     if category:
         query = query.filter(SystemSetting.category == category.strip().upper())
@@ -185,7 +186,7 @@ def get_system_settings(category: Optional[str] = None, db: Session = Depends(ge
 
 
 @router.post("/system-settings", response_model=SystemSettingOut, status_code=status.HTTP_201_CREATED)
-def create_system_setting(payload: SystemSettingBase, db: Session = Depends(get_db)):
+def create_system_setting(payload: SystemSettingBase, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     category = payload.category.strip().upper()
     value = payload.value.strip()
 
@@ -204,7 +205,7 @@ def create_system_setting(payload: SystemSettingBase, db: Session = Depends(get_
 
 
 @router.put("/system-settings/{setting_id}", response_model=SystemSettingOut)
-def update_system_setting(setting_id: int, payload: SystemSettingUpdate, db: Session = Depends(get_db)):
+def update_system_setting(setting_id: int, payload: SystemSettingUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(SystemSetting).filter(SystemSetting.id == setting_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -235,7 +236,7 @@ def update_system_setting(setting_id: int, payload: SystemSettingUpdate, db: Ses
 
 
 @router.delete("/system-settings/{setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_system_setting(setting_id: int, db: Session = Depends(get_db)):
+def delete_system_setting(setting_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(SystemSetting).filter(SystemSetting.id == setting_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Setting not found")

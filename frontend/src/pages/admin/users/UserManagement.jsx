@@ -58,6 +58,9 @@ const createInitialForm = (role = "Student") => ({
   resource_manager_profile: {
     assigned_section: "Transport",
   },
+  scheduler_profile: {
+    faculty_id: "",
+  },
 });
 
 export default function UserManagement({ forcedRole = null, titleOverride = "User Management" }) {
@@ -207,6 +210,9 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       resource_manager_profile: {
         assigned_section: user.resource_manager_profile?.assigned_section || "Transport",
       },
+      scheduler_profile: {
+        faculty_id: user.scheduler_profile?.faculty_id ? String(user.scheduler_profile.faculty_id) : "",
+      },
     });
     setImagePreview(null);
     setImageError("");
@@ -351,6 +357,12 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       }
     }
 
+    if (selectedRole === "Scheduler") {
+      if (!form.scheduler_profile.faculty_id) {
+        return "Faculty is required for Scheduler role";
+      }
+    }
+
     return "";
   };
 
@@ -388,6 +400,12 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     if (selectedRole === "ResourceManager") {
       payload.resource_manager_profile = {
         assigned_section: form.resource_manager_profile.assigned_section.trim(),
+      };
+    }
+
+    if (selectedRole === "Scheduler") {
+      payload.scheduler_profile = {
+        faculty_id: Number(form.scheduler_profile.faculty_id),
       };
     }
 
@@ -522,6 +540,10 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
     if (user.role === "ResourceManager") {
       return `Section: ${user.resource_manager_profile?.assigned_section || "-"}`;
     }
+    if (user.role === "Scheduler") {
+      const faculty = facultyOptions.find(f => String(f.faculty_id) === String(user.scheduler_profile?.faculty_id));
+      return `Faculty: ${faculty?.name || user.scheduler_profile?.faculty_id || "-"}`;
+    }
     return "-";
   };
 
@@ -545,6 +567,9 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
       }
     } else if (user.role === "ResourceManager") {
       details.push(`🔧 Section: ${user.resource_manager_profile?.assigned_section || "-"}`);
+    } else if (user.role === "Scheduler") {
+      const faculty = facultyOptions.find(f => String(f.faculty_id) === String(user.scheduler_profile?.faculty_id));
+      details.push(`🏢 Faculty: ${faculty?.name || user.scheduler_profile?.faculty_id || "-"}`);
     }
     
     return details.length > 0 ? details : ["-"];
@@ -1712,6 +1737,30 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
               {sectionOptions.map((section) => (
                 <option key={section} value={section}>
                   {section}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {selectedRole === "Scheduler" && (
+          <div className="mt-5 space-y-3 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+            <p className="text-sm font-medium text-indigo-800">Scheduler Details</p>
+            <select
+              value={form.scheduler_profile.faculty_id}
+              onChange={(e) =>
+                handleProfileFieldChange(
+                  "scheduler_profile",
+                  "faculty_id",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="">Select Assigned Faculty</option>
+              {facultyOptions.map((faculty) => (
+                <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                  {faculty.name}
                 </option>
               ))}
             </select>

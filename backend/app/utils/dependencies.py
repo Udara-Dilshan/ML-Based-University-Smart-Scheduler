@@ -80,3 +80,33 @@ def require_admin_user(current_user: User = Depends(get_current_user)) -> User:
             detail="SuperAdmin access required",
         )
     return current_user
+
+
+def require_admin_or_scheduler(current_user: User = Depends(get_current_user)) -> User:
+    """Allows both SuperAdmin and Scheduler roles."""
+    allowed = {UserRole.SUPER_ADMIN.value, UserRole.SCHEDULER.value}
+    if _normalize_role(current_user.role) not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="SuperAdmin or Scheduler access required",
+        )
+    return current_user
+
+
+def get_scheduler_faculty_id(current_user: User) -> int | None:
+    """
+    Returns the faculty_id for Scheduler users.
+    Returns None for SuperAdmin (no restriction).
+    Raises 403 if a Scheduler has no profile configured.
+    """
+    role = _normalize_role(current_user.role)
+    if role == UserRole.SUPER_ADMIN.value:
+        return None  # No filter — sees everything
+    if role == UserRole.SCHEDULER.value:
+        if not current_user.scheduler_profile:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Scheduler profile not configured. Contact your Super Admin.",
+            )
+        return current_user.scheduler_profile.faculty_id
+    return None

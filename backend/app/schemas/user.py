@@ -19,6 +19,10 @@ class ResourceManagerProfileInput(BaseModel):
     assigned_section: str = Field(min_length=1, max_length=50)
 
 
+class SchedulerProfileInput(BaseModel):
+    faculty_id: int
+
+
 class UserBase(BaseModel):
     email: str
     first_name: str = Field(min_length=1, max_length=50)
@@ -34,6 +38,7 @@ class UserCreate(UserBase):
     student_profile: Optional[StudentProfileInput] = None
     lecturer_profile: Optional[LecturerProfileInput] = None
     resource_manager_profile: Optional[ResourceManagerProfileInput] = None
+    scheduler_profile: Optional[SchedulerProfileInput] = None
 
 
 class UserUpdate(BaseModel):
@@ -48,6 +53,7 @@ class UserUpdate(BaseModel):
     student_profile: Optional[StudentProfileInput] = None
     lecturer_profile: Optional[LecturerProfileInput] = None
     resource_manager_profile: Optional[ResourceManagerProfileInput] = None
+    scheduler_profile: Optional[SchedulerProfileInput] = None
 
 
 class StudentProfileResponse(BaseModel):
@@ -73,6 +79,11 @@ class ResourceManagerProfileResponse(BaseModel):
     assigned_section: Optional[str] = None
 
 
+class SchedulerProfileResponse(BaseModel):
+    faculty_id: Optional[int] = None
+    faculty_name: Optional[str] = None
+
+
 class UserResponse(UserBase):
     user_id: int
     is_active: bool
@@ -80,6 +91,7 @@ class UserResponse(UserBase):
     student_profile: Optional[StudentProfileResponse] = None
     lecturer_profile: Optional[LecturerProfileResponse] = None
     resource_manager_profile: Optional[ResourceManagerProfileResponse] = None
+    scheduler_profile: Optional[SchedulerProfileResponse] = None
 
     class Config:
         from_attributes = True

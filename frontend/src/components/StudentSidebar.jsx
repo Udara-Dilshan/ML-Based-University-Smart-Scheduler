@@ -10,14 +10,13 @@ import uwuLogo from "../assets/uwu-logo.jpg";
 import { getUser } from "../services/api";
 
 const navItemClass = ({ isActive }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-    isActive
-      ? "bg-blue-50 text-blue-700 font-medium"
-      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive
+    ? "bg-blue-50 text-blue-700 font-medium"
+    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
   }`;
 
 export default function StudentSidebar() {
-  const [userRefresh, setUserRefresh] = useState(0);
+  const [, setUserRefresh] = useState(0);
   const user = getUser() || {};
 
   useEffect(() => {

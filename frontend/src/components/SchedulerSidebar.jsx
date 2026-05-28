@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   BarChart3,
@@ -7,71 +7,80 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardList,
-  FileHeart,
   LayoutDashboard,
   Car,
   Users,
   CalendarPlus,
+  Building2,
+  User,
+  Activity,
 } from "lucide-react";
 import { getUser } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
 const navItemClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive
-    ? "bg-gray-100 text-gray-900 font-medium"
+    ? "bg-indigo-50 text-indigo-700 font-medium"
     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
   }`;
 
 const subItemClass = ({ isActive }) =>
   `block rounded-lg px-3 py-1.5 text-sm transition-colors ${isActive
-    ? "bg-blue-50 text-blue-700 font-medium"
+    ? "bg-indigo-50 text-indigo-700 font-medium"
     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
   }`;
 
-export default function Sidebar() {
+export default function SchedulerSidebar() {
   const location = useLocation();
   const [, setUserRefresh] = useState(0);
   const currentUser = getUser();
-  const isUsersRoute = location.pathname.startsWith("/admin/users");
-  const isTimetableRoute = location.pathname.startsWith("/admin/timetable");
+
+  const isTimetableRoute = location.pathname.startsWith("/scheduler/timetable");
+  const isUsersRoute = location.pathname.startsWith("/scheduler/users");
   const isAcademicRoute = [
-    "/admin/faculties",
-    "/admin/departments",
-    "/admin/courses",
-    "/admin/degrees",
-    "/admin/batches",
-    "/admin/curriculum/degree-semester-modules",
-    "/admin/lecturer-allocations",
+    "/scheduler/departments",
+    "/scheduler/degrees",
+    "/scheduler/courses",
+    "/scheduler/batches",
+    "/scheduler/curriculum/degree-semester-modules",
+    "/scheduler/lecturer-allocations",
   ].includes(location.pathname);
   const isRequestsRoute = [
-    "/admin/requests/events",
-    "/admin/requests/vehicles",
+    "/scheduler/requests/events",
+    "/scheduler/requests/vehicles",
   ].includes(location.pathname);
 
-  const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
   const [isTimetableOpen, setIsTimetableOpen] = useState(isTimetableRoute);
+  const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
   const [isAcademicOpen, setIsAcademicOpen] = useState(isAcademicRoute);
   const [isRequestsOpen, setIsRequestsOpen] = useState(isRequestsRoute);
 
-  // Listen for storage changes to update profile image
   useEffect(() => {
-    const handleProfileUpdate = () => {
-      setUserRefresh((prev) => prev + 1);
-    };
-
+    const handleProfileUpdate = () => setUserRefresh((prev) => prev + 1);
     window.addEventListener("userProfileUpdated", handleProfileUpdate);
     return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
   }, []);
 
   useEffect(() => {
+    if (isTimetableRoute) setIsTimetableOpen(true);
     if (isUsersRoute) setIsUsersOpen(true);
     if (isAcademicRoute) setIsAcademicOpen(true);
-    if (isTimetableRoute) setIsTimetableOpen(true);
     if (isRequestsRoute) setIsRequestsOpen(true);
-  }, [isUsersRoute, isAcademicRoute, isTimetableRoute, isRequestsRoute]);
+  }, [isTimetableRoute, isUsersRoute, isAcademicRoute, isRequestsRoute]);
+
+  const facultyName = currentUser?.scheduler_profile?.faculty_name || "My Faculty";
+
+  const profileImageSrc = (() => {
+    const img = currentUser?.profile_image;
+    if (!img) return null;
+    if (img.startsWith("http")) return img;
+    if (img.startsWith("/")) return `http://localhost:8000${img}`;
+    return `http://localhost:8000/${img}`;
+  })();
 
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
+      {/* Logo */}
       <div className="h-20 px-4 border-b border-gray-200 flex items-center gap-3">
         <img
           src={uwuLogo}
@@ -80,16 +89,25 @@ export default function Sidebar() {
         />
         <div className="min-w-0">
           <p className="text-lg leading-5 font-semibold text-gray-900">UniSchedule</p>
-          <p className="text-xs text-gray-500 mt-1">Academic Portal</p>
+          <p className="text-xs text-indigo-600 mt-1 font-medium">Scheduler Portal</p>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
-        <NavLink to="/admin/dashboard" className={navItemClass}>
+      {/* Faculty Badge */}
+      <div className="mx-3 mt-3 mb-1 px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-2">
+        <Building2 size={14} className="text-indigo-500 shrink-0" />
+        <p className="text-xs text-indigo-700 font-medium truncate">{facultyName}</p>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
+        <NavLink to="/scheduler/dashboard" className={navItemClass}>
           <LayoutDashboard size={16} />
           Dashboard
         </NavLink>
-        <div className="pt-2">
+
+        {/* Timetables */}
+        <div>
           <button
             type="button"
             onClick={() => setIsTimetableOpen((prev) => !prev)}
@@ -106,17 +124,18 @@ export default function Sidebar() {
           </button>
           {isTimetableOpen && (
             <div className="space-y-1 px-6 pt-1">
-              <NavLink to="/admin/timetable" end className={subItemClass}>
+              <NavLink to="/scheduler/timetable" end className={subItemClass}>
                 Generation
               </NavLink>
-              <NavLink to="/admin/timetable/manage" className={subItemClass}>
+              <NavLink to="/scheduler/timetable/manage" className={subItemClass}>
                 Manage Timetables
               </NavLink>
             </div>
           )}
         </div>
 
-        <div className="pt-2">
+        {/* Users */}
+        <div>
           <button
             type="button"
             onClick={() => setIsUsersOpen((prev) => !prev)}
@@ -132,30 +151,19 @@ export default function Sidebar() {
             />
           </button>
           {isUsersOpen && (
-            <div className="space-y-1 px-6">
-              <NavLink to="/admin/users" end className={subItemClass}>
-                All Users
-              </NavLink>
-              <NavLink to="/admin/users/admins" className={subItemClass}>
-                Admins
-              </NavLink>
-              <NavLink to="/admin/users/schedulers" className={subItemClass}>
-                Schedulers
-              </NavLink>
-              <NavLink to="/admin/users/lecturers" className={subItemClass}>
+            <div className="space-y-1 px-6 pt-1">
+              <NavLink to="/scheduler/users/lecturers" className={subItemClass}>
                 Lecturers
               </NavLink>
-              <NavLink to="/admin/users/students" className={subItemClass}>
+              <NavLink to="/scheduler/users/students" className={subItemClass}>
                 Students
-              </NavLink>
-              <NavLink to="/admin/users/resource-managers" className={subItemClass}>
-                Resource Managers
               </NavLink>
             </div>
           )}
         </div>
 
-        <div className="pt-2">
+        {/* Academic Data */}
+        <div>
           <button
             type="button"
             onClick={() => setIsAcademicOpen((prev) => !prev)}
@@ -171,46 +179,37 @@ export default function Sidebar() {
             />
           </button>
           {isAcademicOpen && (
-            <div className="space-y-1 px-6">
-              <NavLink to="/admin/faculties" className={subItemClass}>
-                Faculties
-              </NavLink>
-              <NavLink to="/admin/departments" className={subItemClass}>
+            <div className="space-y-1 px-6 pt-1">
+              <NavLink to="/scheduler/departments" className={subItemClass}>
                 Departments
               </NavLink>
-              <NavLink to="/admin/degrees" className={subItemClass}>
+              <NavLink to="/scheduler/degrees" className={subItemClass}>
                 Degrees
               </NavLink>
-              <NavLink to="/admin/batches" className={subItemClass}>
+              <NavLink to="/scheduler/batches" className={subItemClass}>
                 Batches
               </NavLink>
-              <NavLink to="/admin/courses" className={subItemClass}>
+              <NavLink to="/scheduler/courses" className={subItemClass}>
                 Courses
               </NavLink>
-              <NavLink to="/admin/curriculum/degree-semester-modules" className={subItemClass}>
+              <NavLink to="/scheduler/curriculum/degree-semester-modules" className={subItemClass}>
                 Degree Semester Modules
               </NavLink>
-              <NavLink to="/admin/lecturer-allocations" className={subItemClass}>
+              <NavLink to="/scheduler/lecturer-allocations" className={subItemClass}>
                 Lecturer Allocations
               </NavLink>
             </div>
           )}
         </div>
 
-        <NavLink to="/admin/resources" className={navItemClass}>
+        {/* Resources */}
+        <NavLink to="/scheduler/resources" className={navItemClass}>
           <Boxes size={16} />
           Resources
         </NavLink>
-        <NavLink to="/admin/vehicles" className={navItemClass}>
-          <Car size={16} />
-          Vehicles
-        </NavLink>
-        <NavLink to="/admin/events" className={navItemClass}>
-          <CalendarPlus size={16} />
-          Manage Events
-        </NavLink>
 
-        <div className="pt-2">
+        {/* Requests */}
+        <div>
           <button
             type="button"
             onClick={() => setIsRequestsOpen((prev) => !prev)}
@@ -227,51 +226,50 @@ export default function Sidebar() {
           </button>
           {isRequestsOpen && (
             <div className="space-y-1 px-6 pt-1">
-              <NavLink to="/admin/requests/events" className={subItemClass}>
+              <NavLink to="/scheduler/requests/events" className={subItemClass}>
                 Event Requests
               </NavLink>
-              <NavLink to="/admin/requests/vehicles" className={subItemClass}>
+              <NavLink to="/scheduler/requests/vehicles" className={subItemClass}>
                 Vehicle Requests
               </NavLink>
             </div>
           )}
         </div>
 
-        <NavLink to="/admin/medical-submissions" className={navItemClass}>
-          <FileHeart size={16} />
+        {/* Medical Submissions */}
+        <NavLink to="/scheduler/medical-submissions" className={navItemClass}>
+          <Activity size={16} />
           Medical Submissions
         </NavLink>
-        <NavLink to="/admin/reports" className={navItemClass}>
+
+        {/* Reports */}
+        <NavLink to="/scheduler/reports" className={navItemClass}>
           <BarChart3 size={16} />
-          Reports & Analytics
-        </NavLink>
-        <NavLink to="/admin/settings" className={navItemClass}>
-          <BarChart3 size={16} />
-          Settings
+          Reports &amp; Analytics
         </NavLink>
       </nav>
 
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center gap-3">
-          {currentUser?.profile_image ? (
+      {/* User Info */}
+      <div className="px-3 py-4 border-t border-gray-200">
+        <NavLink to="/scheduler/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+          {profileImageSrc ? (
             <img
-              src={`http://localhost:8000${currentUser.profile_image}`}
+              src={profileImageSrc}
               alt="Profile"
-              className="h-8 w-8 rounded-full object-cover border border-gray-300"
+              className="h-8 w-8 rounded-full object-cover border border-gray-200"
             />
           ) : (
-            <div className="h-8 w-8 rounded-full bg-blue-500 text-white text-sm font-medium flex items-center justify-center">
-              SA
+            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+              <User size={14} className="text-indigo-600" />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {currentUser?.first_name || "Super"} {currentUser?.last_name || "Admin"}
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900 text-sm truncate">
+              {currentUser?.first_name} {currentUser?.last_name}
             </p>
-            <p className="text-xs text-gray-500 truncate">{currentUser?.email || "admin@university.edu"}</p>
+            <p className="text-xs text-gray-500">Scheduler</p>
           </div>
-          <ChevronDown size={14} className="text-gray-400" />
-        </div>
+        </NavLink>
       </div>
     </aside>
   );

@@ -9,7 +9,7 @@ from ..models.resource import Resource
 from ..models.settings import SystemConstraint
 from ..models.timetable import TimetableSession
 from ..models.user import User, UserRole
-from ..utils.dependencies import require_admin_user, require_roles
+from ..utils.dependencies import require_admin_user, require_roles, require_admin_or_scheduler, get_scheduler_faculty_id
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -195,6 +195,137 @@ def get_dashboard_stats(
     ]
 
     return {
+        "cards": {
+            "total_students": total_students,
+            "active_courses": active_courses,
+            "total_lecturers": total_lecturers,
+            "resource_usage_percent": resource_usage_percent,
+        },
+        "weekly_activity": weekly_activity,
+        "resource_usage": resource_usage,
+    }
+
+
+@router.get("/scheduler-stats")
+def get_scheduler_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_scheduler),
+):
+    """Faculty-scoped dashboard stats for Scheduler. SuperAdmin sees all."""
+    from ..models.academic import Department, Degree
+    from ..models.profiles import Lecturer as LecturerProfile, Student as StudentProfile
+
+    faculty_id = get_scheduler_faculty_id(current_user)
+
+    # Get scoped dept/degree/batch IDs
+    if faculty_id is not None:
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        degree_ids = [deg.degree_id for deg in db.query(Degree).filter(Degree.dept_id.in_(dept_ids)).all()] if dept_ids else []
+        batch_ids_for_query = [b.batch_id for b in db.query(Batch).filter(Batch.degree_id.in_(degree_ids)).all()] if degree_ids else []
+
+        # Students in faculty
+        student_batch_ids_str = {str(bid) for bid in batch_ids_for_query}
+        total_students = (
+            db.query(func.count(StudentProfile.id))
+            .filter(StudentProfile.batch.in_(student_batch_ids_str))
+            .scalar() or 0
+        ) if student_batch_ids_str else 0
+
+        # Lecturers in faculty
+        lecturer_user_ids = [
+            lp.user_id for lp in db.query(LecturerProfile).filter(
+                LecturerProfile.department.in_([str(d) for d in dept_ids])
+            ).all()
+        ] if dept_ids else []
+        total_lecturers = len(lecturer_user_ids)
+
+        # Courses (modules) in faculty
+        active_courses = (
+            db.query(func.count(Module.module_id))
+            .filter(Module.dept_id.in_(dept_ids))
+            .scalar() or 0
+        ) if dept_ids else 0
+
+        # Resources in faculty
+        total_resources = (
+            db.query(func.count(Resource.resource_id))
+            .filter(Resource.faculty_id == faculty_id)
+            .scalar() or 0
+        )
+
+        # Timetable sessions in faculty (via batch)
+        scheduled_resources = (
+            db.query(func.count(distinct(TimetableSession.resource_id)))
+            .filter(TimetableSession.batch_id.in_(batch_ids_for_query))
+            .scalar() or 0
+        ) if batch_ids_for_query else 0
+
+        sessions_by_day = {day: 0 for day in DAY_ORDER}
+        resources_by_day = {day: 0 for day in DAY_ORDER}
+
+        if batch_ids_for_query:
+            session_rows = (
+                db.query(TimetableSession.day_of_week, func.count(TimetableSession.session_id))
+                .filter(TimetableSession.batch_id.in_(batch_ids_for_query))
+                .group_by(TimetableSession.day_of_week)
+                .all()
+            )
+            for day_value, count in session_rows:
+                day = normalize_day(day_value)
+                if day:
+                    sessions_by_day[day] = int(count)
+
+            resource_rows = (
+                db.query(TimetableSession.day_of_week, func.count(distinct(TimetableSession.resource_id)))
+                .filter(TimetableSession.batch_id.in_(batch_ids_for_query))
+                .group_by(TimetableSession.day_of_week)
+                .all()
+            )
+            for day_value, count in resource_rows:
+                day = normalize_day(day_value)
+                if day:
+                    resources_by_day[day] = int(count)
+
+        type_rows = (
+            db.query(Resource.type, func.count(Resource.resource_id))
+            .filter(Resource.faculty_id == faculty_id)
+            .group_by(Resource.type)
+            .all()
+        )
+    else:
+        # SuperAdmin: return same as global stats
+        total_students = db.query(func.count(User.user_id)).filter(User.role == UserRole.STUDENT.value).scalar() or 0
+        total_lecturers = db.query(func.count(User.user_id)).filter(User.role == UserRole.LECTURER.value).scalar() or 0
+        active_courses = db.query(func.count(Module.module_id)).scalar() or 0
+        total_resources = db.query(func.count(Resource.resource_id)).scalar() or 0
+        scheduled_resources = db.query(func.count(distinct(TimetableSession.resource_id))).scalar() or 0
+        sessions_by_day = {day: 0 for day in DAY_ORDER}
+        resources_by_day = {day: 0 for day in DAY_ORDER}
+        for day_value, count in db.query(TimetableSession.day_of_week, func.count(TimetableSession.session_id)).group_by(TimetableSession.day_of_week).all():
+            day = normalize_day(day_value)
+            if day:
+                sessions_by_day[day] = int(count)
+        for day_value, count in db.query(TimetableSession.day_of_week, func.count(distinct(TimetableSession.resource_id))).group_by(TimetableSession.day_of_week).all():
+            day = normalize_day(day_value)
+            if day:
+                resources_by_day[day] = int(count)
+        type_rows = db.query(Resource.type, func.count(Resource.resource_id)).group_by(Resource.type).all()
+
+    resource_usage_percent = round((scheduled_resources / total_resources) * 100, 1) if total_resources else 0
+    weekly_activity = [{"name": day, "sessions": sessions_by_day[day], "resources": resources_by_day[day]} for day in DAY_ORDER]
+    total_types = sum(int(count) for _, count in type_rows)
+    resource_usage = [
+        {"name": rt or "Other", "value": int(count), "percentage": round((int(count) / total_types) * 100, 1) if total_types else 0}
+        for rt, count in type_rows
+    ]
+
+    faculty_name = None
+    if faculty_id is not None and current_user.scheduler_profile:
+        faculty_name = current_user.scheduler_profile.faculty.name if current_user.scheduler_profile.faculty else None
+
+    return {
+        "faculty_id": faculty_id,
+        "faculty_name": faculty_name,
         "cards": {
             "total_students": total_students,
             "active_courses": active_courses,

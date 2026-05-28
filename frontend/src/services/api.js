@@ -169,10 +169,6 @@ export const academicAPI = {
   deleteModule: async (id) => {
     await api.delete(`/academic/modules/${id}`);
   },
-  getBatches: async () => {
-    const response = await api.get("/academic/batches");
-    return response.data;
-  },
   createBatch: async (payload) => {
     const response = await api.post("/academic/batches", payload);
     return response.data;

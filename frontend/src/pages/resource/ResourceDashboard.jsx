@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Car, CheckCircle, Calendar, FileText, AlertTriangle } from "lucide-react";
 import { resourceAPI, bookingAPI } from "../../services/api";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#14B8A6", "#EF4444"];
 
 export default function ResourceDashboard() {
   const [resources, setResources] = useState([]);
@@ -51,6 +54,33 @@ export default function ResourceDashboard() {
       { label: "Pending Vehicle Requests", value: summary.pending_vehicle_requests, icon: FileText, color: "text-orange-600", bg: "bg-orange-50", to: "/resource/vehicle-requests" },
     ];
   }, [resources, vehicles, summary]);
+
+  const { roomChartData, vehicleChartData } = useMemo(() => {
+    const roomCounts = {};
+    resources.forEach((r) => {
+      const type = r.type || "Other";
+      roomCounts[type] = (roomCounts[type] || 0) + 1;
+    });
+    const roomChartData = Object.keys(roomCounts).map((key) => ({
+      name: key,
+      value: roomCounts[key]
+    }));
+
+    let availableCount = 0;
+    let unavailableCount = 0;
+    vehicles.forEach(v => {
+      if (v.is_available) availableCount++;
+      else unavailableCount++;
+    });
+    
+    // Only show vehicle chart if there are vehicles
+    const vehicleChartData = vehicles.length > 0 ? [
+      { name: "Available", value: availableCount },
+      { name: "In Use / Unavailable", value: unavailableCount }
+    ] : [];
+
+    return { roomChartData, vehicleChartData };
+  }, [resources, vehicles]);
 
   return (
     <div className="space-y-6">
@@ -134,6 +164,67 @@ export default function ResourceDashboard() {
           </div>
         </div>
       )}
+
+      {/* Charts section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-1">Room Distribution</h3>
+          <p className="text-sm text-gray-500 mb-6">Breakdown of resources by type</p>
+          <div className="h-64">
+            {roomChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={roomChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={55} label>
+                    {roomChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">No rooms available</div>
+            )}
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-4">
+            {roomChartData.map((item, index) => (
+              <div key={item.name} className="flex items-center gap-2 text-sm">
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                <span className="text-gray-700">{item.name} ({item.value})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-1">Vehicle Status</h3>
+          <p className="text-sm text-gray-500 mb-6">Availability of university fleet</p>
+          <div className="h-64">
+            {vehicleChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={vehicleChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={55} label>
+                    {vehicleChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? "#10B981" : "#F59E0B"} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">No vehicles available</div>
+            )}
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-4">
+            {vehicleChartData.map((item, index) => (
+              <div key={item.name} className="flex items-center gap-2 text-sm">
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: index === 0 ? "#10B981" : "#F59E0B" }}></span>
+                <span className="text-gray-700">{item.name} ({item.value})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

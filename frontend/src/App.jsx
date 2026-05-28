@@ -35,6 +35,7 @@ import LecturerAllocations from "./pages/admin/allocations/LecturerAllocations";
 
 // Other portals
 import SchedulerDashboard from "./pages/scheduler/SchedulerDashboard";
+import SchedulerSettings from "./pages/scheduler/SchedulerSettings";
 import ResourceDashboard from "./pages/resource/ResourceDashboard";
 import ResourceProfile from "./pages/resource/ResourceProfile";
 import ResourceSettings from "./pages/resource/ResourceSettings";
@@ -108,6 +109,23 @@ function App() {
         {/* Scheduler */}
         <Route element={<ProtectedRoute allowedRoles={["Scheduler"]} />}>
           <Route path="/scheduler/dashboard" element={<SchedulerDashboard />} />
+          <Route path="/scheduler/profile" element={<Profile />} />
+          <Route path="/scheduler/settings" element={<SchedulerSettings />} />
+          <Route path="/scheduler/users/lecturers" element={<UserManagement forcedRole="Lecturer" titleOverride="Lecturers" />} />
+          <Route path="/scheduler/users/students" element={<UserManagement forcedRole="Student" titleOverride="Students" />} />
+          <Route path="/scheduler/timetable" element={<Timetable />} />
+          <Route path="/scheduler/timetable/manage" element={<ManageTimetables />} />
+          <Route path="/scheduler/resources" element={<Resources />} />
+          <Route path="/scheduler/requests/events" element={<AdminEventRequests />} />
+          <Route path="/scheduler/requests/vehicles" element={<AdminVehicleRequests />} />
+          <Route path="/scheduler/medical-submissions" element={<MedicalSubmissions />} />
+          <Route path="/scheduler/reports" element={<Reports />} />
+          <Route path="/scheduler/departments" element={<Departments />} />
+          <Route path="/scheduler/courses" element={<Courses />} />
+          <Route path="/scheduler/degrees" element={<Degrees />} />
+          <Route path="/scheduler/batches" element={<Batches />} />
+          <Route path="/scheduler/curriculum/degree-semester-modules" element={<DegreeSemesterModules />} />
+          <Route path="/scheduler/lecturer-allocations" element={<LecturerAllocations />} />
         </Route>
 
         {/* Lecturer */}

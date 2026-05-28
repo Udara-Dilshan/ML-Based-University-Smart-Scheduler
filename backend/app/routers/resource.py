@@ -9,7 +9,7 @@ from ..models.event import Vehicle
 from ..models.settings import SystemSetting
 from ..models.user import UserRole, User
 from ..utils.db_errors import commit_delete_or_raise
-from ..utils.dependencies import require_roles
+from ..utils.dependencies import require_roles, require_admin_or_scheduler, get_scheduler_faculty_id
 
 router = APIRouter(
     prefix="/resources",
@@ -17,7 +17,7 @@ router = APIRouter(
     dependencies=[Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER, UserRole.SCHEDULER, UserRole.LECTURER))],
 )
 
-admin_only = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))
+admin_or_scheduler = Depends(require_admin_or_scheduler)
 
 
 LEGACY_TYPE_ALIASES = {
@@ -227,7 +227,11 @@ def get_resource_system_settings(category: Optional[str] = None, db: Session = D
 
 
 @router.post("/", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
-def create_resource(resource: ResourceBase, db: Session = Depends(get_db), current_user: User = admin_only):
+def create_resource(resource: ResourceBase, db: Session = Depends(get_db), current_user: User = admin_or_scheduler):
+    # Scheduler: restrict to their own faculty
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None and resource.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Scheduler can only create resources within their faculty")
     duplicate = db.query(Resource).filter(Resource.name == resource.name.strip()).first()
     if duplicate:
         raise HTTPException(status_code=409, detail="Resource name already exists")
@@ -265,10 +269,14 @@ def get_resources(db: Session = Depends(get_db)):
 
 
 @router.put("/{resource_id}", response_model=ResourceOut)
-def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = Depends(get_db), current_user: User = admin_only):
+def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = Depends(get_db), current_user: User = admin_or_scheduler):
     db_resource = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not db_resource:
         raise HTTPException(status_code=404, detail="Resource not found")
+    # Scheduler: restrict to their own faculty
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None and db_resource.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Access denied: resource is outside your faculty")
 
     data = resource.model_dump(exclude_unset=True)
     if "name" in data:
@@ -320,10 +328,13 @@ def update_resource(resource_id: int, resource: ResourceUpdate, db: Session = De
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_resource(resource_id: int, db: Session = Depends(get_db), current_user: User = admin_only):
+def delete_resource(resource_id: int, db: Session = Depends(get_db), current_user: User = admin_or_scheduler):
     db_res = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not db_res:
         raise HTTPException(status_code=404, detail="Resource not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None and db_res.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Access denied: resource is outside your faculty")
     db.delete(db_res)
     commit_delete_or_raise(db, "Cannot delete resource because it is linked to other records.")
 
@@ -334,7 +345,7 @@ def get_vehicles(db: Session = Depends(get_db)):
 
 
 @router.post("/vehicles", response_model=VehicleOut, status_code=status.HTTP_201_CREATED)
-def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db), current_user: User = admin_only):
+def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db), current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))):
     reg_number = payload.reg_number.strip().upper()
     duplicate = db.query(Vehicle).filter(Vehicle.reg_number == reg_number).first()
     if duplicate:
@@ -354,7 +365,7 @@ def create_vehicle(payload: VehicleBase, db: Session = Depends(get_db), current_
 
 
 @router.put("/vehicles/{vehicle_id}", response_model=VehicleOut)
-def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depends(get_db), current_user: User = admin_only):
+def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))):
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -386,7 +397,7 @@ def update_vehicle(vehicle_id: int, payload: VehicleUpdate, db: Session = Depend
 
 
 @router.delete("/vehicles/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db), current_user: User = admin_only):
+def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))):
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")

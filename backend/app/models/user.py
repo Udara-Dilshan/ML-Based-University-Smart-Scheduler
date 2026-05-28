@@ -30,6 +30,7 @@ class User(Base):
     student_profile = relationship("Student", back_populates="user", uselist=False, cascade="all, delete-orphan")
     lecturer_profile = relationship("Lecturer", back_populates="user", uselist=False, cascade="all, delete-orphan")
     resource_manager_profile = relationship("ResourceManager", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    scheduler_profile = relationship("SchedulerProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user")
     vehicle_requests = relationship("VehicleRequest", back_populates="requester")
     events = relationship("Event", back_populates="organizer")

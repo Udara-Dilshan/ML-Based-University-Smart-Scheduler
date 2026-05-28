@@ -340,7 +340,7 @@ export default function Navbar({ title }) {
 
   const userEmail = currentUser?.email || "admin@university.edu";
 
-  const initials = useMemo(() => {
+  const initials = (() => {
     const parts = userName.split(" ").filter(Boolean);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
@@ -349,7 +349,7 @@ export default function Navbar({ title }) {
       return parts[0].slice(0, 2).toUpperCase();
     }
     return "SA";
-  }, [userName]);
+  })();
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -418,6 +418,8 @@ export default function Navbar({ title }) {
       navigate("/student/profile");
     } else if (currentUser?.role === "ResourceManager") {
       navigate("/resource/profile");
+    } else if (currentUser?.role === "Scheduler") {
+      navigate("/scheduler/profile");
     } else {
       navigate("/admin/profile");
     }
@@ -431,16 +433,14 @@ export default function Navbar({ title }) {
       navigate("/student/settings");
     } else if (currentUser?.role === "ResourceManager") {
       navigate("/resource/settings");
+    } else if (currentUser?.role === "Scheduler") {
+      navigate("/scheduler/settings");
     } else {
       navigate("/admin/settings");
     }
     setIsMenuOpen(false);
   };
 
-  const handleEmail = () => {
-    window.location.href = `mailto:${userEmail}`;
-    setIsMenuOpen(false);
-  };
 
   useEffect(() => {
     if (!searchResults.length) {
@@ -519,11 +519,10 @@ export default function Navbar({ title }) {
                   key={target.path}
                   type="button"
                   onClick={() => handleSearchNavigate(target)}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
-                    index === activeSearchIndex
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${index === activeSearchIndex
                       ? "bg-blue-50 text-blue-700"
                       : "text-gray-700 hover:bg-blue-50"
-                  }`}
+                    }`}
                   aria-selected={index === activeSearchIndex}
                 >
                   <span className="font-medium text-gray-900">{target.label}</span>

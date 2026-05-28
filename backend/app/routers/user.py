@@ -2,13 +2,18 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
-from app.models.academic import Batch, Department
-from app.models.profiles import Lecturer, ResourceManager, Student
+from app.models.academic import Batch, Department, Faculty
+from app.models.profiles import Lecturer, ResourceManager, SchedulerProfile, Student
 from app.models.user import User, UserRole
 from app.utils.db_errors import commit_delete_or_raise
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.utils.auth import hash_password
-from app.utils.dependencies import require_admin_user
+from app.utils.dependencies import (
+    get_scheduler_faculty_id,
+    require_admin_or_scheduler,
+    require_admin_user,
+    _normalize_role,
+)
 import os
 import uuid
 from pathlib import Path
@@ -107,6 +112,16 @@ def _to_user_response(user: User) -> UserResponse:
             "assigned_section": user.resource_manager_profile.assigned_section,
         }
 
+    scheduler_profile = None
+    if user.scheduler_profile:
+        faculty_name = None
+        if user.scheduler_profile.faculty:
+            faculty_name = user.scheduler_profile.faculty.name
+        scheduler_profile = {
+            "faculty_id": user.scheduler_profile.faculty_id,
+            "faculty_name": faculty_name,
+        }
+
     return UserResponse(
         user_id=user.user_id,
         email=user.email,
@@ -120,6 +135,7 @@ def _to_user_response(user: User) -> UserResponse:
         student_profile=student_profile,
         lecturer_profile=lecturer_profile,
         resource_manager_profile=resource_manager_profile,
+        scheduler_profile=scheduler_profile,
     )
 
 
@@ -197,6 +213,15 @@ def _set_resource_manager_profile(user: User, assigned_section: str):
     user.resource_manager_profile.assigned_section = _normalize_resource_manager_section(assigned_section)
 
 
+def _set_scheduler_profile(db: Session, user: User, faculty_id: int):
+    faculty = db.query(Faculty).filter(Faculty.faculty_id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+    if not user.scheduler_profile:
+        user.scheduler_profile = SchedulerProfile(user_id=user.user_id)
+    user.scheduler_profile.faculty_id = faculty_id
+
+
 def _clear_non_target_profiles(user: User, role: str):
     if role != UserRole.STUDENT.value and user.student_profile:
         user.student_profile = None
@@ -204,14 +229,69 @@ def _clear_non_target_profiles(user: User, role: str):
         user.lecturer_profile = None
     if role != UserRole.RESOURCE_MANAGER.value and user.resource_manager_profile:
         user.resource_manager_profile = None
+    if role != UserRole.SCHEDULER.value and user.scheduler_profile:
+        user.scheduler_profile = None
 
 
 @router.get("/", response_model=list[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
-    users = db.query(User).order_by(User.user_id.desc()).all()
+    role = _normalize_role(current_user.role)
+
+    if role == UserRole.SUPER_ADMIN.value:
+        # SuperAdmin sees everyone
+        users = db.query(User).order_by(User.user_id.desc()).all()
+    else:
+        # Scheduler sees only Lecturers & Students in their faculty
+        faculty_id = get_scheduler_faculty_id(current_user)
+
+        # Get departments in this faculty
+        dept_ids = [
+            d.dept_id
+            for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()
+        ]
+
+        # Lecturers: those whose lecturer_profile.dept_id is in faculty departments
+        lecturer_user_ids = set()
+        if dept_ids:
+            lecturers = (
+                db.query(Lecturer)
+                .filter(Lecturer.department.in_([str(d) for d in dept_ids]))
+                .all()
+            )
+            lecturer_user_ids = {l.user_id for l in lecturers}
+
+        # Students: those whose batch belongs to a degree in this faculty's departments
+        from app.models.academic import Degree
+        degree_ids = [
+            deg.degree_id
+            for deg in db.query(Degree).filter(Degree.dept_id.in_(dept_ids)).all()
+        ] if dept_ids else []
+
+        batch_ids_set = set()
+        if degree_ids:
+            batches = db.query(Batch).filter(Batch.degree_id.in_(degree_ids)).all()
+            batch_ids_set = {str(b.batch_id) for b in batches}
+
+        student_user_ids = set()
+        if batch_ids_set:
+            students = (
+                db.query(Student)
+                .filter(Student.batch.in_(batch_ids_set))
+                .all()
+            )
+            student_user_ids = {s.user_id for s in students}
+
+        allowed_user_ids = lecturer_user_ids | student_user_ids
+        users = (
+            db.query(User)
+            .filter(User.user_id.in_(allowed_user_ids))
+            .order_by(User.user_id.desc())
+            .all()
+        )
+
     return [_to_user_response(user) for user in users]
 
 
@@ -219,8 +299,19 @@ def get_users(
 def create_user(
     payload: UserCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
+    role = _normalize_role(current_user.role)
+
+    # Schedulers can only create Lecturers and Students (not SuperAdmin, other Schedulers, ResourceManagers)
+    if role == UserRole.SCHEDULER.value:
+        target_role = _normalize_app_role(payload.role)
+        if target_role not in {UserRole.LECTURER.value, UserRole.STUDENT.value}:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Schedulers can only create Lecturer and Student accounts",
+            )
+
     existing_user = db.query(User).filter(User.email == payload.email).first()
     if existing_user:
         raise HTTPException(
@@ -228,13 +319,13 @@ def create_user(
             detail="Email already exists",
         )
 
-    role = _validate_role(payload.role)
+    target_role = _validate_role(payload.role)
     user = User(
         email=payload.email,
         password_hash=hash_password(payload.password),
         first_name=payload.first_name,
         last_name=payload.last_name,
-        role=_to_db_role(role),
+        role=_to_db_role(target_role),
         is_active=payload.is_active,
         contact_number=payload.contact_number,
         profile_image=payload.profile_image,
@@ -242,7 +333,7 @@ def create_user(
     db.add(user)
     db.flush()
 
-    if role == UserRole.STUDENT.value:
+    if target_role == UserRole.STUDENT.value:
         if not payload.student_profile:
             raise HTTPException(status_code=422, detail="Student details are required")
         _set_student_profile(
@@ -253,7 +344,7 @@ def create_user(
             or None,
             batch_id=payload.student_profile.batch_id,
         )
-    elif role == UserRole.LECTURER.value:
+    elif target_role == UserRole.LECTURER.value:
         if not payload.lecturer_profile:
             raise HTTPException(status_code=422, detail="Lecturer details are required")
         _set_lecturer_profile(
@@ -263,12 +354,20 @@ def create_user(
             dept_id=payload.lecturer_profile.dept_id,
             designation=(payload.lecturer_profile.designation or "").strip() or None,
         )
-    elif role == UserRole.RESOURCE_MANAGER.value:
+    elif target_role == UserRole.RESOURCE_MANAGER.value:
         if not payload.resource_manager_profile:
             raise HTTPException(status_code=422, detail="Resource manager details are required")
         _set_resource_manager_profile(
             user=user,
             assigned_section=payload.resource_manager_profile.assigned_section.strip(),
+        )
+    elif target_role == UserRole.SCHEDULER.value:
+        if not payload.scheduler_profile:
+            raise HTTPException(status_code=422, detail="Scheduler faculty assignment is required")
+        _set_scheduler_profile(
+            db=db,
+            user=user,
+            faculty_id=payload.scheduler_profile.faculty_id,
         )
 
     db.commit()
@@ -281,7 +380,7 @@ def update_user(
     user_id: int,
     payload: UserUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -312,7 +411,7 @@ def update_user(
         user.password_hash = hash_password(password)
 
     for key, value in data.items():
-        if key in {"student_profile", "lecturer_profile", "resource_manager_profile"}:
+        if key in {"student_profile", "lecturer_profile", "resource_manager_profile", "scheduler_profile"}:
             continue
         setattr(user, key, value)
 
@@ -352,6 +451,16 @@ def update_user(
         elif user.resource_manager_profile is None and previous_role != target_role:
             raise HTTPException(status_code=422, detail="Resource manager details are required")
 
+    if target_role == UserRole.SCHEDULER.value:
+        if payload.scheduler_profile:
+            _set_scheduler_profile(
+                db=db,
+                user=user,
+                faculty_id=payload.scheduler_profile.faculty_id,
+            )
+        elif user.scheduler_profile is None and previous_role != target_role:
+            raise HTTPException(status_code=422, detail="Scheduler faculty assignment is required")
+
     db.commit()
     db.refresh(user)
     return _to_user_response(user)
@@ -361,11 +470,20 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Schedulers can only delete Lecturers/Students
+    if _normalize_role(current_user.role) == UserRole.SCHEDULER.value:
+        user_role = _normalize_role(user.role)
+        if user_role not in {UserRole.LECTURER.value, UserRole.STUDENT.value}:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Schedulers can only delete Lecturer and Student accounts",
+            )
 
     db.delete(user)
     commit_delete_or_raise(db, "Cannot delete user because it is linked to other records.")
@@ -375,10 +493,10 @@ def delete_user(
 async def upload_user_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
     """
-    Upload a profile image for a user (admin use).
+    Upload a profile image for a user (admin/scheduler use).
     Image is saved to static/uploads and path is returned.
     """
     # Validate file type

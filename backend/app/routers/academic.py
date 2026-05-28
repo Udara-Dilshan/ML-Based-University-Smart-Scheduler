@@ -6,14 +6,18 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, OperationalError
 from ..database.connection import get_db
 from ..models.academic import Batch, BatchActiveTerm, Degree, DegreeSemesterModule, Department, Faculty, LecturerModuleAssignment, Module
-from ..models.user import User
+from ..models.user import User, UserRole
 from ..utils.db_errors import commit_delete_or_raise
-from ..utils.dependencies import require_admin_user
+from ..utils.dependencies import (
+    require_admin_user,
+    require_admin_or_scheduler,
+    get_scheduler_faculty_id,
+    _normalize_role,
+)
 
 router = APIRouter(
     prefix="/academic",
     tags=["academic"],
-    dependencies=[Depends(require_admin_user)],
 )
 
 
@@ -316,7 +320,7 @@ class BatchOut(BatchBase):
 
 
 @router.post("/faculties", response_model=FacultyOut, status_code=status.HTTP_201_CREATED)
-def create_faculty(payload: FacultyBase, db: Session = Depends(get_db)):
+def create_faculty(payload: FacultyBase, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     duplicate = (
         db.query(Faculty)
         .filter((Faculty.code == payload.code) | (Faculty.name == payload.name))
@@ -337,12 +341,16 @@ def create_faculty(payload: FacultyBase, db: Session = Depends(get_db)):
 
 
 @router.get("/faculties", response_model=List[FacultyOut])
-def get_faculties(db: Session = Depends(get_db)):
-    return db.query(Faculty).order_by(Faculty.name.asc()).all()
+def get_faculties(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(Faculty)
+    if faculty_id is not None:
+        query = query.filter(Faculty.faculty_id == faculty_id)
+    return query.order_by(Faculty.name.asc()).all()
 
 
 @router.put("/faculties/{faculty_id}", response_model=FacultyOut)
-def update_faculty(faculty_id: int, payload: FacultyUpdate, db: Session = Depends(get_db)):
+def update_faculty(faculty_id: int, payload: FacultyUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(Faculty).filter(Faculty.faculty_id == faculty_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Faculty not found")
@@ -377,7 +385,7 @@ def update_faculty(faculty_id: int, payload: FacultyUpdate, db: Session = Depend
 
 
 @router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_faculty(faculty_id: int, db: Session = Depends(get_db)):
+def delete_faculty(faculty_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_user)):
     item = db.query(Faculty).filter(Faculty.faculty_id == faculty_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Faculty not found")
@@ -386,7 +394,11 @@ def delete_faculty(faculty_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/departments", response_model=DepartmentOut, status_code=status.HTTP_201_CREATED)
-def create_department(payload: DepartmentBase, db: Session = Depends(get_db)):
+def create_department(payload: DepartmentBase, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    # Scheduler can only add departments to their own faculty
+    if faculty_id is not None and payload.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Scheduler can only create departments within their faculty")
     faculty = db.query(Faculty).filter(Faculty.faculty_id == payload.faculty_id).first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
@@ -411,12 +423,25 @@ def create_department(payload: DepartmentBase, db: Session = Depends(get_db)):
 
 
 @router.get("/degrees", response_model=List[DegreeOut])
-def get_degrees(db: Session = Depends(get_db)):
-    return db.query(Degree).order_by(Degree.name.asc()).all()
+def get_degrees(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(Degree).order_by(Degree.name.asc())
+    if faculty_id is not None:
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        query = query.filter(Degree.dept_id.in_(dept_ids)) if dept_ids else query.filter(False)
+    return query.all()
 
 
 @router.post("/degrees", response_model=DegreeOut, status_code=status.HTTP_201_CREATED)
-def create_degree(payload: DegreeBase, db: Session = Depends(get_db)):
+def create_degree(payload: DegreeBase, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    # Scheduler: verify the dept belongs to their faculty
+    if faculty_id is not None:
+        department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Department not found")
+        if department.faculty_id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied: department is outside your faculty")
     department = db.query(Department).filter(Department.dept_id == payload.dept_id).first()
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
@@ -446,10 +471,15 @@ def create_degree(payload: DegreeBase, db: Session = Depends(get_db)):
 
 
 @router.put("/degrees/{degree_id}", response_model=DegreeOut)
-def update_degree(degree_id: int, payload: DegreeUpdate, db: Session = Depends(get_db)):
+def update_degree(degree_id: int, payload: DegreeUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Degree).filter(Degree.degree_id == degree_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Degree not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None:
+        dept = db.query(Department).filter(Department.dept_id == item.dept_id).first()
+        if not dept or dept.faculty_id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied: degree is outside your faculty")
 
     data = payload.model_dump(exclude_unset=True)
     if "code" in data:
@@ -488,24 +518,36 @@ def update_degree(degree_id: int, payload: DegreeUpdate, db: Session = Depends(g
 
 
 @router.delete("/degrees/{degree_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_degree(degree_id: int, db: Session = Depends(get_db)):
+def delete_degree(degree_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Degree).filter(Degree.degree_id == degree_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Degree not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None:
+        dept = db.query(Department).filter(Department.dept_id == item.dept_id).first()
+        if not dept or dept.faculty_id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied: degree is outside your faculty")
     db.delete(item)
     commit_delete_or_raise(db, "Cannot delete degree because it is linked to batches or other records.")
 
 
 @router.get("/departments", response_model=List[DepartmentOut])
-def get_departments(db: Session = Depends(get_db)):
-    return db.query(Department).order_by(Department.name.asc()).all()
+def get_departments(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(Department).order_by(Department.name.asc())
+    if faculty_id is not None:
+        query = query.filter(Department.faculty_id == faculty_id)
+    return query.all()
 
 
 @router.put("/departments/{dept_id}", response_model=DepartmentOut)
-def update_department(dept_id: int, payload: DepartmentUpdate, db: Session = Depends(get_db)):
+def update_department(dept_id: int, payload: DepartmentUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Department).filter(Department.dept_id == dept_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Department not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None and item.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Access denied: department is outside your faculty")
 
     data = payload.model_dump(exclude_unset=True)
     if "code" in data:
@@ -541,16 +583,19 @@ def update_department(dept_id: int, payload: DepartmentUpdate, db: Session = Dep
 
 
 @router.delete("/departments/{dept_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_department(dept_id: int, db: Session = Depends(get_db)):
+def delete_department(dept_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Department).filter(Department.dept_id == dept_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Department not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None and item.faculty_id != faculty_id:
+        raise HTTPException(status_code=403, detail="Access denied: department is outside your faculty")
     db.delete(item)
     commit_delete_or_raise(db, "Cannot delete department because it is linked to other records. Delete dependent courses or batches first.")
 
 
 @router.post("/modules", response_model=ModuleOut, status_code=status.HTTP_201_CREATED)
-def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
+def create_module(payload: ModuleBase, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     max_retries = 3
 
     for attempt in range(max_retries):
@@ -615,8 +660,13 @@ def create_module(payload: ModuleBase, db: Session = Depends(get_db)):
 
 
 @router.get("/modules", response_model=List[ModuleOut])
-def get_modules(db: Session = Depends(get_db)):
-    return db.query(Module).order_by(Module.name.asc()).all()
+def get_modules(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(Module).order_by(Module.name.asc())
+    if faculty_id is not None:
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        query = query.filter(Module.dept_id.in_(dept_ids)) if dept_ids else query.filter(False)
+    return query.all()
 
 
 @router.get("/degree-semester-modules/selection", response_model=DegreeSemesterModuleSelectionOut)
@@ -624,6 +674,7 @@ def get_degree_semester_module_selection(
     degree_id: int,
     semester_number: int = 1,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
     degree = db.query(Degree).filter(Degree.degree_id == degree_id).first()
     if not degree:
@@ -669,7 +720,7 @@ def get_degree_semester_module_selection(
 
 
 @router.put("/degree-semester-modules", response_model=DegreeSemesterModuleSaveOut)
-def save_degree_semester_modules(payload: DegreeSemesterModuleSave, db: Session = Depends(get_db)):
+def save_degree_semester_modules(payload: DegreeSemesterModuleSave, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
     if not degree:
         raise HTTPException(status_code=404, detail="Degree not found")
@@ -721,7 +772,9 @@ def save_degree_semester_modules(payload: DegreeSemesterModuleSave, db: Session 
 def get_degree_semester_modules(
     degree_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
+    faculty_id = get_scheduler_faculty_id(current_user)
     query = (
         db.query(DegreeSemesterModule, Module, Degree)
         .join(Module, Module.module_id == DegreeSemesterModule.module_id)
@@ -730,6 +783,12 @@ def get_degree_semester_modules(
 
     if degree_id is not None:
         query = query.filter(DegreeSemesterModule.degree_id == degree_id)
+    elif faculty_id is not None:
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        if dept_ids:
+            query = query.join(Department, Degree.dept_id == Department.dept_id).filter(Department.faculty_id == faculty_id)
+        else:
+            return []
 
     rows = (
         query.order_by(
@@ -759,7 +818,7 @@ def get_degree_semester_modules(
 
 
 @router.put("/modules/{module_id}", response_model=ModuleOut)
-def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(get_db)):
+def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Module).filter(Module.module_id == module_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -817,7 +876,7 @@ def update_module(module_id: int, payload: ModuleUpdate, db: Session = Depends(g
 
 
 @router.delete("/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_module(module_id: int, db: Session = Depends(get_db)):
+def delete_module(module_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Module).filter(Module.module_id == module_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -826,7 +885,15 @@ def delete_module(module_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/batches", response_model=BatchOut, status_code=status.HTTP_201_CREATED)
-def create_batch(payload: BatchBase, db: Session = Depends(get_db)):
+def create_batch(payload: BatchBase, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None:
+        degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
+        if not degree:
+            raise HTTPException(status_code=404, detail="Degree not found")
+        dept = db.query(Department).filter(Department.dept_id == degree.dept_id).first()
+        if not dept or dept.faculty_id != faculty_id:
+            raise HTTPException(status_code=403, detail="Access denied: degree is outside your faculty")
     degree = db.query(Degree).filter(Degree.degree_id == payload.degree_id).first()
     if not degree:
         raise HTTPException(status_code=404, detail="Degree not found")
@@ -848,8 +915,14 @@ def create_batch(payload: BatchBase, db: Session = Depends(get_db)):
 
 
 @router.get("/batches", response_model=List[BatchOut])
-def get_batches(db: Session = Depends(get_db)):
-    batches = db.query(Batch).order_by(Batch.batch_id.desc()).all()
+def get_batches(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(Batch).order_by(Batch.batch_id.desc())
+    if faculty_id is not None:
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        degree_ids = [deg.degree_id for deg in db.query(Degree).filter(Degree.dept_id.in_(dept_ids)).all()] if dept_ids else []
+        query = query.filter(Batch.degree_id.in_(degree_ids)) if degree_ids else query.filter(False)
+    batches = query.all()
     active_terms = db.query(BatchActiveTerm).filter(BatchActiveTerm.is_active.is_(True)).all()
     active_term_by_batch_id = {term.batch_id: term for term in active_terms}
 
@@ -864,6 +937,7 @@ def assign_or_update_batch_active_term(
     batch_id: int,
     payload: BatchActiveTermSave,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_scheduler),
 ):
     semester_name = payload.semester_name.strip()
 
@@ -935,13 +1009,19 @@ def assign_or_update_batch_active_term(
 
 
 @router.get("/lecturer-allocations/lecturers", response_model=List[LecturerOptionOut])
-def get_lecturer_options(db: Session = Depends(get_db)):
-    lecturers = (
-        db.query(User)
-        .filter(User.role.in_(["LECTURER", "Lecturer"]))
-        .order_by(User.first_name.asc(), User.last_name.asc())
-        .all()
-    )
+def get_lecturer_options(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+    faculty_id = get_scheduler_faculty_id(current_user)
+    query = db.query(User).filter(User.role.in_(["LECTURER", "Lecturer"]))
+    if faculty_id is not None:
+        from ..models.profiles import Lecturer as LecturerProfile
+        dept_ids = [d.dept_id for d in db.query(Department).filter(Department.faculty_id == faculty_id).all()]
+        lecturer_user_ids = [
+            lp.user_id for lp in db.query(LecturerProfile).filter(
+                LecturerProfile.department.in_([str(d) for d in dept_ids])
+            ).all()
+        ] if dept_ids else []
+        query = query.filter(User.user_id.in_(lecturer_user_ids))
+    lecturers = query.order_by(User.first_name.asc(), User.last_name.asc()).all()
 
     return [
         {
@@ -958,7 +1038,7 @@ def get_lecturer_options(db: Session = Depends(get_db)):
 
 
 @router.get("/lecturer-allocations/active-modules", response_model=LecturerAllocationBatchModulesOut)
-def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db)):
+def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
@@ -1030,7 +1110,7 @@ def get_active_modules_for_batch(batch_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/lecturer-allocations/assign", response_model=LecturerModuleAssignmentOut)
-def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session = Depends(get_db)):
+def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     batch = db.query(Batch).filter(Batch.batch_id == payload.batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
@@ -1106,10 +1186,17 @@ def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session
 
 
 @router.put("/batches/{batch_id}", response_model=BatchOut)
-def update_batch(batch_id: int, payload: BatchUpdate, db: Session = Depends(get_db)):
+def update_batch(batch_id: int, payload: BatchUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Batch).filter(Batch.batch_id == batch_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Batch not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None:
+        degree = db.query(Degree).filter(Degree.degree_id == item.degree_id).first()
+        if degree:
+            dept = db.query(Department).filter(Department.dept_id == degree.dept_id).first()
+            if not dept or dept.faculty_id != faculty_id:
+                raise HTTPException(status_code=403, detail="Access denied: batch is outside your faculty")
 
     data = payload.model_dump(exclude_unset=True)
     if "batch_code" in data:
@@ -1135,9 +1222,17 @@ def update_batch(batch_id: int, payload: BatchUpdate, db: Session = Depends(get_
 
 
 @router.delete("/batches/{batch_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_batch(batch_id: int, db: Session = Depends(get_db)):
+def delete_batch(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
     item = db.query(Batch).filter(Batch.batch_id == batch_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Batch not found")
+    faculty_id = get_scheduler_faculty_id(current_user)
+    if faculty_id is not None:
+        degree = db.query(Degree).filter(Degree.degree_id == item.degree_id).first()
+        if degree:
+            dept = db.query(Department).filter(Department.dept_id == degree.dept_id).first()
+            if not dept or dept.faculty_id != faculty_id:
+                raise HTTPException(status_code=403, detail="Access denied: batch is outside your faculty")
     db.delete(item)
     commit_delete_or_raise(db, "Cannot delete batch because it is linked to other records.")
+

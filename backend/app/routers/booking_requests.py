@@ -45,7 +45,7 @@ def _require_lecturer_or_manager(current_user: User = Depends(get_current_user))
 
 
 def _require_manager(current_user: User = Depends(get_current_user)) -> User:
-    allowed = {UserRole.RESOURCE_MANAGER.value, UserRole.SUPER_ADMIN.value}
+    allowed = {UserRole.RESOURCE_MANAGER.value, UserRole.SUPER_ADMIN.value, UserRole.SCHEDULER.value}
     role = _normalize_role(current_user.role)
     if role not in allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
