@@ -239,6 +239,19 @@ export const resourceAPI = {
     const response = await api.get("/resources/");
     return response.data;
   },
+  getFaculties: async () => {
+    const response = await api.get("/resources/faculties");
+    return response.data;
+  },
+  getDepartments: async () => {
+    const response = await api.get("/resources/departments");
+    return response.data;
+  },
+  getSystemSettings: async (category) => {
+    const params = category ? { category } : undefined;
+    const response = await api.get("/resources/system-settings", { params });
+    return response.data;
+  },
   createResource: async (payload) => {
     const response = await api.post("/resources/", payload);
     return response.data;

@@ -6,13 +6,14 @@ from ..database.connection import get_db
 from ..models.resource import Resource
 from ..models.academic import Faculty, Department
 from ..models.settings import SystemSetting
+from ..models.user import UserRole
 from ..utils.db_errors import commit_delete_or_raise
-from ..utils.dependencies import require_admin_user
+from ..utils.dependencies import require_roles
 
 router = APIRouter(
     prefix="/resources",
     tags=["resources"],
-    dependencies=[Depends(require_admin_user)],
+    dependencies=[Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.RESOURCE_MANAGER))],
 )
 
 
@@ -148,6 +149,55 @@ class ResourceOut(ResourceBase):
 
     class Config:
         from_attributes = True
+
+
+class FacultyListOut(BaseModel):
+    faculty_id: int
+    name: str
+    code: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DepartmentListOut(BaseModel):
+    dept_id: int
+    name: str
+    code: Optional[str] = None
+    faculty_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class SystemSettingListOut(BaseModel):
+    id: int
+    category: str
+    value: str
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/faculties", response_model=List[FacultyListOut])
+def get_resource_faculties(db: Session = Depends(get_db)):
+    return db.query(Faculty).order_by(Faculty.name.asc()).all()
+
+
+@router.get("/departments", response_model=List[DepartmentListOut])
+def get_resource_departments(faculty_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Department)
+    if faculty_id is not None:
+        query = query.filter(Department.faculty_id == faculty_id)
+    return query.order_by(Department.name.asc()).all()
+
+
+@router.get("/system-settings", response_model=List[SystemSettingListOut])
+def get_resource_system_settings(category: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(SystemSetting)
+    if category:
+        query = query.filter(SystemSetting.category == category.strip().upper())
+    return query.order_by(SystemSetting.category.asc(), SystemSetting.value.asc()).all()
 
 
 @router.post("/", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
