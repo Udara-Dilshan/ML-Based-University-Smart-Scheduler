@@ -6,6 +6,7 @@ Run: python seed_data.py
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.user import User, UserRole
+from app.models.settings import SystemSetting
 from app.utils.auth import hash_password
 import sys
 
@@ -109,6 +110,54 @@ def create_sample_users(db: Session):
 
 
 # -----------------------------
+# SYSTEM SETTINGS (DROPDOWNS)
+# -----------------------------
+def create_system_settings(db: Session):
+
+    settings_data = [
+        # Resource Types
+        {"category": "RESOURCE_TYPES", "value": "Auditorium"},
+        {"category": "RESOURCE_TYPES", "value": "Computer Lab"},
+        {"category": "RESOURCE_TYPES", "value": "Lab"},
+        {"category": "RESOURCE_TYPES", "value": "Lecture Hall"},
+        
+        # Locations
+        {"category": "LOCATIONS", "value": "A Block"},
+        {"category": "LOCATIONS", "value": "ASB (Behind G Canteen)"},
+        {"category": "LOCATIONS", "value": "B Block"},
+        {"category": "LOCATIONS", "value": "C Block"},
+        {"category": "LOCATIONS", "value": "D Block"},
+        {"category": "LOCATIONS", "value": "E Block"},
+        {"category": "LOCATIONS", "value": "F Block"},
+        {"category": "LOCATIONS", "value": "FTS Building"},
+        {"category": "LOCATIONS", "value": "G Block"},
+        
+        # Facilities
+        {"category": "FACILITIES", "value": "AC"},
+        {"category": "FACILITIES", "value": "Computers"},
+        {"category": "FACILITIES", "value": "Fans"},
+        {"category": "FACILITIES", "value": "GIS Software"},
+        {"category": "FACILITIES", "value": "Huge Space"},
+        {"category": "FACILITIES", "value": "Interactive Board"},
+        {"category": "FACILITIES", "value": "Main Lecture Theatre"},
+        {"category": "FACILITIES", "value": "Smart Board"},
+    ]
+
+    for item in settings_data:
+        existing = db.query(SystemSetting).filter(
+            SystemSetting.category == item["category"],
+            SystemSetting.value == item["value"]
+        ).first()
+
+        if not existing:
+            new_setting = SystemSetting(**item)
+            db.add(new_setting)
+
+    db.commit()
+    print("System dropdown settings created")
+
+
+# -----------------------------
 # MAIN SEED FUNCTION
 # -----------------------------
 def seed_database():
@@ -122,6 +171,8 @@ def seed_database():
         create_admin_user(db)
 
         create_sample_users(db)
+
+        create_system_settings(db)
 
         print("Database seeded successfully")
 
