@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, Clock, ChevronDown,
-  ChevronUp, RefreshCw, Calendar, Users, MapPin, Sparkles
+  ChevronUp, RefreshCw, Calendar, Users, MapPin, Sparkles, Download, Search
 } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
 
@@ -252,12 +252,13 @@ function ActionModal({ request, onClose, onRefresh }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function EventRequests() {
+export default function EventRequests({ isCardView = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadRequests = async () => {
     try {
@@ -280,19 +281,73 @@ export default function EventRequests() {
     clear: requests.filter((r) => r.ai_status === "CLEAR").length,
   }), [requests]);
 
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+    const lowerQ = searchQuery.toLowerCase();
+    return requests.filter(req => 
+      (req.requester_name || "").toLowerCase().includes(lowerQ) ||
+      (req.event_name || "").toLowerCase().includes(lowerQ) ||
+      (req.resource_name || "").toLowerCase().includes(lowerQ) ||
+      (req.allocated_resource_name || "").toLowerCase().includes(lowerQ)
+    );
+  }, [requests, searchQuery]);
+
+  const exportToCSV = () => {
+    if (filteredRequests.length === 0) return;
+    
+    const headers = [
+      "Request ID", "Requester Name", "Email", "Event Name", "Purpose",
+      "Venue", "Date", "Start Time", "End Time", "Participants", 
+      "Status", "AI Status"
+    ];
+    
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+    
+    filteredRequests.forEach(req => {
+      const row = [
+        req.req_id,
+        `"${(req.requester_name || "").replace(/"/g, '""')}"`,
+        `"${(req.requester_email || "").replace(/"/g, '""')}"`,
+        `"${(req.event_name || "").replace(/"/g, '""')}"`,
+        `"${(req.purpose || "").replace(/"/g, '""')}"`,
+        `"${(req.allocated_resource_name || req.resource_name || "").replace(/"/g, '""')}"`,
+        req.event_date,
+        req.start_time,
+        req.end_time,
+        req.participant_count,
+        req.status,
+        req.ai_status
+      ];
+      csvRows.push(row.join(","));
+    });
+    
+    const csvString = csvRows.join("\\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `event_requests_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Event / Venue Requests</h2>
-          <p className="mt-0.5 text-sm text-gray-500">Lecturer-submitted event and hall booking requests</p>
+      {!isCardView && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Event / Venue Requests</h2>
+            <p className="mt-0.5 text-sm text-gray-500">Lecturer-submitted event and hall booking requests</p>
+          </div>
+          <button onClick={loadRequests}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <RefreshCw size={14} /> Refresh
+          </button>
         </div>
-        <button onClick={loadRequests}
-          className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-          <RefreshCw size={14} /> Refresh
-        </button>
-      </div>
+      )}
 
       {/* Summary Pills */}
       {statusFilter === "PENDING" && (
@@ -312,19 +367,44 @@ export default function EventRequests() {
         </div>
       )}
 
-      {/* Status Filter Tabs */}
-      <div className="flex gap-2">
-        {["PENDING", "APPROVED", "REJECTED", ""].map((s) => (
-          <button key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              statusFilter === s
-                ? "bg-blue-600 text-white"
-                : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-            }`}>
-            {s || "All"}
+      {/* Status Filter Tabs & Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {["PENDING", "APPROVED", "REJECTED", ""].map((s) => (
+            <button key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                statusFilter === s
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}>
+              {s || "All"}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events, names..."
+              className="w-full sm:w-64 rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+          <button onClick={exportToCSV}
+            className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <Download size={14} /> Export CSV
           </button>
-        ))}
+          {isCardView && (
+            <button onClick={loadRequests}
+              className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+              <RefreshCw size={14} /> Refresh
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -332,7 +412,7 @@ export default function EventRequests() {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className={`overflow-x-auto ${isCardView ? "" : "rounded-xl border border-gray-200 bg-white shadow-sm"}`}>
         <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -353,12 +433,12 @@ export default function EventRequests() {
                 </div>
               </td></tr>
             )}
-            {!loading && requests.length === 0 && (
+            {!loading && filteredRequests.length === 0 && (
               <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400">
-                No event requests found.
+                No event requests found matching your criteria.
               </td></tr>
             )}
-            {!loading && requests.map((req) => (
+            {!loading && filteredRequests.map((req) => (
               <tr key={req.req_id} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900">{req.requester_name}</p>

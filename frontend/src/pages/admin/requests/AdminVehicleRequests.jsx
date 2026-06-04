@@ -4,7 +4,10 @@ import VehicleRequests from "../../resource/VehicleRequests";
 export default function AdminVehicleRequests() {
   return (
     <AdminLayout>
-      <VehicleRequests />
+      <h1 className="text-2xl font-semibold mb-6">Vehicle Requests</h1>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <VehicleRequests isCardView={true} />
+      </div>
     </AdminLayout>
   );
 }
