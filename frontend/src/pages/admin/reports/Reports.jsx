@@ -379,7 +379,7 @@ function UsersTab({ d }) {
               <BarChart data={d.by_role} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "#F3F4F6" }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {(d.by_role || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -512,7 +512,7 @@ function AcademicTab({ d }) {
               <BarChart data={d.by_faculty || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="faculty_code" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "#F3F4F6" }} />
                 <Bar dataKey="students" name="Students" radius={[4, 4, 0, 0]}>
                   {(d.by_faculty || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -530,7 +530,7 @@ function AcademicTab({ d }) {
                 <BarChart data={d.credits_distribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                   <XAxis dataKey="credits" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                   <Tooltip cursor={{ fill: "#F3F4F6" }} />
                   <Bar dataKey="count" name="Modules" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -576,7 +576,7 @@ function ResourcesTab({ d }) {
               <BarChart data={d.by_type || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "#F3F4F6" }} />
                 <Bar dataKey="sessions" name="Sessions" radius={[4, 4, 0, 0]}>
                   {(d.by_type || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -594,7 +594,7 @@ function ResourcesTab({ d }) {
             <BarChart data={d.by_faculty || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis dataKey="faculty_name" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
               <Tooltip cursor={{ fill: "#F3F4F6" }} />
               <Legend />
               <Bar dataKey="active"   name="Active"   fill="#10B981" radius={[4, 4, 0, 0]} />
@@ -628,7 +628,7 @@ function RequestsTab({ d }) {
               <BarChart data={d.status_chart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="status" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "#F3F4F6" }} />
                 <Legend />
                 <Bar dataKey="events"   name="Event Reqs"   fill="#3B82F6" radius={[4, 4, 0, 0]} />
@@ -764,7 +764,7 @@ function MedicalTab({ d }) {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={d.by_reason} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="reason" tick={{ fontSize: 12, fill: "#6B7280" }} width={80} axisLine={false} tickLine={false} />
                   <Tooltip cursor={{ fill: "#F3F4F6" }} />
                   <Bar dataKey="count" name="Submissions" fill="#3B82F6" radius={[0, 4, 4, 0]} />
@@ -826,7 +826,7 @@ function TimetableTab({ d }) {
             <AreaChart data={d.weekly_chart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
               <Tooltip />
               <Area type="monotone" dataKey="sessions" name="Sessions" fill="#DBEAFE" stroke="#3B82F6" strokeWidth={2} />
             </AreaChart>
@@ -881,7 +881,7 @@ function TimetableTab({ d }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={d.lecturer_load} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                <XAxis type="number" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="lecturer" width={100} tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "#F3F4F6" }} />
                 <Bar dataKey="sessions" name="Sessions" fill="#3B82F6" radius={[0, 4, 4, 0]} />
