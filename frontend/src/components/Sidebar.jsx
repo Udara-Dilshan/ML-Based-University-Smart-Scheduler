@@ -209,6 +209,10 @@ export default function Sidebar() {
           <CalendarPlus size={16} />
           Manage Events
         </NavLink>
+        <NavLink to="/admin/direct-vehicles" className={navItemClass}>
+          <Car size={16} />
+          Manage Vehicle Bookings
+        </NavLink>
 
         <div className="pt-2">
           <button

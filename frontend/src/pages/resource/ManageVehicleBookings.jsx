@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Calendar, Clock, MapPin, Tag, Users, Car,
-  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit
+  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit, Download, Search
 } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
 
@@ -27,6 +27,9 @@ export default function ManageVehicleBookings() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [vehicleFilter, setVehicleFilter] = useState("");
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -45,6 +48,62 @@ export default function ManageVehicleBookings() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(b => {
+      const vehicleName = b.assigned_vehicle_reg || b.vehicle_type_needed || "";
+      const matchesSearch = !searchQuery.trim() || 
+        (b.destination || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.purpose || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.requester_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vehicleName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesVehicle = !vehicleFilter || b.assigned_vehicle_id === Number(vehicleFilter);
+      
+      return matchesSearch && matchesVehicle;
+    });
+  }, [bookings, searchQuery, vehicleFilter]);
+
+  const exportToCSV = () => {
+    if (filteredBookings.length === 0) return;
+    
+    const headers = [
+      "Booking ID", "Vehicle", "Destination", "Date", "Start Time", 
+      "End Time", "Passengers", "Purpose", "Organizer", "Source"
+    ];
+    
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+    
+    filteredBookings.forEach(b => {
+      const source = (b.requester_role === "RESOURCE_MANAGER" || b.requester_role === "SUPER_ADMIN") 
+        ? "Direct Add" 
+        : `Via Request #${b.req_id}`;
+      const row = [
+        b.req_id,
+        `"${(b.assigned_vehicle_reg || b.vehicle_type_needed || "Unknown").replace(/"/g, '""')}"`,
+        `"${(b.destination || "Not specified").replace(/"/g, '""')}"`,
+        b.trip_date,
+        b.start_time,
+        b.end_time,
+        b.passenger_count,
+        `"${(b.purpose || "").replace(/"/g, '""')}"`,
+        `"${(b.requester_name || "").replace(/"/g, '""')}"`,
+        `"${source.replace(/"/g, '""')}"`
+      ];
+      csvRows.push(row.join(","));
+    });
+    
+    const csvString = csvRows.join("\\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `vehicle_bookings_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleOpenModal = (booking = null) => {
     if (booking) {
@@ -142,6 +201,41 @@ export default function ManageVehicleBookings() {
         </div>
       </div>
 
+      {/* Filters and Export Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={vehicleFilter}
+            onChange={(e) => setVehicleFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 bg-white"
+          >
+            <option value="">All Vehicles</option>
+            {vehicles.map(v => (
+              <option key={v.vehicle_id} value={v.vehicle_id}>
+                {v.registration_number} ({v.type})
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search bookings, destinations..."
+              className="w-full sm:w-64 rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+          <button onClick={exportToCSV}
+            className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
+      </div>
+
       {/* AI notice */}
       <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
         <Sparkles size={16} className="mt-0.5 text-blue-600 shrink-0" />
@@ -181,12 +275,12 @@ export default function ManageVehicleBookings() {
                 </div>
               </td></tr>
             )}
-            {!loading && bookings.length === 0 && (
+            {!loading && filteredBookings.length === 0 && (
               <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400">
-                No direct vehicle bookings yet. Add the first one!
+                No direct vehicle bookings found matching your criteria.
               </td></tr>
             )}
-            {!loading && bookings.map((b) => (
+            {!loading && filteredBookings.map((b) => (
               <tr key={b.req_id} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 text-gray-800">

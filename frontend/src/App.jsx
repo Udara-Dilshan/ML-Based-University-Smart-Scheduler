@@ -19,6 +19,7 @@ import ManageTimetables from "./pages/admin/timetable/ManageTimetables";
 import AdminEventRequests from "./pages/admin/requests/AdminEventRequests";
 import AdminVehicleRequests from "./pages/admin/requests/AdminVehicleRequests";
 import AdminManageEvents from "./pages/admin/AdminManageEvents";
+import AdminManageVehicleBookings from "./pages/admin/AdminManageVehicleBookings";
 import Resources from "./pages/admin/resources/Resources";
 import Vehicles from "./pages/admin/vehicles/Vehicles";
 import Requests from "./pages/admin/requests/Requests";
@@ -92,6 +93,7 @@ function App() {
           <Route path="/admin/resources"   element={<Resources />} />
           <Route path="/admin/vehicles"    element={<Vehicles />} />
           <Route path="/admin/events"           element={<AdminManageEvents />} />
+          <Route path="/admin/direct-vehicles"  element={<AdminManageVehicleBookings />} />
           <Route path="/admin/requests/events"  element={<AdminEventRequests />} />
           <Route path="/admin/requests/vehicles" element={<AdminVehicleRequests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />

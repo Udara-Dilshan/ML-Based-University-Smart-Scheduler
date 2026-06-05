@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Calendar, Clock, MapPin, Tag,
-  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit
+  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit, Download, Search
 } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
 
@@ -29,6 +29,9 @@ export default function ManageEvents() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -47,6 +50,57 @@ export default function ManageEvents() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const filteredEvents = useMemo(() => {
+    return events.filter(ev => {
+      const matchesSearch = !searchQuery.trim() || 
+        (ev.event_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (ev.organizer_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (ev.venue_name || "").toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesType = !typeFilter || ev.event_type === typeFilter;
+      
+      return matchesSearch && matchesType;
+    });
+  }, [events, searchQuery, typeFilter]);
+
+  const exportToCSV = () => {
+    if (filteredEvents.length === 0) return;
+    
+    const headers = [
+      "Event ID", "Event Name", "Type", "Venue", "Date", "Start Time", 
+      "End Time", "Organizer", "Source"
+    ];
+    
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+    
+    filteredEvents.forEach(ev => {
+      const source = ev.source_request_id ? `Via Request #${ev.source_request_id}` : "Direct Add";
+      const row = [
+        ev.event_id,
+        `"${(ev.event_name || "").replace(/"/g, '""')}"`,
+        `"${(ev.event_type || "General").replace(/"/g, '""')}"`,
+        `"${(ev.venue_name || "").replace(/"/g, '""')}"`,
+        ev.event_date,
+        ev.start_time,
+        ev.end_time,
+        `"${(ev.organizer_name || "").replace(/"/g, '""')}"`,
+        `"${source.replace(/"/g, '""')}"`
+      ];
+      csvRows.push(row.join(","));
+    });
+    
+    const csvString = csvRows.join("\\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `events_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleOpenModal = (event = null) => {
     if (event) {
@@ -153,6 +207,39 @@ export default function ManageEvents() {
         </div>
       </div>
 
+      {/* Filters and Export Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 bg-white"
+          >
+            <option value="">All Types</option>
+            {EVENT_TYPES.map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events, venues..."
+              className="w-full sm:w-64 rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+          <button onClick={exportToCSV}
+            className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
+      </div>
+
       {/* AI notice */}
       <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
         <Sparkles size={16} className="mt-0.5 text-blue-600 shrink-0" />
@@ -193,12 +280,12 @@ export default function ManageEvents() {
                 </div>
               </td></tr>
             )}
-            {!loading && events.length === 0 && (
+            {!loading && filteredEvents.length === 0 && (
               <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400">
-                No events yet. Add the first one!
+                No events found matching your criteria.
               </td></tr>
             )}
-            {!loading && events.map((ev) => (
+            {!loading && filteredEvents.map((ev) => (
               <tr key={ev.event_id} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3">
                   <p className="font-semibold text-gray-900">{ev.event_name}</p>

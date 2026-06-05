@@ -16,6 +16,7 @@ const pageTitles = {
 
 "/admin/vehicles":"Vehicles",
 "/admin/events":"Manage Events",
+"/admin/direct-vehicles":"Manage Vehicle Bookings",
 "/admin/requests/events":"Event Requests",
 "/admin/requests/vehicles":"Vehicle Requests",
 "/admin/medical-submissions":"Medical Submissions",
