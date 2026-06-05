@@ -30,6 +30,7 @@ from ..models.medical import MedicalSubmission, MedicalSubmissionStatus
 from ..models.resource import Resource
 from ..models.timetable import TimetableSession
 from ..models.user import User, UserRole
+from ..models.profiles import SchedulerProfile, Student, Lecturer
 from ..utils.dependencies import require_admin_user, require_admin_scheduler_or_manager
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -57,6 +58,53 @@ def _norm_day(value: Optional[str]) -> Optional[str]:
     tok = value.strip().lower()
     return DAY_MAP.get(tok) or DAY_MAP.get(tok[:3])
 
+
+
+def apply_scheduler_filters(db: Session, user: User, queries: dict):
+    if str(user.role) != "SCHEDULER":
+        return queries
+
+    scheduler = db.query(SchedulerProfile).filter(SchedulerProfile.user_id == user.user_id).first()
+    if not scheduler:
+        return queries
+
+    fac_id = scheduler.faculty_id
+    dept_subq = db.query(Department.dept_id).filter(Department.faculty_id == fac_id).subquery()
+    deg_subq = db.query(Degree.degree_id).filter(Degree.dept_id.in_(dept_subq)).subquery()
+
+    student_user_ids = db.query(Student.user_id).join(Batch, Batch.batch_id == Student.batch).filter(Batch.degree_id.in_(deg_subq)).subquery()
+    lecturer_user_ids = db.query(Lecturer.user_id).filter(Lecturer.department.in_(dept_subq)).subquery()
+
+    # Generic User filter
+    user_filter = User.user_id.in_(
+        db.query(User.user_id).filter(
+            (User.role == "STUDENT") & (User.user_id.in_(student_user_ids)) |
+            (User.role == "LECTURER") & (User.user_id.in_(lecturer_user_ids))
+        )
+    )
+
+    if "q_users" in queries: queries["q_users"] = queries["q_users"].filter(user_filter)
+    if "q_roles" in queries: queries["q_roles"] = queries["q_roles"].filter(user_filter)
+    if "q_active" in queries: queries["q_active"] = queries["q_active"].filter(user_filter)
+    if "q_inactive" in queries: queries["q_inactive"] = queries["q_inactive"].filter(user_filter)
+
+    if "q_faculties" in queries: queries["q_faculties"] = queries["q_faculties"].filter(Faculty.faculty_id == fac_id)
+    if "q_departments" in queries: queries["q_departments"] = queries["q_departments"].filter(Department.faculty_id == fac_id)
+    if "q_degrees" in queries: queries["q_degrees"] = queries["q_degrees"].filter(Degree.dept_id.in_(dept_subq))
+    if "q_batches" in queries: queries["q_batches"] = queries["q_batches"].filter(Batch.degree_id.in_(deg_subq))
+    if "q_modules" in queries: queries["q_modules"] = queries["q_modules"].filter(Module.dept_id.in_(dept_subq))
+
+    if "q_resources" in queries: queries["q_resources"] = queries["q_resources"].filter(Resource.faculty_id == fac_id)
+    if "q_sessions" in queries: queries["q_sessions"] = queries["q_sessions"].join(Module, TimetableSession.module_id == Module.module_id).filter(Module.dept_id.in_(dept_subq))
+    if "q_med" in queries: queries["q_med"] = queries["q_med"].join(Student, MedicalSubmission.student_user_id == Student.user_id).join(Batch, Student.batch == Batch.batch_id).filter(Batch.degree_id.in_(deg_subq))
+    if "q_reason" in queries: queries["q_reason"] = queries["q_reason"].join(Student, MedicalSubmission.student_user_id == Student.user_id).join(Batch, Student.batch == Batch.batch_id).filter(Batch.degree_id.in_(deg_subq))
+
+    # Schedulers shouldn't see requests
+    if "q_ev_reqs" in queries: queries["q_ev_reqs"] = queries["q_ev_reqs"].filter(False)
+    if "q_veh_reqs" in queries: queries["q_veh_reqs"] = queries["q_veh_reqs"].filter(False)
+    if "q_events" in queries: queries["q_events"] = queries["q_events"].filter(False)
+
+    return queries
 
 # ---------------------------------------------------------------------------
 # GET /api/reports/overview
@@ -89,6 +137,25 @@ def get_reports_overview(
         q_events = q_events.filter(Event.event_date <= end_date)
         q_medical = q_medical.filter(MedicalSubmission.start_date <= end_date)
 
+    # Base structural queries
+    q_faculties = db.query(Faculty)
+    q_departments = db.query(Department)
+    q_degrees = db.query(Degree)
+    q_batches = db.query(Batch)
+    q_modules = db.query(Module)
+    q_resources = db.query(Resource)
+    q_sessions = db.query(TimetableSession)
+
+    queries = apply_scheduler_filters(db, _, {
+        "q_users": q_users, "q_ev_reqs": q_ev_reqs, "q_veh_reqs": q_veh_reqs, 
+        "q_events": q_events, "q_medical": q_medical, "q_faculties": q_faculties,
+        "q_departments": q_departments, "q_degrees": q_degrees, "q_batches": q_batches,
+        "q_modules": q_modules, "q_resources": q_resources, "q_sessions": q_sessions
+    })
+    q_users, q_ev_reqs, q_veh_reqs, q_events, q_medical = queries["q_users"], queries["q_ev_reqs"], queries["q_veh_reqs"], queries["q_events"], queries["q_medical"]
+    q_faculties, q_departments, q_degrees, q_batches, q_modules = queries["q_faculties"], queries["q_departments"], queries["q_degrees"], queries["q_batches"], queries["q_modules"]
+    q_resources, q_sessions = queries["q_resources"], queries["q_sessions"]
+
     total_students = q_users.filter(User.role == "STUDENT").count()
     total_lecturers = q_users.filter(User.role == "LECTURER").count()
     total_schedulers = q_users.filter(User.role == "SCHEDULER").count()
@@ -96,14 +163,14 @@ def get_reports_overview(
     total_admins = q_users.filter(User.role == "SUPER_ADMIN").count()
     total_users = total_students + total_lecturers + total_schedulers + total_resource_managers + total_admins
 
-    # Unfiltered structural data
-    total_faculties = db.query(func.count(Faculty.faculty_id)).scalar() or 0
-    total_departments = db.query(func.count(Department.dept_id)).scalar() or 0
-    total_degrees = db.query(func.count(Degree.degree_id)).scalar() or 0
-    total_batches = db.query(func.count(Batch.batch_id)).scalar() or 0
-    total_modules = db.query(func.count(Module.module_id)).scalar() or 0
-    total_resources = db.query(func.count(Resource.resource_id)).scalar() or 0
-    active_resources = db.query(func.count(Resource.resource_id)).filter(Resource.is_active.is_(True)).scalar() or 0
+    # Filtered structural data
+    total_faculties = q_faculties.count()
+    total_departments = q_departments.count()
+    total_degrees = q_degrees.count()
+    total_batches = q_batches.count()
+    total_modules = q_modules.count()
+    total_resources = q_resources.count()
+    active_resources = q_resources.filter(Resource.is_active.is_(True)).count()
 
     pending_event_reqs = q_ev_reqs.filter(EventRequest.status == RequestStatus.PENDING).count()
     pending_vehicle_reqs = q_veh_reqs.filter(VehicleRequest.status == RequestStatus.PENDING).count()
@@ -112,8 +179,8 @@ def get_reports_overview(
     pending_medical = q_medical.filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).count()
     total_medical = q_medical.count()
 
-    total_sessions = db.query(func.count(TimetableSession.session_id)).scalar() or 0
-    published_sessions = db.query(func.count(TimetableSession.session_id)).filter(TimetableSession.status == "PUBLISHED").scalar() or 0
+    total_sessions = q_sessions.count()
+    published_sessions = q_sessions.filter(TimetableSession.status == "PUBLISHED").count()
 
     return {
         "users": {
@@ -177,6 +244,9 @@ def get_user_report(
         q_active = q_active.filter(User.created_at <= f"{end_date} 23:59:59")
         q_inactive = q_inactive.filter(User.created_at <= f"{end_date} 23:59:59")
 
+    queries = apply_scheduler_filters(db, _, {"q_roles": q_roles, "q_active": q_active, "q_inactive": q_inactive})
+    q_roles, q_active, q_inactive = queries["q_roles"], queries["q_active"], queries["q_inactive"]
+
     role_rows = q_roles.group_by(User.role).all()
     role_map = {r: c for r, c in role_rows}
 
@@ -208,11 +278,15 @@ def get_user_report(
 
 @router.get("/academic")
 def get_academic_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Academic structure breakdown."""
-    faculties = db.query(Faculty).all()
+    q_faculties = db.query(Faculty)
+    q_faculties = apply_scheduler_filters(db, _, {"q_faculties": q_faculties})["q_faculties"]
+    faculties = q_faculties.all()
 
     result = []
     for fac in faculties:
@@ -252,7 +326,9 @@ def get_academic_report(
         })
 
     # Module credits & hours distribution
-    modules = db.query(Module).all()
+    q_modules = db.query(Module)
+    q_modules = apply_scheduler_filters(db, _, {"q_modules": q_modules})["q_modules"]
+    modules = q_modules.all()
     credit_distribution = {}
     for m in modules:
         c = str(m.credits or 0)
@@ -274,15 +350,15 @@ def get_academic_report(
 
 @router.get("/resources")
 def get_resource_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Resource utilisation by type and faculty."""
-    type_rows = (
-        db.query(Resource.type, func.count(Resource.resource_id))
-        .group_by(Resource.type)
-        .all()
-    )
+    q_resources_grouped = db.query(Resource.type, func.count(Resource.resource_id))
+    q_resources_grouped = apply_scheduler_filters(db, _, {"q_resources": q_resources_grouped})["q_resources"]
+    type_rows = q_resources_grouped.group_by(Resource.type).all()
     total = sum(c for _, c in type_rows)
     by_type = [
         {
@@ -294,19 +370,18 @@ def get_resource_report(
     ]
 
     # Sessions per resource type (timetable usage)
-    session_type_rows = (
-        db.query(Resource.type, func.count(TimetableSession.session_id))
-        .join(TimetableSession, TimetableSession.resource_id == Resource.resource_id)
-        .group_by(Resource.type)
-        .all()
-    )
+    q_res_sessions = db.query(Resource.type, func.count(TimetableSession.session_id)).join(TimetableSession, TimetableSession.resource_id == Resource.resource_id)
+    q_res_sessions = apply_scheduler_filters(db, _, {"q_sessions": q_res_sessions})["q_sessions"]
+    session_type_rows = q_res_sessions.group_by(Resource.type).all()
     sessions_by_type = {t or "Other": c for t, c in session_type_rows}
 
     for item in by_type:
         item["sessions"] = sessions_by_type.get(item["name"], 0)
 
     # By faculty
-    faculties = db.query(Faculty).all()
+    q_faculties = db.query(Faculty)
+    q_faculties = apply_scheduler_filters(db, _, {"q_faculties": q_faculties})["q_faculties"]
+    faculties = q_faculties.all()
     by_faculty = []
     for fac in faculties:
         count = db.query(func.count(Resource.resource_id)).filter(Resource.faculty_id == fac.faculty_id).scalar() or 0
@@ -319,11 +394,9 @@ def get_resource_report(
         })
 
     # Capacity distribution
-    cap_rows = (
-        db.query(Resource.type, func.sum(Resource.capacity))
-        .group_by(Resource.type)
-        .all()
-    )
+    q_cap = db.query(Resource.type, func.sum(Resource.capacity))
+    q_cap = apply_scheduler_filters(db, _, {"q_resources": q_cap})["q_resources"]
+    cap_rows = q_cap.group_by(Resource.type).all()
     capacity_by_type = [{"type": t or "Other", "total_capacity": int(c or 0)} for t, c in cap_rows]
 
     return {
@@ -464,6 +537,9 @@ def get_medical_report(
         q_med = q_med.filter(MedicalSubmission.start_date <= end_date)
         q_reason = q_reason.filter(MedicalSubmission.start_date <= end_date)
 
+    queries = apply_scheduler_filters(db, _, {"q_med": q_med, "q_reason": q_reason})
+    q_med, q_reason = queries["q_med"], queries["q_reason"]
+
     total = q_med.count()
     pending = q_med.filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).count()
     approved = q_med.filter(MedicalSubmission.status == MedicalSubmissionStatus.APPROVED).count()
@@ -515,16 +591,17 @@ def get_medical_report(
 
 @router.get("/timetable")
 def get_timetable_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Timetable sessions analytics."""
     sessions_by_day = {day: 0 for day in DAY_ORDER}
-    rows = (
-        db.query(TimetableSession.day_of_week, func.count(TimetableSession.session_id))
-        .group_by(TimetableSession.day_of_week)
-        .all()
-    )
+    
+    q_sessions_grouped = db.query(TimetableSession.day_of_week, func.count(TimetableSession.session_id))
+    q_sessions_grouped = apply_scheduler_filters(db, _, {"q_sessions": q_sessions_grouped})["q_sessions"]
+    rows = q_sessions_grouped.group_by(TimetableSession.day_of_week).all()
     for day_val, cnt in rows:
         day = _norm_day(day_val)
         if day:
@@ -533,29 +610,23 @@ def get_timetable_report(
     weekly_chart = [{"day": d, "sessions": sessions_by_day[d]} for d in DAY_ORDER]
 
     # Published vs Draft
-    published = db.query(func.count(TimetableSession.session_id)).filter(TimetableSession.status == "PUBLISHED").scalar() or 0
-    draft = db.query(func.count(TimetableSession.session_id)).filter(TimetableSession.status != "PUBLISHED").scalar() or 0
+    q_sessions_cnt = db.query(func.count(TimetableSession.session_id))
+    q_sessions_cnt = apply_scheduler_filters(db, _, {"q_sessions": q_sessions_cnt})["q_sessions"]
+    published = q_sessions_cnt.filter(TimetableSession.status == "PUBLISHED").scalar() or 0
+    draft = q_sessions_cnt.filter(TimetableSession.status != "PUBLISHED").scalar() or 0
     total = published + draft
 
     # Sessions per resource type
-    type_rows = (
-        db.query(Resource.type, func.count(TimetableSession.session_id))
-        .join(TimetableSession, TimetableSession.resource_id == Resource.resource_id)
-        .group_by(Resource.type)
-        .all()
-    )
+    q_tt_type = db.query(Resource.type, func.count(TimetableSession.session_id)).join(TimetableSession, TimetableSession.resource_id == Resource.resource_id)
+    q_tt_type = apply_scheduler_filters(db, _, {"q_sessions": q_tt_type})["q_sessions"]
+    type_rows = q_tt_type.group_by(Resource.type).all()
     by_resource_type = [{"type": t or "Other", "count": c} for t, c in type_rows]
 
     # Lecturer load (top 10 by session count)
     from ..models.profiles import Lecturer as LecturerProfile
-    lect_rows = (
-        db.query(LecturerProfile.id, func.count(TimetableSession.session_id))
-        .join(TimetableSession, TimetableSession.lecturer_id == LecturerProfile.id)
-        .group_by(LecturerProfile.id)
-        .order_by(func.count(TimetableSession.session_id).desc())
-        .limit(10)
-        .all()
-    )
+    q_lect_load = db.query(LecturerProfile.id, func.count(TimetableSession.session_id)).join(TimetableSession, TimetableSession.lecturer_id == LecturerProfile.id)
+    q_lect_load = apply_scheduler_filters(db, _, {"q_sessions": q_lect_load})["q_sessions"]
+    lect_rows = q_lect_load.group_by(LecturerProfile.id).order_by(func.count(TimetableSession.session_id).desc()).limit(10).all()
     lecturer_load = []
     for lp_id, cnt in lect_rows:
         lp = db.query(LecturerProfile).filter(LecturerProfile.id == lp_id).first()

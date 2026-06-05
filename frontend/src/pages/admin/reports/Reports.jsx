@@ -84,6 +84,7 @@ function downloadFile(content, filename, type) {
 export default function Reports({ isComponent = false }) {
   const user = getUser();
   const isResourceManager = user?.role === "ResourceManager" || user?.role === "RESOURCE_MANAGER";
+  const isScheduler = user?.role === "Scheduler" || user?.role === "SCHEDULER";
   
   const [activeTab, setActiveTab] = useState(isResourceManager ? "resources" : "overview");
   const [dateFilter, setDateFilter] = useState("all");
@@ -102,9 +103,12 @@ export default function Reports({ isComponent = false }) {
     { id: "timetable",  label: "Timetables",        icon: <CalendarDays size={16} /> },
   ];
 
-  const TABS = isResourceManager 
-    ? ALL_TABS.filter(t => ["resources", "requests"].includes(t.id))
-    : ALL_TABS;
+  let TABS = ALL_TABS;
+  if (isResourceManager) {
+    TABS = ALL_TABS.filter(t => ["resources", "requests"].includes(t.id));
+  } else if (isScheduler) {
+    TABS = ALL_TABS.filter(t => t.id !== "requests");
+  }
 
   const fetchTab = async (tab, filterVal) => {
     const cacheKey = `${tab}_${filterVal}`;
@@ -195,7 +199,7 @@ export default function Reports({ isComponent = false }) {
         </div>
       ) : tabData ? (
         <div ref={contentRef} className="space-y-6 print:p-8 print:bg-white bg-transparent">
-          {activeTab === "overview"  && <OverviewTab  d={tabData} />}
+          {activeTab === "overview"  && <OverviewTab  d={tabData} isScheduler={isScheduler} />}
           {activeTab === "users"     && <UsersTab     d={tabData} />}
           {activeTab === "academic"  && <AcademicTab  d={tabData} />}
           {activeTab === "resources" && <ResourcesTab d={tabData} />}
@@ -315,7 +319,7 @@ function ExportDropdown({ tab, tabData, contentRef }) {
 }
 
 // ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
-function OverviewTab({ d }) {
+function OverviewTab({ d, isScheduler }) {
   const userRolesChart = [
     { name: "Students",         value: d.users?.students || 0 },
     { name: "Lecturers",        value: d.users?.lecturers || 0 },
@@ -334,8 +338,12 @@ function OverviewTab({ d }) {
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KpiCard title="Pending Events" value={d.requests?.pending_events} />
-        <KpiCard title="Pending Vehicles" value={d.requests?.pending_vehicles} />
+        {!isScheduler && (
+          <>
+            <KpiCard title="Pending Events" value={d.requests?.pending_events} />
+            <KpiCard title="Pending Vehicles" value={d.requests?.pending_vehicles} />
+          </>
+        )}
         <KpiCard title="Pending Medical" value={d.medical?.pending} />
         <KpiCard title="Published Sessions" value={d.timetable?.published_sessions} />
       </div>

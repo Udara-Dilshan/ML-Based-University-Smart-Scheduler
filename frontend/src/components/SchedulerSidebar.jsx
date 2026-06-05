@@ -208,33 +208,7 @@ export default function SchedulerSidebar() {
           Resources
         </NavLink>
 
-        {/* Requests */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setIsRequestsOpen((prev) => !prev)}
-            className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <ClipboardList size={16} />
-              <span>Requests</span>
-            </div>
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${isRequestsOpen ? "rotate-180" : "rotate-0"}`}
-            />
-          </button>
-          {isRequestsOpen && (
-            <div className="space-y-1 px-6 pt-1">
-              <NavLink to="/scheduler/requests/events" className={subItemClass}>
-                Event Requests
-              </NavLink>
-              <NavLink to="/scheduler/requests/vehicles" className={subItemClass}>
-                Vehicle Requests
-              </NavLink>
-            </div>
-          )}
-        </div>
+
 
         {/* Medical Submissions */}
         <NavLink to="/scheduler/medical-submissions" className={navItemClass}>
