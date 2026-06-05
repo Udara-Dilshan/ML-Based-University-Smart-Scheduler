@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
 import {
-  BarChart3, Users, BookOpen, Boxes, ClipboardList, FileHeart, CalendarDays, Download, ChevronDown, FileText, FileSpreadsheet, Printer
+  BarChart3, Users, BookOpen, Boxes, ClipboardList, FileHeart, CalendarDays, Download, ChevronDown, FileText, FileSpreadsheet, Printer, Filter
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 
@@ -86,6 +86,7 @@ export default function Reports({ isComponent = false }) {
   const isResourceManager = user?.role === "ResourceManager" || user?.role === "RESOURCE_MANAGER";
   
   const [activeTab, setActiveTab] = useState(isResourceManager ? "resources" : "overview");
+  const [dateFilter, setDateFilter] = useState("all");
   const [data, setData] = useState({});
   const [loading, setLoading] = useState({});
   const [errors, setErrors] = useState({});
@@ -105,31 +106,56 @@ export default function Reports({ isComponent = false }) {
     ? ALL_TABS.filter(t => ["resources", "requests"].includes(t.id))
     : ALL_TABS;
 
-  const fetchTab = async (tab) => {
-    if (data[tab] || loading[tab]) return;
-    setLoading(l => ({ ...l, [tab]: true }));
+  const fetchTab = async (tab, filterVal) => {
+    const cacheKey = `${tab}_${filterVal}`;
+    if (data[cacheKey] || loading[cacheKey]) return;
+    
+    setLoading(l => ({ ...l, [cacheKey]: true }));
     try {
+      let params = {};
+      const today = new Date();
+      
+      if (filterVal === "today") {
+        params.start_date = today.toISOString().split("T")[0];
+        params.end_date = today.toISOString().split("T")[0];
+      } else if (filterVal === "7days") {
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - 7);
+        params.start_date = pastDate.toISOString().split("T")[0];
+        params.end_date = today.toISOString().split("T")[0];
+      } else if (filterVal === "30days") {
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - 30);
+        params.start_date = pastDate.toISOString().split("T")[0];
+        params.end_date = today.toISOString().split("T")[0];
+      } else if (filterVal === "this_year") {
+        params.start_date = `${today.getFullYear()}-01-01`;
+        params.end_date = `${today.getFullYear()}-12-31`;
+      }
+
       let result;
-      if (tab === "overview")  result = await reportAPI.getOverview();
-      if (tab === "users")     result = await reportAPI.getUsers();
-      if (tab === "academic")  result = await reportAPI.getAcademic();
-      if (tab === "resources") result = await reportAPI.getResources();
-      if (tab === "requests")  result = await reportAPI.getRequests();
-      if (tab === "medical")   result = await reportAPI.getMedical();
-      if (tab === "timetable") result = await reportAPI.getTimetable();
-      setData(d => ({ ...d, [tab]: result }));
+      if (tab === "overview")  result = await reportAPI.getOverview(params);
+      if (tab === "users")     result = await reportAPI.getUsers(params);
+      if (tab === "academic")  result = await reportAPI.getAcademic(params);
+      if (tab === "resources") result = await reportAPI.getResources(params);
+      if (tab === "requests")  result = await reportAPI.getRequests(params);
+      if (tab === "medical")   result = await reportAPI.getMedical(params);
+      if (tab === "timetable") result = await reportAPI.getTimetable(params);
+      
+      setData(d => ({ ...d, [cacheKey]: result }));
     } catch (e) {
-      setErrors(err => ({ ...err, [tab]: e?.message || "Failed to load" }));
+      setErrors(err => ({ ...err, [cacheKey]: e?.message || "Failed to load" }));
     } finally {
-      setLoading(l => ({ ...l, [tab]: false }));
+      setLoading(l => ({ ...l, [cacheKey]: false }));
     }
   };
 
-  useEffect(() => { fetchTab(activeTab); }, [activeTab]);
+  useEffect(() => { fetchTab(activeTab, dateFilter); }, [activeTab, dateFilter]);
 
-  const isLoading = loading[activeTab];
-  const tabData   = data[activeTab];
-  const tabError  = errors[activeTab];
+  const currentCacheKey = `${activeTab}_${dateFilter}`;
+  const isLoading = loading[currentCacheKey];
+  const tabData   = data[currentCacheKey];
+  const tabError  = errors[currentCacheKey];
 
   const content = (
     <>
@@ -138,7 +164,10 @@ export default function Reports({ isComponent = false }) {
           <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
           <p className="text-sm text-gray-500 mt-1">Comprehensive institutional data insights and statistics</p>
         </div>
-        <ExportDropdown tab={activeTab} tabData={tabData} contentRef={contentRef} />
+        <div className="flex items-center gap-3">
+          <DateFilterDropdown value={dateFilter} onChange={setDateFilter} />
+          <ExportDropdown tab={activeTab} tabData={tabData} contentRef={contentRef} />
+        </div>
       </div>
 
       <div className="flex overflow-x-auto space-x-1 border-b border-gray-200 mb-6 pb-px">
@@ -889,6 +918,55 @@ function TimetableTab({ d }) {
             </ResponsiveContainer>
           </div>
         </Card>
+      )}
+    </div>
+  );
+}
+// ─── Date Filter Dropdown ─────────────────────────────────────────────────────
+function DateFilterDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const options = [
+    { id: "all", label: "All Time" },
+    { id: "today", label: "Today" },
+    { id: "7days", label: "Last 7 Days" },
+    { id: "30days", label: "Last 30 Days" },
+    { id: "this_year", label: "This Year" },
+  ];
+  
+  const currentLabel = options.find(o => o.id === value)?.label || "Filter";
+
+  return (
+    <div ref={ref} className="relative z-40">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        <Filter size={16} className="text-gray-400" />
+        {currentLabel}
+        <ChevronDown size={14} className="text-gray-400" />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+          <div className="py-1" role="menu" aria-orientation="vertical">
+            {options.map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => { onChange(opt.id); setOpen(false); }}
+                className={`w-full text-left px-4 py-2 text-sm ${value === opt.id ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

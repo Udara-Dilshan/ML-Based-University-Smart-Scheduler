@@ -503,32 +503,32 @@ export const studentAPI = {
 };
 
 export const reportAPI = {
-  getOverview: async () => {
-    const response = await api.get("/api/reports/overview");
+  getOverview: async (params) => {
+    const response = await api.get("/api/reports/overview", { params });
     return response.data;
   },
-  getUsers: async () => {
-    const response = await api.get("/api/reports/users");
+  getUsers: async (params) => {
+    const response = await api.get("/api/reports/users", { params });
     return response.data;
   },
-  getAcademic: async () => {
-    const response = await api.get("/api/reports/academic");
+  getAcademic: async (params) => {
+    const response = await api.get("/api/reports/academic", { params });
     return response.data;
   },
-  getResources: async () => {
-    const response = await api.get("/api/reports/resources");
+  getResources: async (params) => {
+    const response = await api.get("/api/reports/resources", { params });
     return response.data;
   },
-  getRequests: async () => {
-    const response = await api.get("/api/reports/requests");
+  getRequests: async (params) => {
+    const response = await api.get("/api/reports/requests", { params });
     return response.data;
   },
-  getMedical: async () => {
-    const response = await api.get("/api/reports/medical");
+  getMedical: async (params) => {
+    const response = await api.get("/api/reports/medical", { params });
     return response.data;
   },
-  getTimetable: async () => {
-    const response = await api.get("/api/reports/timetable");
+  getTimetable: async (params) => {
+    const response = await api.get("/api/reports/timetable", { params });
     return response.data;
   },
 };

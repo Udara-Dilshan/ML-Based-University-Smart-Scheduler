@@ -16,6 +16,7 @@ Covers:
 from __future__ import annotations
 
 from typing import List, Optional
+from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import Session
@@ -63,32 +64,53 @@ def _norm_day(value: Optional[str]) -> Optional[str]:
 
 @router.get("/overview")
 def get_reports_overview(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Top-level KPI cards for the Reports page."""
-    total_students = db.query(func.count(User.user_id)).filter(User.role == "STUDENT").scalar() or 0
-    total_lecturers = db.query(func.count(User.user_id)).filter(User.role == "LECTURER").scalar() or 0
-    total_schedulers = db.query(func.count(User.user_id)).filter(User.role == "SCHEDULER").scalar() or 0
-    total_resource_managers = db.query(func.count(User.user_id)).filter(User.role == "RESOURCE_MANAGER").scalar() or 0
-    total_admins = db.query(func.count(User.user_id)).filter(User.role == "SUPER_ADMIN").scalar() or 0
+    q_users = db.query(User)
+    q_ev_reqs = db.query(EventRequest)
+    q_veh_reqs = db.query(VehicleRequest)
+    q_events = db.query(Event)
+    q_medical = db.query(MedicalSubmission)
+
+    if start_date:
+        q_users = q_users.filter(User.created_at >= start_date)
+        q_ev_reqs = q_ev_reqs.filter(EventRequest.event_date >= start_date)
+        q_veh_reqs = q_veh_reqs.filter(VehicleRequest.trip_date >= start_date)
+        q_events = q_events.filter(Event.event_date >= start_date)
+        q_medical = q_medical.filter(MedicalSubmission.start_date >= start_date)
+    if end_date:
+        q_users = q_users.filter(User.created_at <= f"{end_date} 23:59:59")
+        q_ev_reqs = q_ev_reqs.filter(EventRequest.event_date <= end_date)
+        q_veh_reqs = q_veh_reqs.filter(VehicleRequest.trip_date <= end_date)
+        q_events = q_events.filter(Event.event_date <= end_date)
+        q_medical = q_medical.filter(MedicalSubmission.start_date <= end_date)
+
+    total_students = q_users.filter(User.role == "STUDENT").count()
+    total_lecturers = q_users.filter(User.role == "LECTURER").count()
+    total_schedulers = q_users.filter(User.role == "SCHEDULER").count()
+    total_resource_managers = q_users.filter(User.role == "RESOURCE_MANAGER").count()
+    total_admins = q_users.filter(User.role == "SUPER_ADMIN").count()
     total_users = total_students + total_lecturers + total_schedulers + total_resource_managers + total_admins
 
+    # Unfiltered structural data
     total_faculties = db.query(func.count(Faculty.faculty_id)).scalar() or 0
     total_departments = db.query(func.count(Department.dept_id)).scalar() or 0
     total_degrees = db.query(func.count(Degree.degree_id)).scalar() or 0
     total_batches = db.query(func.count(Batch.batch_id)).scalar() or 0
     total_modules = db.query(func.count(Module.module_id)).scalar() or 0
-
     total_resources = db.query(func.count(Resource.resource_id)).scalar() or 0
     active_resources = db.query(func.count(Resource.resource_id)).filter(Resource.is_active.is_(True)).scalar() or 0
 
-    pending_event_reqs = db.query(func.count(EventRequest.req_id)).filter(EventRequest.status == RequestStatus.PENDING).scalar() or 0
-    pending_vehicle_reqs = db.query(func.count(VehicleRequest.req_id)).filter(VehicleRequest.status == RequestStatus.PENDING).scalar() or 0
-    total_events = db.query(func.count(Event.event_id)).scalar() or 0
+    pending_event_reqs = q_ev_reqs.filter(EventRequest.status == RequestStatus.PENDING).count()
+    pending_vehicle_reqs = q_veh_reqs.filter(VehicleRequest.status == RequestStatus.PENDING).count()
+    total_events = q_events.count()
 
-    pending_medical = db.query(func.count(MedicalSubmission.submission_id)).filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).scalar() or 0
-    total_medical = db.query(func.count(MedicalSubmission.submission_id)).scalar() or 0
+    pending_medical = q_medical.filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).count()
+    total_medical = q_medical.count()
 
     total_sessions = db.query(func.count(TimetableSession.session_id)).scalar() or 0
     published_sessions = db.query(func.count(TimetableSession.session_id)).filter(TimetableSession.status == "PUBLISHED").scalar() or 0
@@ -136,19 +158,30 @@ def get_reports_overview(
 
 @router.get("/users")
 def get_user_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Users breakdown: role pie chart + active/inactive."""
-    role_rows = (
-        db.query(User.role, func.count(User.user_id))
-        .group_by(User.role)
-        .all()
-    )
+    q_roles = db.query(User.role, func.count(User.user_id))
+    q_active = db.query(func.count(User.user_id)).filter(User.is_active.is_(True))
+    q_inactive = db.query(func.count(User.user_id)).filter(User.is_active.is_(False))
+
+    if start_date:
+        q_roles = q_roles.filter(User.created_at >= start_date)
+        q_active = q_active.filter(User.created_at >= start_date)
+        q_inactive = q_inactive.filter(User.created_at >= start_date)
+    if end_date:
+        q_roles = q_roles.filter(User.created_at <= f"{end_date} 23:59:59")
+        q_active = q_active.filter(User.created_at <= f"{end_date} 23:59:59")
+        q_inactive = q_inactive.filter(User.created_at <= f"{end_date} 23:59:59")
+
+    role_rows = q_roles.group_by(User.role).all()
     role_map = {r: c for r, c in role_rows}
 
-    active_total = db.query(func.count(User.user_id)).filter(User.is_active.is_(True)).scalar() or 0
-    inactive_total = db.query(func.count(User.user_id)).filter(User.is_active.is_(False)).scalar() or 0
+    active_total = q_active.scalar() or 0
+    inactive_total = q_inactive.scalar() or 0
     total = active_total + inactive_total
 
     roles = [
@@ -307,21 +340,42 @@ def get_resource_report(
 
 @router.get("/requests")
 def get_requests_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Event and vehicle request status analytics."""
+    q_ev = db.query(EventRequest)
+    q_veh = db.query(VehicleRequest)
+    q_evt_type = db.query(Event.event_type, func.count(Event.event_id))
+    q_recent_ev = db.query(EventRequest)
+    q_recent_veh = db.query(VehicleRequest)
+
+    if start_date:
+        q_ev = q_ev.filter(EventRequest.event_date >= start_date)
+        q_veh = q_veh.filter(VehicleRequest.trip_date >= start_date)
+        q_evt_type = q_evt_type.filter(Event.event_date >= start_date)
+        q_recent_ev = q_recent_ev.filter(EventRequest.event_date >= start_date)
+        q_recent_veh = q_recent_veh.filter(VehicleRequest.trip_date >= start_date)
+    if end_date:
+        q_ev = q_ev.filter(EventRequest.event_date <= end_date)
+        q_veh = q_veh.filter(VehicleRequest.trip_date <= end_date)
+        q_evt_type = q_evt_type.filter(Event.event_date <= end_date)
+        q_recent_ev = q_recent_ev.filter(EventRequest.event_date <= end_date)
+        q_recent_veh = q_recent_veh.filter(VehicleRequest.trip_date <= end_date)
+
     # Event requests
-    ev_total = db.query(func.count(EventRequest.req_id)).scalar() or 0
-    ev_pending = db.query(func.count(EventRequest.req_id)).filter(EventRequest.status == RequestStatus.PENDING).scalar() or 0
-    ev_approved = db.query(func.count(EventRequest.req_id)).filter(EventRequest.status == RequestStatus.APPROVED).scalar() or 0
-    ev_rejected = db.query(func.count(EventRequest.req_id)).filter(EventRequest.status == RequestStatus.REJECTED).scalar() or 0
+    ev_total = q_ev.count()
+    ev_pending = q_ev.filter(EventRequest.status == RequestStatus.PENDING).count()
+    ev_approved = q_ev.filter(EventRequest.status == RequestStatus.APPROVED).count()
+    ev_rejected = q_ev.filter(EventRequest.status == RequestStatus.REJECTED).count()
 
     # Vehicle requests
-    veh_total = db.query(func.count(VehicleRequest.req_id)).scalar() or 0
-    veh_pending = db.query(func.count(VehicleRequest.req_id)).filter(VehicleRequest.status == RequestStatus.PENDING).scalar() or 0
-    veh_approved = db.query(func.count(VehicleRequest.req_id)).filter(VehicleRequest.status == RequestStatus.APPROVED).scalar() or 0
-    veh_rejected = db.query(func.count(VehicleRequest.req_id)).filter(VehicleRequest.status == RequestStatus.REJECTED).scalar() or 0
+    veh_total = q_veh.count()
+    veh_pending = q_veh.filter(VehicleRequest.status == RequestStatus.PENDING).count()
+    veh_approved = q_veh.filter(VehicleRequest.status == RequestStatus.APPROVED).count()
+    veh_rejected = q_veh.filter(VehicleRequest.status == RequestStatus.REJECTED).count()
 
     status_chart = [
         {"status": "Pending",  "events": ev_pending,  "vehicles": veh_pending},
@@ -330,16 +384,12 @@ def get_requests_report(
     ]
 
     # Event type distribution
-    type_rows = (
-        db.query(Event.event_type, func.count(Event.event_id))
-        .group_by(Event.event_type)
-        .all()
-    )
+    type_rows = q_evt_type.group_by(Event.event_type).all()
     event_types = [{"type": t or "General", "count": c} for t, c in type_rows]
 
     # Recent event requests
     recent_event_reqs = (
-        db.query(EventRequest)
+        q_recent_ev
         .order_by(EventRequest.req_id.desc())
         .limit(10)
         .all()
@@ -356,7 +406,7 @@ def get_requests_report(
 
     # Recent vehicle requests
     recent_veh_reqs = (
-        db.query(VehicleRequest)
+        q_recent_veh
         .order_by(VehicleRequest.req_id.desc())
         .limit(10)
         .all()
@@ -398,26 +448,34 @@ def get_requests_report(
 
 @router.get("/medical")
 def get_medical_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Medical submission analytics."""
-    total = db.query(func.count(MedicalSubmission.submission_id)).scalar() or 0
-    pending = db.query(func.count(MedicalSubmission.submission_id)).filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).scalar() or 0
-    approved = db.query(func.count(MedicalSubmission.submission_id)).filter(MedicalSubmission.status == MedicalSubmissionStatus.APPROVED).scalar() or 0
-    rejected = db.query(func.count(MedicalSubmission.submission_id)).filter(MedicalSubmission.status == MedicalSubmissionStatus.REJECTED).scalar() or 0
+    q_med = db.query(MedicalSubmission)
+    q_reason = db.query(MedicalSubmission.reason, func.count(MedicalSubmission.submission_id))
+
+    if start_date:
+        q_med = q_med.filter(MedicalSubmission.start_date >= start_date)
+        q_reason = q_reason.filter(MedicalSubmission.start_date >= start_date)
+    if end_date:
+        q_med = q_med.filter(MedicalSubmission.start_date <= end_date)
+        q_reason = q_reason.filter(MedicalSubmission.start_date <= end_date)
+
+    total = q_med.count()
+    pending = q_med.filter(MedicalSubmission.status == MedicalSubmissionStatus.PENDING).count()
+    approved = q_med.filter(MedicalSubmission.status == MedicalSubmissionStatus.APPROVED).count()
+    rejected = q_med.filter(MedicalSubmission.status == MedicalSubmissionStatus.REJECTED).count()
 
     # By reason
-    reason_rows = (
-        db.query(MedicalSubmission.reason, func.count(MedicalSubmission.submission_id))
-        .group_by(MedicalSubmission.reason)
-        .all()
-    )
+    reason_rows = q_reason.group_by(MedicalSubmission.reason).all()
     by_reason = [{"reason": r or "Other", "count": c} for r, c in reason_rows]
 
     # Recent submissions
     recent = (
-        db.query(MedicalSubmission)
+        q_med
         .order_by(MedicalSubmission.submission_id.desc())
         .limit(10)
         .all()
