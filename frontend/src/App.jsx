@@ -7,6 +7,7 @@ import ManageRooms from "./pages/resource/ManageRooms";
 import ManageEquipment from "./pages/resource/ManageEquipment";
 import ManageVehicles from "./pages/resource/ManageVehicles";
 import ManageEvents from "./pages/resource/ManageEvents";
+import ManageVehicleBookings from "./pages/resource/ManageVehicleBookings";
 import EventRequests from "./pages/resource/EventRequests";
 import VehicleRequests from "./pages/resource/VehicleRequests";
 
@@ -168,6 +169,7 @@ function App() {
             <Route path="/resource/equipment" element={<ManageEquipment />} />
             <Route path="/resource/vehicles" element={<ManageVehicles />} />
             <Route path="/resource/events" element={<ManageEvents />} />
+            <Route path="/resource/direct-vehicles" element={<ManageVehicleBookings />} />
             <Route path="/resource/event-requests" element={<EventRequests />} />
             <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
             <Route path="/resource/profile" element={<ResourceProfile />} />

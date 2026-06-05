@@ -28,6 +28,7 @@ from app.services.booking_ai import (
     check_event_request,
     check_vehicle_request,
     check_direct_event,
+    check_direct_vehicle,
 )
 
 router = APIRouter(prefix="/booking-requests", tags=["booking-requests"])
@@ -101,6 +102,7 @@ def _serialize_vehicle_request(req: VehicleRequest, ai_result: Optional[Dict] = 
         "requested_by_user_id": req.requested_by_user_id,
         "requester_name": f"{requester.first_name} {requester.last_name}" if requester else "Unknown",
         "requester_email": requester.email if requester else None,
+        "requester_role": requester.role if requester else None,
         "vehicle_type_needed": req.vehicle_type_needed,
         "passenger_count": req.passenger_count,
         "trip_date": req.trip_date.isoformat() if req.trip_date else None,
@@ -168,6 +170,16 @@ class DirectEventCreate(BaseModel):
     end_time: datetime.time
     description: Optional[str] = None
     event_type: Optional[str] = None   # "Academic", "Sports", "Cultural", etc.
+
+
+class DirectVehicleCreate(BaseModel):
+    assigned_vehicle_id: int
+    trip_date: datetime.date
+    start_time: datetime.time
+    end_time: datetime.time
+    passenger_count: Optional[int] = 1
+    destination: Optional[str] = None
+    purpose: Optional[str] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -658,6 +670,128 @@ def delete_direct_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     db.delete(event)
+    db.commit()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DIRECT VEHICLE BOOKINGS — Resource Manager / Admin
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/direct-vehicles")
+def list_direct_vehicles(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_manager),
+):
+    """List all approved vehicle bookings."""
+    reqs = (
+        db.query(VehicleRequest)
+        .filter(VehicleRequest.status == RequestStatus.APPROVED)
+        .order_by(VehicleRequest.trip_date.desc(), VehicleRequest.start_time.desc())
+        .all()
+    )
+    return [_serialize_vehicle_request(r) for r in reqs]
+
+
+@router.post("/direct-vehicles", status_code=status.HTTP_201_CREATED)
+def create_direct_vehicle(
+    payload: DirectVehicleCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_manager),
+):
+    """Create a direct vehicle booking, doing AI conflict check first."""
+    if payload.start_time >= payload.end_time:
+        raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == payload.assigned_vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    if not vehicle.is_available:
+        raise HTTPException(status_code=409, detail="Vehicle is not available.")
+
+    conflict = check_direct_vehicle(
+        db=db,
+        assigned_vehicle_id=payload.assigned_vehicle_id,
+        trip_date=payload.trip_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+    )
+    if conflict["has_conflict"]:
+        raise HTTPException(status_code=409, detail=f"Conflict detected: {conflict['clash_detail']}")
+
+    req = VehicleRequest(
+        requested_by_user_id=current_user.user_id,
+        vehicle_type_needed=vehicle.type,
+        passenger_count=payload.passenger_count,
+        trip_date=payload.trip_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        destination=(payload.destination or "").strip() or None,
+        purpose=(payload.purpose or "").strip() or None,
+        status=RequestStatus.APPROVED,
+        assigned_vehicle_id=vehicle.vehicle_id,
+    )
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    return _serialize_vehicle_request(req)
+
+
+@router.put("/direct-vehicles/{req_id}", status_code=status.HTTP_200_OK)
+def update_direct_vehicle(
+    req_id: int,
+    payload: DirectVehicleCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_manager),
+):
+    """Update an approved vehicle booking."""
+    if payload.start_time >= payload.end_time:
+        raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    req = db.query(VehicleRequest).filter(VehicleRequest.req_id == req_id, VehicleRequest.status == RequestStatus.APPROVED).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Vehicle booking not found or not approved")
+
+    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == payload.assigned_vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    conflict = check_direct_vehicle(
+        db=db,
+        assigned_vehicle_id=payload.assigned_vehicle_id,
+        trip_date=payload.trip_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        exclude_req_id=req_id,
+    )
+    if conflict["has_conflict"]:
+        raise HTTPException(status_code=409, detail=f"Conflict detected: {conflict['clash_detail']}")
+
+    req.assigned_vehicle_id = payload.assigned_vehicle_id
+    req.vehicle_type_needed = vehicle.type
+    req.passenger_count = payload.passenger_count
+    req.trip_date = payload.trip_date
+    req.start_time = payload.start_time
+    req.end_time = payload.end_time
+    req.destination = (payload.destination or "").strip() or None
+    req.purpose = (payload.purpose or "").strip() or None
+
+    db.commit()
+    db.refresh(req)
+    return _serialize_vehicle_request(req)
+
+
+@router.delete("/direct-vehicles/{req_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_direct_vehicle(
+    req_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_manager),
+):
+    req = db.query(VehicleRequest).filter(VehicleRequest.req_id == req_id, VehicleRequest.status == RequestStatus.APPROVED).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Vehicle booking not found or not approved")
+    
+    db.delete(req)
     db.commit()
 
 

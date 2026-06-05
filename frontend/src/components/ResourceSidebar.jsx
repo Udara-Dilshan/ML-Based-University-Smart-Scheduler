@@ -65,6 +65,10 @@ export default function ResourceSidebar() {
           <CalendarPlus size={16} />Manage Events
         </NavLink>
 
+        <NavLink to="/resource/direct-vehicles" className={navItemClass}>
+          <Car size={16} />Manage Vehicle Bookings
+        </NavLink>
+
       </nav>
 
       {/* User */}

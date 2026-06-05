@@ -328,6 +328,23 @@ export const bookingAPI = {
     await api.delete(`/booking-requests/direct-events/${id}`);
   },
 
+  // ── Resource Manager: Direct Vehicle CRUD ────────────────────────────
+  getDirectVehicles: async () => {
+    const response = await api.get("/booking-requests/direct-vehicles");
+    return response.data;
+  },
+  createDirectVehicle: async (payload) => {
+    const response = await api.post("/booking-requests/direct-vehicles", payload);
+    return response.data;
+  },
+  updateDirectVehicle: async (id, payload) => {
+    const response = await api.put(`/booking-requests/direct-vehicles/${id}`, payload);
+    return response.data;
+  },
+  deleteDirectVehicle: async (id) => {
+    await api.delete(`/booking-requests/direct-vehicles/${id}`);
+  },
+
   // ── Dashboard summary badges ───────────────────────────────────────────
   getBookingSummary: async () => {
     const response = await api.get("/booking-requests/summary");
@@ -481,6 +498,37 @@ export const studentAPI = {
   },
   getDashboardSummary: async () => {
     const response = await api.get("/api/dashboard/student-summary");
+    return response.data;
+  },
+};
+
+export const reportAPI = {
+  getOverview: async () => {
+    const response = await api.get("/api/reports/overview");
+    return response.data;
+  },
+  getUsers: async () => {
+    const response = await api.get("/api/reports/users");
+    return response.data;
+  },
+  getAcademic: async () => {
+    const response = await api.get("/api/reports/academic");
+    return response.data;
+  },
+  getResources: async () => {
+    const response = await api.get("/api/reports/resources");
+    return response.data;
+  },
+  getRequests: async () => {
+    const response = await api.get("/api/reports/requests");
+    return response.data;
+  },
+  getMedical: async () => {
+    const response = await api.get("/api/reports/medical");
+    return response.data;
+  },
+  getTimetable: async () => {
+    const response = await api.get("/api/reports/timetable");
     return response.data;
   },
 };

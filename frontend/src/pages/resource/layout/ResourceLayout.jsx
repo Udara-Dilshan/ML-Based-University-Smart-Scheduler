@@ -11,6 +11,8 @@ const pageTitles = {
   "/resource/vehicle-requests": "Vehicle Requests",
   "/resource/profile": "Profile",
   "/resource/settings": "Settings",
+  "/resource/events": "Manage Events",
+  "/resource/direct-vehicles": "Manage Vehicle Bookings",
 };
 
 export default function ResourceLayout() {

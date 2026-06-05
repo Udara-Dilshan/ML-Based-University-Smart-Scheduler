@@ -413,3 +413,49 @@ def check_direct_event(
             }
 
     return {"has_conflict": False, "clash_detail": None}
+
+
+# ---------------------------------------------------------------------------
+# DIRECT VEHICLE CONFLICT CHECK (for Admin/Resource Manager direct-add)
+# ---------------------------------------------------------------------------
+
+def check_direct_vehicle(
+    db: Session,
+    assigned_vehicle_id: int,
+    trip_date: datetime.date,
+    start_time: datetime.time,
+    end_time: datetime.time,
+    exclude_req_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Check if a direct vehicle booking has conflicts.
+
+    Returns:
+      {
+        "has_conflict": bool,
+        "clash_detail": str | None
+      }
+    """
+    conflicting_query = (
+        db.query(VehicleRequest)
+        .filter(
+            VehicleRequest.assigned_vehicle_id == assigned_vehicle_id,
+            VehicleRequest.trip_date == trip_date,
+            VehicleRequest.status == RequestStatus.APPROVED,
+        )
+    )
+    if exclude_req_id:
+        conflicting_query = conflicting_query.filter(VehicleRequest.req_id != exclude_req_id)
+
+    for vr in conflicting_query.all():
+        if vr.start_time and vr.end_time:
+            if _times_overlap(start_time, end_time, vr.start_time, vr.end_time):
+                return {
+                    "has_conflict": True,
+                    "clash_detail": (
+                        f"Vehicle is already assigned to a request "
+                        f"from {vr.start_time.strftime('%H:%M')} — {vr.end_time.strftime('%H:%M')}"
+                    ),
+                }
+
+    return {"has_conflict": False, "clash_detail": None}
