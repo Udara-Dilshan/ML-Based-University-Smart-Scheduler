@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
-import { academicAPI } from "../../../services/api";
+import { academicAPI, getUser } from "../../../services/api";
 
 export default function LecturerAllocations() {
+  const currentUser = getUser();
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [degrees, setDegrees] = useState([]);
@@ -278,7 +279,9 @@ export default function LecturerAllocations() {
               disabled={loading}
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
             >
-              <option value="">All Faculties</option>
+              {currentUser?.role !== "Scheduler" && (
+                <option value="">All Faculties</option>
+              )}
               {faculties.map(f => (
                 <option key={f.faculty_id} value={f.faculty_id}>
                   {f.code ? `${f.code} – ${f.name}` : f.name}

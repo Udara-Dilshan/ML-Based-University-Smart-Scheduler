@@ -5,7 +5,7 @@ import Modal from "../../../components/Modal";
 import { academicAPI } from "../../../services/api";
 import { createUser, deleteUser, getUsers, updateUser } from "../../../services/userService";
 import { Upload, X } from "lucide-react";
-import api from "../../../services/api";
+import api, { getUser } from "../../../services/api";
 
 const roleOptions = [
   "SuperAdmin",
@@ -64,6 +64,7 @@ const createInitialForm = (role = "Student") => ({
 });
 
 export default function UserManagement({ forcedRole = null, titleOverride = "User Management" }) {
+  const currentUser = getUser();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -1331,7 +1332,9 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
             }}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           >
-            <option value="">All Faculties</option>
+            {currentUser?.role !== "Scheduler" && (
+              <option value="">All Faculties</option>
+            )}
             {facultyOptions.map((faculty) => (
               <option key={faculty.faculty_id} value={faculty.faculty_id}>
                 {faculty.name}

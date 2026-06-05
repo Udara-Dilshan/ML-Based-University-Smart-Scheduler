@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
-import { academicAPI } from "../../../services/api";
+import { academicAPI, getUser } from "../../../services/api";
 
 const initialForm = {
   name: "",
@@ -30,6 +30,7 @@ const getFirstNonEmptyValue = (row, keys) => {
 };
 
 export default function Departments() {
+  const currentUser = getUser();
   const [departments, setDepartments] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -474,7 +475,9 @@ export default function Departments() {
           onChange={(event) => setFacultyFilter(event.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          <option value="">All Faculties</option>
+          {currentUser?.role !== "Scheduler" && (
+            <option value="">All Faculties</option>
+          )}
           {faculties.map((faculty) => (
             <option key={faculty.faculty_id} value={faculty.faculty_id}>
               {faculty.name}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
-import { academicAPI } from "../../../services/api";
+import { academicAPI, getUser } from "../../../services/api";
 
 const initialForm = {
   batch_code: "",
@@ -67,6 +67,7 @@ const semesterNumberFromLabel = (semesterName) => {
 };
 
 export default function Batches() {
+  const currentUser = getUser();
   const [batches, setBatches] = useState([]);
   const [degrees, setDegrees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -715,7 +716,9 @@ export default function Batches() {
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          <option value="">Filter by Faculty</option>
+          {currentUser?.role !== "Scheduler" && (
+            <option value="">Filter by Faculty</option>
+          )}
           {faculties.map((faculty) => (
             <option key={faculty.faculty_id} value={faculty.faculty_id}>
               {faculty.name}

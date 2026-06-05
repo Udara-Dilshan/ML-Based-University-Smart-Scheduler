@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../layout/AdminLayout";
-import { timetableAPI, academicAPI, resourceAPI } from "../../../services/api";
+import { timetableAPI, academicAPI, resourceAPI, getUser } from "../../../services/api";
 import {
   Loader2,
   CalendarDays,
@@ -47,6 +47,7 @@ const getThemeForModule = (moduleCode) => {
 };
 
 export default function ManageTimetables() {
+  const currentUser = getUser();
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [sessions, setSessions] = useState([]);
@@ -418,7 +419,9 @@ export default function ManageTimetables() {
               }}
               className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
             >
-              <option value="">All Faculties</option>
+              {currentUser?.role !== "Scheduler" && (
+                <option value="">All Faculties</option>
+              )}
               {faculties.map((f) => (
                 <option key={f.faculty_id} value={f.faculty_id}>{f.name}</option>
               ))}
