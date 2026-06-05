@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import AdminLayout from "../layout/AdminLayout";
-import { reportAPI } from "../../../services/api";
+import { reportAPI, getUser } from "../../../services/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area,
@@ -81,14 +81,17 @@ function downloadFile(content, filename, type) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function Reports() {
-  const [activeTab, setActiveTab] = useState("overview");
+export default function Reports({ isComponent = false }) {
+  const user = getUser();
+  const isResourceManager = user?.role === "ResourceManager" || user?.role === "RESOURCE_MANAGER";
+  
+  const [activeTab, setActiveTab] = useState(isResourceManager ? "resources" : "overview");
   const [data, setData] = useState({});
   const [loading, setLoading] = useState({});
   const [errors, setErrors] = useState({});
   const contentRef = useRef(null);
 
-  const TABS = [
+  const ALL_TABS = [
     { id: "overview",   label: "Overview",         icon: <BarChart3 size={16} /> },
     { id: "users",      label: "Users",             icon: <Users size={16} /> },
     { id: "academic",   label: "Academic Data",     icon: <BookOpen size={16} /> },
@@ -97,6 +100,10 @@ export default function Reports() {
     { id: "medical",    label: "Medical",           icon: <FileHeart size={16} /> },
     { id: "timetable",  label: "Timetables",        icon: <CalendarDays size={16} /> },
   ];
+
+  const TABS = isResourceManager 
+    ? ALL_TABS.filter(t => ["resources", "requests"].includes(t.id))
+    : ALL_TABS;
 
   const fetchTab = async (tab) => {
     if (data[tab] || loading[tab]) return;
@@ -124,8 +131,8 @@ export default function Reports() {
   const tabData   = data[activeTab];
   const tabError  = errors[activeTab];
 
-  return (
-    <AdminLayout>
+  const content = (
+    <>
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
@@ -168,8 +175,10 @@ export default function Reports() {
           {activeTab === "timetable" && <TimetableTab d={tabData} />}
         </div>
       ) : null}
-    </AdminLayout>
+    </>
   );
+
+  return isComponent ? content : <AdminLayout>{content}</AdminLayout>;
 }
 
 // ─── Export Dropdown ──────────────────────────────────────────────────────────

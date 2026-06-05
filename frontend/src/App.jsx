@@ -172,6 +172,7 @@ function App() {
             <Route path="/resource/direct-vehicles" element={<ManageVehicleBookings />} />
             <Route path="/resource/event-requests" element={<EventRequests />} />
             <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
+            <Route path="/resource/reports" element={<Reports isComponent={true} />} />
             <Route path="/resource/profile" element={<ResourceProfile />} />
             <Route path="/resource/settings" element={<ResourceSettings />} />
           </Route>

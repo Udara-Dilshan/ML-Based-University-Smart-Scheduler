@@ -93,6 +93,17 @@ def require_admin_or_scheduler(current_user: User = Depends(get_current_user)) -
     return current_user
 
 
+def require_admin_scheduler_or_manager(current_user: User = Depends(get_current_user)) -> User:
+    """Allows SuperAdmin, Scheduler, and ResourceManager roles."""
+    allowed = {UserRole.SUPER_ADMIN.value, UserRole.SCHEDULER.value, UserRole.RESOURCE_MANAGER.value}
+    if _normalize_role(current_user.role) not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="SuperAdmin, Scheduler, or ResourceManager access required",
+        )
+    return current_user
+
+
 def get_scheduler_faculty_id(current_user: User) -> int | None:
     """
     Returns the faculty_id for Scheduler users.

@@ -7,6 +7,7 @@ import {
   Calendar,
   FileText,
   CalendarPlus,
+  BarChart3,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -67,6 +68,10 @@ export default function ResourceSidebar() {
 
         <NavLink to="/resource/direct-vehicles" className={navItemClass}>
           <Car size={16} />Manage Vehicle Bookings
+        </NavLink>
+
+        <NavLink to="/resource/reports" className={navItemClass}>
+          <BarChart3 size={16} />Reports & Analytics
         </NavLink>
 
       </nav>

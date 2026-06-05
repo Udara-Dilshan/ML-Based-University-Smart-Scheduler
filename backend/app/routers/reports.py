@@ -29,7 +29,7 @@ from ..models.medical import MedicalSubmission, MedicalSubmissionStatus
 from ..models.resource import Resource
 from ..models.timetable import TimetableSession
 from ..models.user import User, UserRole
-from ..utils.dependencies import require_admin_user, require_admin_or_scheduler
+from ..utils.dependencies import require_admin_user, require_admin_scheduler_or_manager
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -64,7 +64,7 @@ def _norm_day(value: Optional[str]) -> Optional[str]:
 @router.get("/overview")
 def get_reports_overview(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Top-level KPI cards for the Reports page."""
     total_students = db.query(func.count(User.user_id)).filter(User.role == "STUDENT").scalar() or 0
@@ -137,7 +137,7 @@ def get_reports_overview(
 @router.get("/users")
 def get_user_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Users breakdown: role pie chart + active/inactive."""
     role_rows = (
@@ -176,7 +176,7 @@ def get_user_report(
 @router.get("/academic")
 def get_academic_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Academic structure breakdown."""
     faculties = db.query(Faculty).all()
@@ -242,7 +242,7 @@ def get_academic_report(
 @router.get("/resources")
 def get_resource_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Resource utilisation by type and faculty."""
     type_rows = (
@@ -308,7 +308,7 @@ def get_resource_report(
 @router.get("/requests")
 def get_requests_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Event and vehicle request status analytics."""
     # Event requests
@@ -399,7 +399,7 @@ def get_requests_report(
 @router.get("/medical")
 def get_medical_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Medical submission analytics."""
     total = db.query(func.count(MedicalSubmission.submission_id)).scalar() or 0
@@ -458,7 +458,7 @@ def get_medical_report(
 @router.get("/timetable")
 def get_timetable_report(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_scheduler),
+    _: User = Depends(require_admin_scheduler_or_manager),
 ):
     """Timetable sessions analytics."""
     sessions_by_day = {day: 0 for day in DAY_ORDER}
