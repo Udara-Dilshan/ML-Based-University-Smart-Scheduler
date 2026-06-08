@@ -58,6 +58,24 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    token: str | None = Depends(OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+
+    user_id = payload.get("user_id")
+    if user_id is not None:
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if user and user.is_active:
+            return user
+    return None
+
+
 def require_roles(*allowed_roles: UserRole):
     allowed_values = {role.value for role in allowed_roles}
 
@@ -104,12 +122,14 @@ def require_admin_scheduler_or_manager(current_user: User = Depends(get_current_
     return current_user
 
 
-def get_scheduler_faculty_id(current_user: User) -> int | None:
+def get_scheduler_faculty_id(current_user: User | None) -> int | None:
     """
     Returns the faculty_id for Scheduler users.
-    Returns None for SuperAdmin (no restriction).
+    Returns None for SuperAdmin, other roles, or unauthenticated users (no restriction).
     Raises 403 if a Scheduler has no profile configured.
     """
+    if current_user is None:
+        return None
     role = _normalize_role(current_user.role)
     if role == UserRole.SUPER_ADMIN.value:
         return None  # No filter — sees everything

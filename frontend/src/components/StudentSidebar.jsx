@@ -16,7 +16,7 @@ const navItemClass = ({ isActive }) =>
   }`;
 
 export default function StudentSidebar() {
-  const [, setUserRefresh] = useState(0);
+  const [userRefresh, setUserRefresh] = useState(0);
   const user = getUser() || {};
 
   useEffect(() => {

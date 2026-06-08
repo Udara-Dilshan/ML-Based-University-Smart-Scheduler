@@ -13,6 +13,7 @@ from ..utils.dependencies import (
     require_admin_or_scheduler,
     get_scheduler_faculty_id,
     _normalize_role,
+    get_optional_user,
 )
 
 router = APIRouter(
@@ -341,7 +342,7 @@ def create_faculty(payload: FacultyBase, db: Session = Depends(get_db), _: User 
 
 
 @router.get("/faculties", response_model=List[FacultyOut])
-def get_faculties(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+def get_faculties(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_user)):
     faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(Faculty)
     if faculty_id is not None:
@@ -423,7 +424,7 @@ def create_department(payload: DepartmentBase, db: Session = Depends(get_db), cu
 
 
 @router.get("/degrees", response_model=List[DegreeOut])
-def get_degrees(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+def get_degrees(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_user)):
     faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(Degree).order_by(Degree.name.asc())
     if faculty_id is not None:
@@ -532,7 +533,7 @@ def delete_degree(degree_id: int, db: Session = Depends(get_db), current_user: U
 
 
 @router.get("/departments", response_model=List[DepartmentOut])
-def get_departments(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+def get_departments(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_user)):
     faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(Department).order_by(Department.name.asc())
     if faculty_id is not None:
@@ -915,7 +916,7 @@ def create_batch(payload: BatchBase, db: Session = Depends(get_db), current_user
 
 
 @router.get("/batches", response_model=List[BatchOut])
-def get_batches(db: Session = Depends(get_db), current_user: User = Depends(require_admin_or_scheduler)):
+def get_batches(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_user)):
     faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(Batch).order_by(Batch.batch_id.desc())
     if faculty_id is not None:

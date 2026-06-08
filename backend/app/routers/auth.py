@@ -191,13 +191,20 @@ def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
 
     existing_student = (
         db.query(Student)
-        .filter(Student.registration_number == request.registration_number)
+        .filter(Student.index_number == request.registration_number)
         .first()
     )
     if existing_student:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Registration number already exists",
+        )
+
+    batch_record = db.query(Batch).filter(Batch.batch_id == request.batch_id).first()
+    if not batch_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Selected batch not found",
         )
 
     user = User(
@@ -213,8 +220,8 @@ def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
 
     student_profile = Student(
         user_id=user.user_id,
-        registration_number=request.registration_number,
-        batch=request.batch,
+        index_number=request.registration_number,
+        batch=request.batch_id,
     )
     db.add(student_profile)
     db.commit()

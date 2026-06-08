@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2, Calendar, User, Hash, GraduationCap } from 'lucide-react';
-import { authAPI, setAuthToken, setUser } from '../services/api';
+import { Mail, Lock, Eye, EyeOff, Loader2, Calendar, User, Hash, GraduationCap, Building2, BookOpen } from 'lucide-react';
+import { authAPI, academicAPI, setAuthToken, setUser } from '../services/api';
+import uwuLogo from '../assets/uwu-logo.jpg';
+import campusBg from '../assets/login-bg.jpg';
 
 const StudentSignupPage = () => {
   const navigate = useNavigate();
@@ -12,8 +14,7 @@ const StudentSignupPage = () => {
     lastName: '',
     email: '',
     registrationNumber: '',
-    batch: '',
-    year: new Date().getFullYear(),
+    batch_id: '',
     password: '',
     confirmPassword: '',
   });
@@ -25,9 +26,53 @@ const StudentSignupPage = () => {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Current year and year options
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - i);
+  // Academic Data State
+  const [faculties, setFaculties] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [degrees, setDegrees] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [selectedFaculty, setSelectedFaculty] = useState('');
+  const [selectedDegree, setSelectedDegree] = useState('');
+
+  useEffect(() => {
+    const fetchAcademicData = async () => {
+      try {
+        const [facs, depts, degs, bats] = await Promise.all([
+          academicAPI.getFaculties(),
+          academicAPI.getDepartments(),
+          academicAPI.getDegrees(),
+          academicAPI.getBatches()
+        ]);
+        setFaculties(facs);
+        setDepartments(depts);
+        setDegrees(degs);
+        setBatches(bats);
+      } catch (err) {
+        console.error("Failed to fetch academic data:", err);
+      }
+    };
+    fetchAcademicData();
+  }, []);
+
+  // Filter data based on selections
+  const filteredDegrees = selectedFaculty 
+    ? degrees.filter(deg => departments.some(d => d.dept_id === deg.dept_id && d.faculty_id === parseInt(selectedFaculty)))
+    : [];
+    
+  const filteredBatches = selectedDegree
+    ? batches.filter(b => b.degree_id === parseInt(selectedDegree))
+    : [];
+
+  const handleFacultyChange = (e) => {
+    setSelectedFaculty(e.target.value);
+    setSelectedDegree('');
+    setFormData(prev => ({ ...prev, batch_id: '' }));
+  };
+
+  const handleDegreeChange = (e) => {
+    setSelectedDegree(e.target.value);
+    setFormData(prev => ({ ...prev, batch_id: '' }));
+  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -81,13 +126,8 @@ const StudentSignupPage = () => {
     }
 
     // Batch validation
-    if (!formData.batch.trim()) {
-      newErrors.batch = 'Batch is required';
-    }
-
-    // Year validation
-    if (!formData.year) {
-      newErrors.year = 'Year is required';
+    if (!formData.batch_id) {
+      newErrors.batch_id = 'Batch is required';
     }
 
     // Password validation
@@ -128,8 +168,7 @@ const StudentSignupPage = () => {
         last_name: formData.lastName,
         email: formData.email,
         registration_number: formData.registrationNumber,
-        batch: formData.batch,
-        year: parseInt(formData.year),
+        batch_id: parseInt(formData.batch_id),
         password: formData.password,
       };
 
@@ -164,6 +203,15 @@ const StudentSignupPage = () => {
           backendErrors[field] = error.msg;
         });
         setErrors(backendErrors);
+      } else if (typeof err.detail === 'string') {
+        const detailStr = err.detail.toLowerCase();
+        if (detailStr.includes('email')) {
+          setErrors({ email: err.detail });
+        } else if (detailStr.includes('registration number')) {
+          setErrors({ registrationNumber: err.detail });
+        } else {
+          setErrors({ general: err.detail });
+        }
       } else {
         setErrors({ 
           general: err.message || 'Signup failed. Please try again.' 
@@ -177,7 +225,14 @@ const StudentSignupPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 relative overflow-hidden">
+      <div 
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-cover bg-center"
+        style={{ backgroundImage: `url(${campusBg})` }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-blue-900/70 mix-blend-multiply"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-blue-800/70 to-indigo-900/80"></div>
+
         {/* Decorative background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-full h-full">
@@ -194,10 +249,10 @@ const StudentSignupPage = () => {
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
-          {/* University Logo Placeholder */}
+          {/* University Logo */}
           <div className="mb-8">
-            <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20">
-              <GraduationCap className="w-16 h-16 text-white" />
+            <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 p-2 overflow-hidden">
+              <img src={uwuLogo} alt="Uva Wellassa University Logo" className="w-full h-full object-contain rounded-xl" />
             </div>
           </div>
 
@@ -231,8 +286,8 @@ const StudentSignupPage = () => {
         <div className="w-full max-w-md">
           {/* Mobile Header - Only visible on mobile */}
           <div className="lg:hidden mb-8 text-center">
-            <div className="inline-flex w-16 h-16 bg-blue-600 rounded-xl items-center justify-center mb-4">
-              <GraduationCap className="w-8 h-8 text-white" />
+            <div className="inline-flex w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-xl items-center justify-center mb-4 p-1">
+              <img src={uwuLogo} alt="UWU Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">UWU Scheduler</h2>
           </div>
@@ -338,82 +393,107 @@ const StudentSignupPage = () => {
               )}
             </div>
 
-            {/* Registration Number & Batch */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Registration Number */}
-              <div>
-                <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                  Registration No.
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Hash className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="registrationNumber"
-                    name="registrationNumber"
-                    value={formData.registrationNumber}
-                    onChange={handleChange}
-                    placeholder="UWU/ICT/21/001"
-                    className={`block w-full pl-10 pr-3 py-2.5 border ${
-                      errors.registrationNumber ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-sm`}
-                    disabled={loading}
-                  />
+            {/* Registration Number */}
+            <div>
+              <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                Registration No.
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Hash className="h-5 w-5 text-gray-400" />
                 </div>
-                {errors.registrationNumber && (
-                  <p className="mt-1 text-xs text-red-600">{errors.registrationNumber}</p>
-                )}
-              </div>
-
-              {/* Year Dropdown */}
-              <div>
-                <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
-                  Year
-                </label>
-                <select
-                  id="year"
-                  name="year"
-                  value={formData.year}
+                <input
+                  type="text"
+                  id="registrationNumber"
+                  name="registrationNumber"
+                  value={formData.registrationNumber}
                   onChange={handleChange}
-                  className={`block w-full px-3 py-2.5 border ${
-                    errors.year ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all`}
+                  placeholder="UWU/ICT/21/001"
+                  className={`block w-full pl-10 pr-3 py-2.5 border ${
+                    errors.registrationNumber ? 'border-red-300' : 'border-gray-300'
+                  } rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-sm`}
                   disabled={loading}
+                />
+              </div>
+              {errors.registrationNumber && (
+                <p className="mt-1 text-xs text-red-600">{errors.registrationNumber}</p>
+              )}
+            </div>
+
+            {/* Faculty Dropdown */}
+            <div>
+              <label htmlFor="faculty" className="block text-sm font-medium text-gray-700 mb-2">
+                Faculty
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Building2 className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  id="faculty"
+                  value={selectedFaculty}
+                  onChange={handleFacultyChange}
+                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                  disabled={loading || faculties.length === 0}
                 >
-                  {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
+                  <option value="">Select Faculty</option>
+                  {faculties.map((fac) => (
+                    <option key={fac.faculty_id} value={fac.faculty_id}>{fac.name}</option>
                   ))}
                 </select>
-                {errors.year && (
-                  <p className="mt-1 text-xs text-red-600">{errors.year}</p>
-                )}
               </div>
             </div>
 
-            {/* Batch Field */}
-            <div>
-              <label htmlFor="batch" className="block text-sm font-medium text-gray-700 mb-2">
-                Batch
-              </label>
-              <input
-                type="text"
-                id="batch"
-                name="batch"
-                value={formData.batch}
-                onChange={handleChange}
-                placeholder="ICT 21"
-                className={`block w-full px-3 py-2.5 border ${
-                  errors.batch ? 'border-red-300' : 'border-gray-300'
-                } rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all`}
-                disabled={loading}
-              />
-              {errors.batch && (
-                <p className="mt-1 text-xs text-red-600">{errors.batch}</p>
-              )}
+            {/* Degree and Batch Dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Degree */}
+              <div>
+                <label htmlFor="degree" className="block text-sm font-medium text-gray-700 mb-2">
+                  Degree
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <BookOpen className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="degree"
+                    value={selectedDegree}
+                    onChange={handleDegreeChange}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-sm"
+                    disabled={loading || !selectedFaculty}
+                  >
+                    <option value="">Select Degree</option>
+                    {filteredDegrees.map((deg) => (
+                      <option key={deg.degree_id} value={deg.degree_id}>{deg.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Batch */}
+              <div>
+                <label htmlFor="batch_id" className="block text-sm font-medium text-gray-700 mb-2">
+                  Batch
+                </label>
+                <select
+                  id="batch_id"
+                  name="batch_id"
+                  value={formData.batch_id}
+                  onChange={handleChange}
+                  className={`block w-full px-3 py-2.5 border ${
+                    errors.batch_id ? 'border-red-300' : 'border-gray-300'
+                  } rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all`}
+                  disabled={loading || !selectedDegree}
+                >
+                  <option value="">Select Batch</option>
+                  {filteredBatches.map((batch) => (
+                    <option key={batch.batch_id} value={batch.batch_id}>{batch.batch_code}</option>
+                  ))}
+                </select>
+                {errors.batch_id && (
+                  <p className="mt-1 text-xs text-red-600">{errors.batch_id}</p>
+                )}
+              </div>
             </div>
 
             {/* Password Field */}

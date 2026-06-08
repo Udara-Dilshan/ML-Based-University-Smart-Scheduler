@@ -107,8 +107,7 @@ class StudentSignupRequest(BaseModel):
     last_name: str = Field(min_length=1, max_length=50)
     email: str
     registration_number: str = Field(min_length=1, max_length=50)
-    batch: str = Field(min_length=1, max_length=50)
-    year: int
+    batch_id: int
     password: str = Field(min_length=8)
 
 
