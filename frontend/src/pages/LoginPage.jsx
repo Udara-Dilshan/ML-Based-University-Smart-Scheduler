@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2, Calendar, Clock } from 'lucide-react';
 import { authAPI, getHomeRouteByRole, getUser, isAuthenticated, setAuthToken, setUser } from '../services/api';
+import uwuLogo from '../assets/uwu-logo.jpg';
+import campusBg from '../assets/login-bg.jpg';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  
+
   // Form state
   const [formData, setFormData] = useState({
     email: '',
@@ -59,7 +61,7 @@ const LoginPage = () => {
   // Handle login submission
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!validateForm()) return;
 
@@ -69,7 +71,7 @@ const LoginPage = () => {
     try {
       // Call login API
       const response = await authAPI.login(formData.email, formData.password);
-      
+
       // Store token and user data
       setAuthToken(response.access_token || response.token);
       setUser(response.user);
@@ -86,14 +88,21 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 relative overflow-hidden">
+      <div
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-cover bg-center"
+        style={{ backgroundImage: `url(${campusBg})` }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-blue-900/70 mix-blend-multiply"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-blue-800/70 to-indigo-900/80"></div>
+
         {/* Decorative background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-full h-full">
             <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
@@ -103,10 +112,10 @@ const LoginPage = () => {
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
-          {/* University Logo Placeholder */}
+          {/* University Logo */}
           <div className="mb-8">
-            <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20">
-              <Calendar className="w-16 h-16 text-white" />
+            <div className="w-32 h-32 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 p-2 overflow-hidden">
+              <img src={uwuLogo} alt="Uva Wellassa University Logo" className="w-full h-full object-contain rounded-xl" />
             </div>
           </div>
 
@@ -153,8 +162,8 @@ const LoginPage = () => {
         <div className="w-full max-w-md">
           {/* Mobile Header - Only visible on mobile */}
           <div className="lg:hidden mb-8 text-center">
-            <div className="inline-flex w-16 h-16 bg-blue-600 rounded-xl items-center justify-center mb-4">
-              <Calendar className="w-8 h-8 text-white" />
+            <div className="inline-flex w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-xl items-center justify-center mb-4 p-1">
+              <img src={uwuLogo} alt="UWU Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">UWU Scheduler</h2>
           </div>
