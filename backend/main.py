@@ -7,7 +7,7 @@ import uvicorn
 from app.database.connection import initialize_database
 from app.routers import (
     auth, user, dashboard, academic,
-    resource, lecturer_availability, timetable, settings,
+    resource, lecturer_availability, timetable, timetable_export, settings,
     semester_registration,
     medical,
     reports,
@@ -39,6 +39,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.include_router(auth.router)
@@ -50,6 +51,7 @@ app.include_router(medical.router)
 app.include_router(resource.router)
 app.include_router(lecturer_availability.router)
 app.include_router(timetable.router)  # prefix: /api/timetable
+app.include_router(timetable_export.router)
 app.include_router(settings.router)
 app.include_router(booking_requests.router)  # prefix: /booking-requests
 app.include_router(reports.router)           # prefix: /api/reports

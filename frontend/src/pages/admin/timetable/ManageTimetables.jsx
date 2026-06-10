@@ -10,7 +10,9 @@ import {
   Filter,
   CheckCircle2,
   AlertTriangle,
-  Wand2
+  Wand2,
+  Download,
+  FileText
 } from "lucide-react";
 
 const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
@@ -76,9 +78,41 @@ export default function ManageTimetables() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
 
+  const [exportingBatch, setExportingBatch] = useState(null);
+
   useEffect(() => {
     fetchFilters();
   }, []);
+
+  const handleExport = async (params, format, exportId) => {
+    try {
+      setExportingBatch(`${exportId}-${format}`);
+      await timetableAPI.exportTimetable(params, selectedStatus, format);
+      setSuccess(`Timetable exported as ${format.toUpperCase()} successfully.`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError("Failed to export timetable. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setExportingBatch(null);
+    }
+  };
+
+  const handleExportAll = (format) => {
+    const params = {};
+    if (selectedBatch) params.batch_id = selectedBatch;
+    else if (selectedDegree) params.degree_id = selectedDegree;
+    else if (selectedDept) params.dept_id = selectedDept;
+    else if (selectedFaculty) params.faculty_id = selectedFaculty;
+    
+    if (Object.keys(params).length === 0) {
+      setError("Please select a Faculty, Department, Degree, or Batch to export.");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    handleExport(params, format, 'all');
+  };
 
   const fetchFilters = async () => {
     try {
@@ -242,8 +276,38 @@ export default function ManageTimetables() {
     return (
       <div key={batchCode} className="mt-8 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="px-6 py-4 bg-white border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-900">Batch: {batchCode}</h3>
-          <span className="text-sm text-gray-500 font-medium">{batchSessions.length} Sessions</span>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-bold text-gray-900">Batch: {batchCode}</h3>
+            <span className="text-sm text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">{batchSessions.length} Sessions</span>
+          </div>
+          {selectedStatus === "PUBLISHED" && batchSessions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleExport({ batch_id: batchSessions[0].batch_id }, 'docx', batchSessions[0].batch_id)}
+                disabled={exportingBatch === `${batchSessions[0].batch_id}-docx`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {exportingBatch === `${batchSessions[0].batch_id}-docx` ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FileText className="w-4 h-4" />
+                )}
+                DOCX
+              </button>
+              <button
+                onClick={() => handleExport({ batch_id: batchSessions[0].batch_id }, 'pdf', batchSessions[0].batch_id)}
+                disabled={exportingBatch === `${batchSessions[0].batch_id}-pdf`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {exportingBatch === `${batchSessions[0].batch_id}-pdf` ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                PDF
+              </button>
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100 table-fixed border-collapse">
@@ -478,7 +542,38 @@ export default function ManageTimetables() {
           </div>
         </div>
         
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-between items-center">
+          <div>
+            {selectedStatus === "PUBLISHED" && sessions.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 mr-2">Export All:</span>
+                <button
+                  onClick={() => handleExportAll('docx')}
+                  disabled={exportingBatch === 'all-docx'}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {exportingBatch === 'all-docx' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  DOCX
+                </button>
+                <button
+                  onClick={() => handleExportAll('pdf')}
+                  disabled={exportingBatch === 'all-pdf'}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {exportingBatch === 'all-pdf' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  PDF
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={fetchTimetables}
             disabled={loading}

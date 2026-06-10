@@ -566,6 +566,26 @@ export const timetableAPI = {
     const response = await api.get("/api/timetable/context", { params });
     return response.data;
   },
+  exportTimetable: async (queryParams, status, format) => {
+    const response = await api.get(`/api/timetable/export/`, {
+      params: { ...queryParams, status, format },
+      responseType: "blob",
+    });
+    
+    let filename = `timetable.${format}`;
+    const disposition = response.headers['content-disposition'];
+    if (disposition && disposition.indexOf('filename=') !== -1) {
+      filename = disposition.split('filename=')[1].replace(/["']/g, '');
+    }
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
 };
 
 export const setAuthToken = (token) => {
