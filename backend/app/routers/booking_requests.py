@@ -76,6 +76,7 @@ def _serialize_event_request(req: EventRequest, ai_result: Optional[Dict] = None
         "resource_capacity": resource.capacity if resource else None,
         "resource_type": resource.type if resource else None,
         "event_name": req.event_name,
+        "event_type": req.event_type,
         "event_date": req.event_date.isoformat() if req.event_date else None,
         "start_time": req.start_time.strftime("%H:%M") if req.start_time else None,
         "end_time": req.end_time.strftime("%H:%M") if req.end_time else None,
@@ -129,6 +130,7 @@ def _serialize_vehicle_request(req: VehicleRequest, ai_result: Optional[Dict] = 
 class EventRequestCreate(BaseModel):
     resource_id: int
     event_name: str = Field(min_length=1, max_length=150)
+    event_type: str = Field(min_length=1, max_length=50)
     event_date: datetime.date
     start_time: datetime.time
     end_time: datetime.time
@@ -204,6 +206,7 @@ def check_event_conflict(
     temp_req = EventRequest(
         resource_id=payload.resource_id,
         event_name=payload.event_name.strip(),
+        event_type=payload.event_type.strip(),
         event_date=payload.event_date,
         start_time=payload.start_time,
         end_time=payload.end_time,
@@ -231,6 +234,7 @@ def submit_event_request(
         requested_by_user_id=current_user.user_id,
         resource_id=payload.resource_id,
         event_name=payload.event_name.strip(),
+        event_type=payload.event_type.strip(),
         event_date=payload.event_date,
         start_time=payload.start_time,
         end_time=payload.end_time,
@@ -333,7 +337,7 @@ def approve_event_request(
         start_time=start_dt,
         end_time=end_dt,
         description=req.purpose,
-        event_type="Academic",
+        event_type=req.event_type,
         status=RequestStatus.APPROVED,
         source_request_id=req.req_id,
     )

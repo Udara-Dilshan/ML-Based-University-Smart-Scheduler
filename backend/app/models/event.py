@@ -65,6 +65,7 @@ class EventRequest(Base):
     requested_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     resource_id = Column(Integer, ForeignKey("resources.resource_id", ondelete="CASCADE"), nullable=False)
     event_name = Column(String(150), nullable=False)
+    event_type = Column(String(50), nullable=True)
     event_date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
