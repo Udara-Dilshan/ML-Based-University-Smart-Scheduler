@@ -367,6 +367,30 @@ def reject_event_request(
 # VEHICLE REQUESTS — Lecturer submits
 # ─────────────────────────────────────────────────────────────────────────────
 
+@router.post("/vehicles/check-conflict")
+def check_vehicle_conflict(
+    payload: VehicleRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_lecturer),
+):
+    """Pre-check for conflicts and get AI suggestions before submitting a vehicle request."""
+    if payload.start_time >= payload.end_time:
+        raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    # Create temporary in-memory request for AI check
+    temp_req = VehicleRequest(
+        vehicle_type_needed=payload.vehicle_type_needed.strip(),
+        passenger_count=payload.passenger_count,
+        trip_date=payload.trip_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        destination=(payload.destination or "").strip() or None,
+        purpose=(payload.purpose or "").strip() or None,
+    )
+    result = check_vehicle_request(db, temp_req)
+    return result
+
+
 @router.post("/vehicles", status_code=status.HTTP_201_CREATED)
 def submit_vehicle_request(
     payload: VehicleRequestCreate,

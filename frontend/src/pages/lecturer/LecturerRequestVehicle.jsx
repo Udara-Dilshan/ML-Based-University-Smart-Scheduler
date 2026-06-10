@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, Clock, Users, MapPin, FileText, CheckCircle2, AlertTriangle, ArrowLeft, Bus, Truck } from "lucide-react";
 import { bookingAPI } from "../../services/api";
+import Modal from "../../components/Modal";
 
 const VEHICLE_TYPES = ["Bus", "Van", "Minibus", "Car"];
 
@@ -19,6 +20,10 @@ export default function LecturerRequestVehicle() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // Conflict Check States
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+  const [conflictData, setConflictData] = useState(null);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -39,6 +44,39 @@ export default function LecturerRequestVehicle() {
 
     try {
       setSaving(true);
+
+      const payload = {
+        vehicle_type_needed: formData.vehicle_type_needed,
+        passenger_count: Number(formData.passenger_count),
+        trip_date: formData.trip_date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        destination: formData.destination || null,
+        purpose: formData.purpose || null,
+      };
+
+      // 1. Pre-check for conflicts
+      const conflictCheck = await bookingAPI.checkVehicleConflict(payload);
+
+      if (conflictCheck.ai_status !== "CLEAR") {
+        setConflictData(conflictCheck);
+        setIsConflictModalOpen(true);
+        setSaving(false);
+        return;
+      }
+
+      // 2. No conflict -> Submit directly
+      await executeSubmit();
+
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to check request. Please try again.");
+      setSaving(false);
+    }
+  };
+
+  const executeSubmit = async () => {
+    try {
+      setSaving(true);
       await bookingAPI.submitVehicleRequest({
         vehicle_type_needed: formData.vehicle_type_needed,
         passenger_count: Number(formData.passenger_count),
@@ -49,6 +87,7 @@ export default function LecturerRequestVehicle() {
         purpose: formData.purpose || null,
       });
       setSuccess(true);
+      setIsConflictModalOpen(false);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to submit request. Please try again.");
     } finally {
@@ -242,6 +281,39 @@ export default function LecturerRequestVehicle() {
           </button>
         </div>
       </form>
+
+      {/* AI Conflict Modal */}
+      <Modal open={isConflictModalOpen} title="AI Warning: Vehicle Availability" onClose={() => setIsConflictModalOpen(false)}>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 shrink-0 text-red-600" size={18} />
+              <div>
+                <h4 className="font-semibold text-red-900">
+                  {conflictData?.ai_status === "CAPACITY_MISMATCH" ? "Capacity Mismatch" : "No Vehicles Available"}
+                </h4>
+                <p className="mt-1 text-sm text-red-800">{conflictData?.clash_detail}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+            <button
+              onClick={() => setIsConflictModalOpen(false)}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel Request
+            </button>
+            <button
+              onClick={executeSubmit}
+              disabled={saving}
+              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {saving ? "Submitting..." : "Submit Anyway"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

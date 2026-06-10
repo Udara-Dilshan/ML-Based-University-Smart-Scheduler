@@ -360,6 +360,10 @@ export const bookingAPI = {
     const response = await api.post("/booking-requests/events", payload);
     return response.data;
   },
+  checkVehicleConflict: async (payload) => {
+    const response = await api.post("/booking-requests/vehicles/check-conflict", payload);
+    return response.data;
+  },
   submitVehicleRequest: async (payload) => {
     const response = await api.post("/booking-requests/vehicles", payload);
     return response.data;
