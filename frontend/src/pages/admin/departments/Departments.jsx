@@ -463,7 +463,7 @@ export default function Departments() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr,auto]">
+      <div className="mb-4 grid grid-cols-1 items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr,auto]">
         <input
           value={departmentSearch}
           onChange={(event) => setDepartmentSearch(event.target.value)}
@@ -490,7 +490,7 @@ export default function Departments() {
             type="button"
             onClick={downloadDisplayedResults}
             disabled={!filteredDepartments.length}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="whitespace-nowrap rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Export Displayed Results
           </button>
