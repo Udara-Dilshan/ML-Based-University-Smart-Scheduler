@@ -352,6 +352,10 @@ export const bookingAPI = {
   },
 
   // ── Lecturer: Submit Requests ─────────────────────────────────────────
+  checkEventConflict: async (payload) => {
+    const response = await api.post("/booking-requests/events/check-conflict", payload);
+    return response.data;
+  },
   submitEventRequest: async (payload) => {
     const response = await api.post("/booking-requests/events", payload);
     return response.data;

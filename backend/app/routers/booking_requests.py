@@ -186,6 +186,33 @@ class DirectVehicleCreate(BaseModel):
 # EVENT REQUESTS — Lecturer submits
 # ─────────────────────────────────────────────────────────────────────────────
 
+@router.post("/events/check-conflict")
+def check_event_conflict(
+    payload: EventRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_lecturer),
+):
+    """Pre-check for conflicts and get AI suggestions before submitting."""
+    if payload.start_time >= payload.end_time:
+        raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    resource = db.query(Resource).filter(Resource.resource_id == payload.resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+
+    # Create temporary in-memory request for AI check
+    temp_req = EventRequest(
+        resource_id=payload.resource_id,
+        event_name=payload.event_name.strip(),
+        event_date=payload.event_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        participant_count=payload.participant_count,
+    )
+    result = check_event_request(db, temp_req)
+    return result
+
+
 @router.post("/events", status_code=status.HTTP_201_CREATED)
 def submit_event_request(
     payload: EventRequestCreate,

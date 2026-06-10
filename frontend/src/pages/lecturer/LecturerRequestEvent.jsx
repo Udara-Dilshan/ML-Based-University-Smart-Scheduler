@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, Clock, Users, MapPin, FileText, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
+import Modal from "../../components/Modal";
 
 export default function LecturerRequestEvent() {
   const navigate = useNavigate();
@@ -19,6 +20,11 @@ export default function LecturerRequestEvent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  
+  // Conflict Check States
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+  const [conflictData, setConflictData] = useState(null);
+  const [selectedAlternativeId, setSelectedAlternativeId] = useState("");
 
   useEffect(() => {
     resourceAPI.getResources()
@@ -47,8 +53,42 @@ export default function LecturerRequestEvent() {
 
     try {
       setSaving(true);
-      await bookingAPI.submitEventRequest({
+      
+      const payload = {
         resource_id: Number(formData.resource_id),
+        event_name: formData.event_name,
+        event_date: formData.event_date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        participant_count: Number(formData.participant_count),
+        purpose: formData.purpose || null,
+      };
+
+      // 1. Pre-check for conflicts
+      const conflictCheck = await bookingAPI.checkEventConflict(payload);
+
+      if (conflictCheck.ai_status !== "CLEAR") {
+        setConflictData(conflictCheck);
+        setSelectedAlternativeId(""); 
+        setIsConflictModalOpen(true);
+        setSaving(false);
+        return;
+      }
+
+      // 2. No conflict -> Submit directly
+      await executeSubmit(payload.resource_id);
+
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to check request. Please try again.");
+      setSaving(false);
+    }
+  };
+
+  const executeSubmit = async (resourceIdToSubmit) => {
+    try {
+      setSaving(true);
+      await bookingAPI.submitEventRequest({
+        resource_id: Number(resourceIdToSubmit),
         event_name: formData.event_name,
         event_date: formData.event_date,
         start_time: formData.start_time,
@@ -57,6 +97,7 @@ export default function LecturerRequestEvent() {
         purpose: formData.purpose || null,
       });
       setSuccess(true);
+      setIsConflictModalOpen(false);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to submit request. Please try again.");
     } finally {
@@ -244,6 +285,74 @@ export default function LecturerRequestEvent() {
           </button>
         </div>
       </form>
+
+      {/* AI Conflict Modal */}
+      <Modal open={isConflictModalOpen} title="AI Conflict Detected" onClose={() => setIsConflictModalOpen(false)}>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 shrink-0 text-red-600" size={18} />
+              <div>
+                <h4 className="font-semibold text-red-900">
+                  {conflictData?.ai_status === "CAPACITY_MISMATCH" ? "Capacity Mismatch" : "Schedule Clash"}
+                </h4>
+                <p className="mt-1 text-sm text-red-800">{conflictData?.clash_detail}</p>
+              </div>
+            </div>
+          </div>
+
+          {(conflictData?.alternatives?.length > 0) && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-gray-800">AI Suggested Alternative Venues:</p>
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                {conflictData.alternatives.map((alt) => (
+                  <label key={alt.resource_id} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${selectedAlternativeId === alt.resource_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                    <input
+                      type="radio"
+                      name="alternative_venue"
+                      value={alt.resource_id}
+                      checked={selectedAlternativeId === alt.resource_id}
+                      onChange={() => setSelectedAlternativeId(alt.resource_id)}
+                      className="mt-1 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{alt.name} ({alt.type})</p>
+                      <p className="text-xs text-gray-500">Capacity: {alt.capacity}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+            <button
+              onClick={() => setIsConflictModalOpen(false)}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => executeSubmit(formData.resource_id)}
+              disabled={saving}
+              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {saving ? "Submitting..." : "Submit Anyway"}
+            </button>
+            {conflictData?.alternatives?.length > 0 && (
+              <button
+                disabled={!selectedAlternativeId || saving}
+                onClick={() => {
+                  if (selectedAlternativeId) executeSubmit(selectedAlternativeId);
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? "Submitting..." : "Accept Alternative & Submit"}
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
