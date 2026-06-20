@@ -634,7 +634,14 @@ def get_student_dashboard_summary(
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ):
     student_profile = current_user.student_profile
-    batch_id = getattr(student_profile, "batch_id", None) if student_profile else None
+    raw_batch_id = getattr(student_profile, "batch_id", None) if student_profile else None
+    if raw_batch_id is None and student_profile:
+        raw_batch_id = getattr(student_profile, "batch", None)
+
+    try:
+        batch_id = int(str(raw_batch_id).strip()) if raw_batch_id is not None else None
+    except (TypeError, ValueError):
+        batch_id = None
 
     today_name = DAY_FULL_ORDER[datetime.now().weekday()]
     today_sessions = []
@@ -651,7 +658,7 @@ def get_student_dashboard_summary(
             .filter(
                 TimetableSession.batch_id == batch_id,
                 TimetableSession.status == "PUBLISHED",
-                TimetableSession.day_of_week == today_name,
+                func.upper(TimetableSession.day_of_week) == today_name.upper(),
             )
             .order_by(TimetableSession.start_time)
             .all()
