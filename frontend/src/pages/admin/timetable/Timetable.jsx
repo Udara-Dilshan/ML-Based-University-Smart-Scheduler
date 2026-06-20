@@ -70,6 +70,11 @@ export default function Timetable() {
       setFaculties(facData);
       setDepartments(deptData);
       setDegrees(degData);
+
+      // Auto-select faculty if Scheduler or if there's only one
+      if (currentUser?.role === "Scheduler" && facData.length > 0) {
+        setSelectedFaculty(facData[0].faculty_id.toString());
+      }
     } catch (err) {
       console.error("Failed to load filter data", err);
       setError("Failed to load filter data");
@@ -125,12 +130,12 @@ export default function Timetable() {
     try {
       setSaving(true);
       setError(null);
-      
+
       const payload = {
         sessions: result.timetable,
         status: "DRAFT"
       };
-      
+
       await timetableAPI.save(payload);
       navigate("/admin/timetable/manage");
     } catch (err) {
@@ -494,7 +499,7 @@ export default function Timetable() {
                       Conflict Free
                     </span>
                   ) : (
-                    <button 
+                    <button
                       onClick={() => setShowConflictsModal(true)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors cursor-pointer"
                     >
@@ -502,7 +507,7 @@ export default function Timetable() {
                       Has Conflicts
                     </button>
                   )}
-                  <button 
+                  <button
                     onClick={handleSaveDraft}
                     disabled={saving}
                     className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-sm disabled:opacity-50"
@@ -681,7 +686,7 @@ export default function Timetable() {
 
         </div>
       </div>
-      
+
       {/* Conflicts Modal */}
       {showConflictsModal && result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
@@ -691,14 +696,14 @@ export default function Timetable() {
                 <XCircle className="w-6 h-6 text-red-500" />
                 Unresolved Conflicts
               </h2>
-              <button 
+              <button
                 onClick={() => setShowConflictsModal(false)}
                 className="text-gray-400 hover:text-gray-600 focus:outline-none"
               >
                 &times;
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {result.metadata?.conflicts?.length > 0 ? (
                 <ul className="space-y-3">

@@ -128,6 +128,10 @@ export default function ManageTimetables() {
       setDegrees(degRes);
       setBatches(batchRes);
       setResources(resRes);
+      
+      if (currentUser?.role === "Scheduler" && facRes.length > 0) {
+        setSelectedFaculty(facRes[0].faculty_id.toString());
+      }
     } catch (err) {
       console.error("Failed to load filters", err);
     }
@@ -251,18 +255,34 @@ export default function ManageTimetables() {
     ? batches.filter((b) => b.degree_id === parseInt(selectedDegree))
     : batches;
 
+  const filteredSessions = useMemo(() => {
+    if (!sessions) return [];
+    return sessions.filter((session) => {
+      if (selectedFaculty && session.faculty_id !== parseInt(selectedFaculty)) return false;
+      if (selectedDept && session.dept_id !== parseInt(selectedDept)) return false;
+      
+      if (selectedDegree) {
+        const batch = batches.find(b => b.batch_id === session.batch_id);
+        if (batch && batch.degree_id !== parseInt(selectedDegree)) return false;
+      }
+      
+      if (selectedBatch && session.batch_id !== parseInt(selectedBatch)) return false;
+      return true;
+    });
+  }, [sessions, selectedFaculty, selectedDept, selectedDegree, selectedBatch, batches]);
+
   // Group by batch
   const timetablesByBatch = useMemo(() => {
     const grouped = {};
-    if (!sessions) return grouped;
+    if (!filteredSessions) return grouped;
     
-    sessions.forEach(session => {
+    filteredSessions.forEach(session => {
       const bCode = session.batch_code || `Batch ${session.batch_id}`;
       if (!grouped[bCode]) grouped[bCode] = [];
       grouped[bCode].push(session);
     });
     return grouped;
-  }, [sessions]);
+  }, [filteredSessions]);
 
   const renderBatchTimetable = (batchCode, batchSessions) => {
     // Generate default time slots for standard working day (8 AM to 5 PM)
@@ -426,7 +446,7 @@ export default function ManageTimetables() {
             View, edit, and publish draft schedules.
           </p>
         </div>
-        {sessions.length > 0 && selectedStatus === "DRAFT" && (
+        {filteredSessions.length > 0 && selectedStatus === "DRAFT" && (
           <button 
             onClick={handlePublish}
             disabled={publishing}
@@ -544,7 +564,7 @@ export default function ManageTimetables() {
         
         <div className="mt-4 flex justify-between items-center">
           <div>
-            {selectedStatus === "PUBLISHED" && sessions.length > 0 && (
+            {selectedStatus === "PUBLISHED" && filteredSessions.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 mr-2">Export All:</span>
                 <button
@@ -586,7 +606,7 @@ export default function ManageTimetables() {
       </div>
 
       {/* Results View */}
-      {sessions.length > 0 ? (
+      {filteredSessions.length > 0 ? (
         <div className="space-y-8 pb-12">
           {Object.entries(timetablesByBatch).map(([batchCode, batchSessions]) => 
             renderBatchTimetable(batchCode, batchSessions)
