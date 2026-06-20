@@ -311,14 +311,25 @@ export default function Navbar({ title }) {
     }).slice(0, 6);
   }, [searchQuery, scopedTargets]);
 
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+
   // Listen for storage changes to update profile image
   useEffect(() => {
     const handleProfileUpdate = () => {
       setUserRefresh((prev) => prev + 1);
     };
 
+    const handleNotificationsRead = () => {
+      setHasUnreadNotifications(false);
+    };
+
     window.addEventListener("userProfileUpdated", handleProfileUpdate);
-    return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+    window.addEventListener("notificationsRead", handleNotificationsRead);
+    
+    return () => {
+      window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+      window.removeEventListener("notificationsRead", handleNotificationsRead);
+    };
   }, []);
 
   const userName = useMemo(() => {
@@ -534,8 +545,11 @@ export default function Navbar({ title }) {
       </form>
 
       <div className="flex items-center gap-4">
-        <button className="text-gray-500 hover:text-gray-700">
+        <button className="relative text-gray-500 hover:text-gray-700">
           <Bell size={18} />
+          {hasUnreadNotifications && (
+            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
         </button>
         <button
           type="button"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   MapPin,
   User,
@@ -32,6 +32,7 @@ const NOTIFICATIONS = [
     desc: "Your semester timetable has been published. Check your schedule.",
     time: "Today",
     unread: true,
+    link: "/student/timetable",
   },
   {
     id: 2,
@@ -42,6 +43,7 @@ const NOTIFICATIONS = [
     desc: "Complete your semester registration before the deadline.",
     time: "This week",
     unread: true,
+    link: "/student/registration",
   },
   {
     id: 3,
@@ -108,10 +110,24 @@ function TodayClassCard({ session }) {
   );
 }
 
-function NotificationItem({ notif }) {
+function NotificationItem({ notif, onMarkRead }) {
   const Icon = notif.icon;
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (notif.unread) {
+      onMarkRead(notif.id);
+    }
+    if (notif.link) {
+      navigate(notif.link);
+    }
+  };
+
   return (
-    <div className={`px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors ${notif.unread ? "" : "opacity-70"}`}>
+    <button
+      onClick={handleClick}
+      className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left ${notif.unread ? "" : "opacity-70"}`}
+    >
       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${notif.bg}`}>
         <Icon size={15} className={notif.color} />
       </div>
@@ -125,7 +141,7 @@ function NotificationItem({ notif }) {
         <p className="text-xs text-gray-500 mt-0.5 leading-snug">{notif.desc}</p>
         <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -165,6 +181,13 @@ export default function StudentDashboard() {
   };
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+  
+  useEffect(() => {
+    if (unreadCount === 0) {
+      window.dispatchEvent(new Event("notificationsRead"));
+    }
+  }, [unreadCount]);
+
   const todaySessions = summary?.today_sessions ?? [];
   const ongoingCount = todaySessions.filter((s) => s.status === "Ongoing").length;
   const upcomingCount = todaySessions.filter((s) => s.status === "Upcoming").length;
@@ -274,7 +297,11 @@ export default function StudentDashboard() {
 
           <div className="divide-y divide-gray-50 flex-1 overflow-y-auto">
             {notifications.map((n) => (
-              <NotificationItem key={n.id} notif={n} />
+              <NotificationItem 
+                key={n.id} 
+                notif={n} 
+                onMarkRead={(id) => setNotifications(prev => prev.map(item => item.id === id ? { ...item, unread: false } : item))} 
+              />
             ))}
           </div>
         </div>
