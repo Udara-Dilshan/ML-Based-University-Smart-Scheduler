@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, Globe, GraduationCap, FileDown, Bug } from "lucide-react";
 
 const quickActions = [
@@ -20,12 +21,15 @@ const quickActions = [
     label: "User Guide",
     desc: "Download system manual",
     color: "text-green-400",
+    href: "/docs/user-guide.pdf",
+    download: true,
   },
   {
     icon: Bug,
     label: "Report an Issue",
     desc: "Report timetable or system errors",
     color: "text-orange-400",
+    href: "https://mail.google.com/mail/?view=cm&fs=1&to=itcenter@uwu.ac.lk&su=System%20Issue%20Report%20from%20Student",
   },
 ];
 
@@ -45,6 +49,14 @@ const faqs = [
 ];
 
 export default function StudentSupport() {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredFaqs = faqs.filter(
+    (faq) =>
+      faq.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.a.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -70,8 +82,9 @@ export default function StudentSupport() {
                 <a
                   key={a.label}
                   href={a.href}
-                  target="_blank"
+                  target={a.href.startsWith("mailto:") || a.download ? undefined : "_blank"}
                   rel="noreferrer"
+                  download={a.download}
                   className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl p-4 text-left transition"
                 >
                   {content}
@@ -96,16 +109,25 @@ export default function StudentSupport() {
           <h3 className="font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
           <div className="relative mb-4">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search FAQs..."
-              className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <input 
+              type="text" 
+              placeholder="Search FAQs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" 
+            />
           </div>
           <div className="space-y-3">
-            {faqs.map((faq, i) => (
-              <div key={i} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50">
-                <p className="text-sm font-medium text-gray-900">{faq.q}</p>
-                <p className="text-xs text-gray-500 mt-1">{faq.a}</p>
-              </div>
-            ))}
+            {filteredFaqs.length > 0 ? (
+              filteredFaqs.map((faq, i) => (
+                <div key={i} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50">
+                  <p className="text-sm font-medium text-gray-900">{faq.q}</p>
+                  <p className="text-xs text-gray-500 mt-1">{faq.a}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 py-4 text-center">No matching FAQs found.</p>
+            )}
           </div>
         </div>
 
