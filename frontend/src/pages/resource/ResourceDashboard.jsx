@@ -47,9 +47,9 @@ export default function ResourceDashboard() {
   const stats = useMemo(() => {
     const availableVehicles = vehicles.filter((item) => Boolean(item?.is_available)).length;
     return [
-      { label: "Total Rooms / Halls", value: resources.length, icon: Building2, color: "text-blue-600", bg: "bg-blue-50" },
-      { label: "Vehicles", value: vehicles.length, icon: Car, color: "text-green-600", bg: "bg-green-50" },
-      { label: "Available Vehicles", value: availableVehicles, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
+      { label: "Total Rooms / Halls", value: resources.length, icon: Building2, color: "text-blue-600", bg: "bg-blue-50", to: "/resource/rooms" },
+      { label: "Vehicles", value: vehicles.length, icon: Car, color: "text-green-600", bg: "bg-green-50", to: "/resource/vehicles" },
+      { label: "Available Vehicles", value: availableVehicles, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", to: "/resource/vehicles" },
       { label: "Pending Event Requests", value: summary.pending_event_requests, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50", to: "/resource/event-requests" },
       { label: "Pending Vehicle Requests", value: summary.pending_vehicle_requests, icon: FileText, color: "text-orange-600", bg: "bg-orange-50", to: "/resource/vehicle-requests" },
     ];
@@ -112,9 +112,6 @@ export default function ResourceDashboard() {
                   <Icon size={22} className={stat.color} />
                 </div>
               </div>
-              {stat.to && stat.value > 0 && (
-                <p className="mt-2 text-xs text-blue-600 font-medium">Click to review →</p>
-              )}
             </div>
           );
           return stat.to ? (
