@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import StudentSignupPage from "./pages/StudentSignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ResourceLayout from "./pages/resource/layout/ResourceLayout";
 import ManageRooms from "./pages/resource/ManageRooms";
 import ManageEquipment from "./pages/resource/ManageEquipment";
@@ -73,6 +75,8 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<StudentSignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Admin */}
         <Route element={<ProtectedRoute allowedRoles={["SuperAdmin"]} />}>

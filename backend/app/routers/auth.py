@@ -7,14 +7,18 @@ from app.database.connection import get_db
 from app.models.academic import Batch, BatchActiveTerm, Department
 from app.models.user import User, UserRole
 from app.models.profiles import Student
+from datetime import timedelta
 from app.schemas.user import (
     UserLoginRequest,
     StudentSignupRequest,
     TokenResponse,
     UserResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
-from app.utils.auth import verify_password, create_access_token, hash_password
+from app.utils.auth import verify_password, create_access_token, hash_password, decode_access_token
 from app.utils.dependencies import get_current_user
+from app.utils.email import send_reset_password_email
 import os
 import uuid
 from pathlib import Path
@@ -354,3 +358,42 @@ async def upload_profile_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload image: {str(err)}",
         )
+
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if user:
+        # Generate short-lived token (15 mins)
+        reset_token = create_access_token(
+            data={"sub": user.email, "type": "password_reset"},
+            expires_delta=timedelta(minutes=15)
+        )
+        send_reset_password_email(user.email, reset_token)
+    
+    # Return success even if user not found to prevent email enumeration
+    return {"message": "If that email address is in our database, we will send you an email to reset your password."}
+
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    payload = decode_access_token(request.token)
+    if not payload or payload.get("type") != "password_reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+    
+    email = payload.get("sub")
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+        
+    user.password_hash = hash_password(request.new_password)
+    db.commit()
+    
+    return {"message": "Password has been reset successfully"}

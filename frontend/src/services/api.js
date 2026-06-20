@@ -48,6 +48,22 @@ export const authAPI = {
       throw error.response?.data || { message: "Signup failed" };
     }
   },
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post("/api/auth/forgot-password", { email });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Failed to request password reset" };
+    }
+  },
+  resetPassword: async (token, new_password) => {
+    try {
+      const response = await api.post("/api/auth/reset-password", { token, new_password });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Failed to reset password" };
+    }
+  },
   getCurrentUser: async () => {
     try {
       const response = await api.get("/api/auth/me");
