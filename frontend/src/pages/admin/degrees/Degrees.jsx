@@ -454,7 +454,7 @@ export default function Degrees() {
 
   return (
     <AdminLayout>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-semibold text-gray-900">Degrees</h1>
         <div className="flex flex-wrap items-center gap-2">
           <a
@@ -523,7 +523,7 @@ export default function Degrees() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-1 items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[2fr,1fr,1fr,auto]">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
         <input
           value={degreeSearch}
           onChange={(event) => setDegreeSearch(event.target.value)}
@@ -559,17 +559,17 @@ export default function Degrees() {
             </option>
           ))}
         </select>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-gray-600">Showing {filteredDegrees.length} result(s)</p>
-          <button
-            type="button"
-            onClick={downloadDisplayedResults}
-            disabled={!filteredDegrees.length}
-            className="whitespace-nowrap rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Export Displayed Results
-          </button>
-        </div>
+      </div>
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <p className="text-sm text-gray-600">Showing {filteredDegrees.length} result(s)</p>
+        <button
+          type="button"
+          onClick={downloadDisplayedResults}
+          disabled={!filteredDegrees.length}
+          className="whitespace-nowrap rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Export Displayed Results
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">

@@ -592,7 +592,7 @@ export default function Courses() {
 
   return (
     <AdminLayout>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-semibold text-gray-900">Courses</h1>
         <div className="flex flex-wrap items-center gap-2">
           <a

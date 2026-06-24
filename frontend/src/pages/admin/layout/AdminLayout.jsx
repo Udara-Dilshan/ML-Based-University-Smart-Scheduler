@@ -67,7 +67,7 @@ return (
 {isScheduler ? <SchedulerSidebar /> : <Sidebar />}
 </div>
 
-<div className="flex-1 ml-64 flex flex-col">
+<div className="flex-1 ml-64 flex flex-col min-w-0">
 
 <div className="sticky top-0 z-10">
 <Navbar title={title} />
