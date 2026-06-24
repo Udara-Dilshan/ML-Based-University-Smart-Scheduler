@@ -14,7 +14,9 @@ class TimetableSession(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     type = Column(Enum("LECTURE", "PRACTICAL", name="sessiontype"), nullable=False, default="LECTURE")
-    status = Column(Enum("DRAFT", "PUBLISHED", name="sessionstatus"), nullable=True, default="DRAFT")
+    status = Column(Enum("DRAFT", "PUBLISHED", "ARCHIVED", name="sessionstatus"), nullable=True, default="DRAFT")
+    academic_year = Column(String(20), nullable=True)
+    semester = Column(String(20), nullable=True)
 
     batch = relationship("Batch")
     module = relationship("Module")

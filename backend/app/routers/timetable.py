@@ -42,6 +42,14 @@ def save_timetable(req: SaveTimetableRequest, db: Session = Depends(get_db)):
             TimetableSession.status == "DRAFT"
         ).delete(synchronize_session=False)
 
+    from app.models.settings import SystemSetting
+    
+    current_academic_year = db.query(SystemSetting).filter(SystemSetting.category == "CURRENT_ACADEMIC_YEAR").first()
+    current_semester = db.query(SystemSetting).filter(SystemSetting.category == "ACTIVE_SEMESTER_CYCLE").first()
+    
+    academic_year_val = current_academic_year.value if current_academic_year else None
+    semester_val = current_semester.value if current_semester else None
+
     new_sessions = []
     
     # Sort sessions to safely merge contiguous blocks
@@ -96,7 +104,9 @@ def save_timetable(req: SaveTimetableRequest, db: Session = Depends(get_db)):
             start_time=m["start_time"],
             end_time=m["end_time"],
             type="LECTURE",
-            status=req.status
+            status=req.status,
+            academic_year=academic_year_val,
+            semester=semester_val
         ))
         
     db.add_all(new_sessions)
@@ -110,6 +120,8 @@ def get_managed_timetables(
     degree_id: Optional[int] = None,
     faculty_id: Optional[int] = None,
     dept_id: Optional[int] = None,
+    academic_year: Optional[str] = None,
+    semester: Optional[str] = None,
     status: Optional[str] = "DRAFT",
     db: Session = Depends(get_db)
 ):
@@ -122,6 +134,11 @@ def get_managed_timetables(
     
     if status:
         query = query.filter(TimetableSession.status == status)
+        
+    if academic_year:
+        query = query.filter(TimetableSession.academic_year == academic_year)
+    if semester:
+        query = query.filter(TimetableSession.semester == semester)
     
     if batch_id:
         query = query.filter(TimetableSession.batch_id == batch_id)
@@ -196,7 +213,9 @@ def get_managed_timetables(
             "duration_hours": duration,
             "faculty_id": r.batch.degree.department.faculty_id,
             "dept_id": r.batch.degree.dept_id,
-            "lunch_start": lunch_str
+            "lunch_start": lunch_str,
+            "academic_year": r.academic_year,
+            "semester": r.semester
         })
         
     return {"sessions": sessions}
@@ -400,7 +419,8 @@ def update_session(session_id: int, req: EditSessionRequest, db: Session = Depen
     # Validation: Check conflicts with other sessions
     conflicts = db.query(TimetableSession).filter(
         TimetableSession.day_of_week == req.day,
-        TimetableSession.session_id != session_id
+        TimetableSession.session_id != session_id,
+        TimetableSession.status == session.status
     ).all()
     
     for other in conflicts:
@@ -465,7 +485,9 @@ def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
     ).all()
     
     DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
-    all_sessions = db.query(TimetableSession).all()
+    all_sessions = db.query(TimetableSession).filter(
+        TimetableSession.status == session.status
+    ).all()
     suggestions = []
     
     for day in DAYS:
@@ -519,6 +541,7 @@ def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
     return {"suggestions": suggestions}
 
 class PublishRequest(BaseModel):
+    batch_id: Optional[int] = None
     degree_id: Optional[int] = None
     dept_id: Optional[int] = None
     faculty_id: Optional[int] = None
@@ -530,21 +553,64 @@ def publish_timetable(req: PublishRequest, db: Session = Depends(get_db)):
     
     query = db.query(TimetableSession).join(Batch)
     
-    if req.degree_id:
+    if req.batch_id:
+        query = query.filter(TimetableSession.batch_id == req.batch_id)
+    elif req.degree_id:
         query = query.filter(Batch.degree_id == req.degree_id)
     elif req.dept_id:
         query = query.join(Degree).filter(Degree.dept_id == req.dept_id)
     elif req.faculty_id:
         query = query.join(Degree).join(Department).filter(Department.faculty_id == req.faculty_id)
         
-    sessions = query.filter(TimetableSession.status == "DRAFT").all()
+    draft_sessions = query.filter(TimetableSession.status == "DRAFT").all()
+    if not draft_sessions:
+        return {"message": "No draft sessions found to publish."}
+        
     count = 0
-    for s in sessions:
+    
+    # Auto-archive: for each DRAFT, find the matching PUBLISHED and archive them
+    for s in draft_sessions:
+        if s.academic_year and s.semester:
+            existing_published = db.query(TimetableSession).filter(
+                TimetableSession.batch_id == s.batch_id,
+                TimetableSession.academic_year == s.academic_year,
+                TimetableSession.semester == s.semester,
+                TimetableSession.status == "PUBLISHED"
+            ).all()
+            
+            for ep in existing_published:
+                ep.status = "ARCHIVED"
+                
         s.status = "PUBLISHED"
         count += 1
         
     db.commit()
     return {"message": f"Successfully published {count} sessions."}
+
+@router.post("/archive")
+def archive_timetable(req: PublishRequest, db: Session = Depends(get_db)):
+    from app.models.timetable import TimetableSession
+    from app.models.academic import Batch, Degree, Department
+    
+    query = db.query(TimetableSession).join(Batch)
+    
+    if req.batch_id:
+        query = query.filter(TimetableSession.batch_id == req.batch_id)
+    elif req.degree_id:
+        query = query.filter(Batch.degree_id == req.degree_id)
+    elif req.dept_id:
+        query = query.join(Degree).filter(Degree.dept_id == req.dept_id)
+    elif req.faculty_id:
+        query = query.join(Degree).join(Department).filter(Department.faculty_id == req.faculty_id)
+        
+    sessions = query.filter(TimetableSession.status == "PUBLISHED").all()
+    count = 0
+    for s in sessions:
+        s.status = "ARCHIVED"
+        count += 1
+        
+    db.commit()
+    return {"message": f"Successfully archived {count} sessions."}
 
 @router.get("/lecturer/me")
 def get_lecturer_timetable(
@@ -552,16 +618,30 @@ def get_lecturer_timetable(
     current_user: User = Depends(require_roles(UserRole.LECTURER))
 ):
     from app.models.timetable import TimetableSession
+    from app.models.settings import SystemSetting
     
     if not current_user.lecturer_profile:
         raise HTTPException(status_code=404, detail="Lecturer profile not found")
         
     lecturer_id = current_user.lecturer_profile.id
     
-    sessions = db.query(TimetableSession).filter(
+    current_academic_year = db.query(SystemSetting).filter(SystemSetting.category == "CURRENT_ACADEMIC_YEAR").first()
+    current_semester = db.query(SystemSetting).filter(SystemSetting.category == "ACTIVE_SEMESTER_CYCLE").first()
+    
+    academic_year_val = current_academic_year.value if current_academic_year else None
+    semester_val = current_semester.value if current_semester else None
+    
+    query = db.query(TimetableSession).filter(
         TimetableSession.lecturer_id == lecturer_id,
         TimetableSession.status == "PUBLISHED"
-    ).all()
+    )
+    
+    if academic_year_val:
+        query = query.filter(TimetableSession.academic_year == academic_year_val)
+    if semester_val:
+        query = query.filter(TimetableSession.semester == semester_val)
+        
+    sessions = query.all()
     
     result = []
     for r in sessions:
@@ -593,10 +673,25 @@ def get_student_timetable(
         
     batch_id = current_user.student_profile.batch
     
-    sessions = db.query(TimetableSession).filter(
+    from app.models.settings import SystemSetting
+    
+    current_academic_year = db.query(SystemSetting).filter(SystemSetting.category == "CURRENT_ACADEMIC_YEAR").first()
+    current_semester = db.query(SystemSetting).filter(SystemSetting.category == "ACTIVE_SEMESTER_CYCLE").first()
+    
+    academic_year_val = current_academic_year.value if current_academic_year else None
+    semester_val = current_semester.value if current_semester else None
+    
+    query = db.query(TimetableSession).filter(
         TimetableSession.batch_id == batch_id,
         TimetableSession.status == "PUBLISHED"
-    ).all()
+    )
+    
+    if academic_year_val:
+        query = query.filter(TimetableSession.academic_year == academic_year_val)
+    if semester_val:
+        query = query.filter(TimetableSession.semester == semester_val)
+        
+    sessions = query.all()
     
     result = []
     for r in sessions:

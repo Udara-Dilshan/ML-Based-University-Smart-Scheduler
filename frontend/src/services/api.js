@@ -587,6 +587,10 @@ export const timetableAPI = {
     const response = await api.post("/api/timetable/publish", payload);
     return response.data;
   },
+  archive: async (payload) => {
+    const response = await api.post("/api/timetable/archive", payload);
+    return response.data;
+  },
   getContext: async ({ degree_id, dept_id, faculty_id } = {}) => {
     const params = {};
     if (degree_id) params.degree_id = degree_id;

@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   Wand2,
   Download,
-  FileText
+  FileText,
+  Archive
 } from "lucide-react";
 
 const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
@@ -68,6 +69,11 @@ export default function ManageTimetables() {
   const [selectedDegree, setSelectedDegree] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("DRAFT");
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+
+
+  const [archiving, setArchiving] = useState(false);
 
   // Editing Modal State
   const [editSession, setEditSession] = useState(null);
@@ -149,6 +155,9 @@ export default function ManageTimetables() {
       else if (selectedDept) payload.dept_id = parseInt(selectedDept);
       else if (selectedFaculty) payload.faculty_id = parseInt(selectedFaculty);
 
+      if (selectedAcademicYear) payload.academic_year = selectedAcademicYear;
+      if (selectedSemester) payload.semester = selectedSemester;
+
       const data = await timetableAPI.getManaged(payload);
       setSessions(data.sessions || []);
     } catch (err) {
@@ -179,6 +188,29 @@ export default function ManageTimetables() {
       setError(err.response?.data?.detail || "Failed to publish timetables.");
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    try {
+      setArchiving(true);
+      setError(null);
+      setSuccess(null);
+      
+      const payload = {};
+      if (selectedBatch) payload.batch_id = parseInt(selectedBatch);
+      else if (selectedDegree) payload.degree_id = parseInt(selectedDegree);
+      else if (selectedDept) payload.dept_id = parseInt(selectedDept);
+      else if (selectedFaculty) payload.faculty_id = parseInt(selectedFaculty);
+      
+      const data = await timetableAPI.archive(payload);
+      setSuccess(data.message);
+      setSelectedStatus("ARCHIVED"); // Switch view to archived
+      fetchTimetables(); // Re-fetch
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to archive timetables.");
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -446,16 +478,28 @@ export default function ManageTimetables() {
             View, edit, and publish draft schedules.
           </p>
         </div>
-        {filteredSessions.length > 0 && selectedStatus === "DRAFT" && (
-          <button 
-            onClick={handlePublish}
-            disabled={publishing}
-            className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
-          >
-            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Publish Timetables
-          </button>
-        )}
+        <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+          {filteredSessions.length > 0 && selectedStatus === "PUBLISHED" && (
+            <button 
+              onClick={handleArchive}
+              disabled={archiving}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+            >
+              {archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+              Archive Timetables
+            </button>
+          )}
+          {filteredSessions.length > 0 && selectedStatus === "DRAFT" && (
+            <button 
+              onClick={handlePublish}
+              disabled={publishing}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+            >
+              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Publish Timetables
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -489,6 +533,35 @@ export default function ManageTimetables() {
             >
               <option value="DRAFT">Draft</option>
               <option value="PUBLISHED">Published</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Academic Year</label>
+            <select
+              value={selectedAcademicYear}
+              onChange={(e) => setSelectedAcademicYear(e.target.value)}
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+            >
+              <option value="">All</option>
+              {Array.from(new Set(sessions.map(s => s.academic_year).filter(Boolean))).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Semester</label>
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+            >
+              <option value="">All</option>
+              {Array.from(new Set(sessions.map(s => s.semester).filter(Boolean))).map(sem => (
+                <option key={sem} value={sem}>{sem}</option>
+              ))}
             </select>
           </div>
           <div>
