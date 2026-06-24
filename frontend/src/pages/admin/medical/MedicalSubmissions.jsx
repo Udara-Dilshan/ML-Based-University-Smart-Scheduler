@@ -285,7 +285,7 @@ export default function MedicalSubmissions() {
                       <td className="px-4 py-3">
                         <div className="space-y-2">
                           <select
-                            value={draft.status || ""}
+                            value={draft.status !== undefined ? draft.status : (item.status !== "PENDING" ? item.status : "")}
                             onChange={(event) =>
                               handleReviewChange(item.submission_id, "status", event.target.value)
                             }
@@ -296,7 +296,7 @@ export default function MedicalSubmissions() {
                             <option value="REJECTED">Reject</option>
                           </select>
                           <textarea
-                            value={draft.admin_comment || ""}
+                            value={draft.admin_comment !== undefined ? draft.admin_comment : (item.admin_comment || "")}
                             onChange={(event) =>
                               handleReviewChange(item.submission_id, "admin_comment", event.target.value)
                             }
