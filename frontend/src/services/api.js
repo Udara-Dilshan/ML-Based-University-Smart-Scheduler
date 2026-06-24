@@ -26,6 +26,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      // Prevent redirecting if already on the login page to avoid infinite loops
+      if (window.location.pathname !== "/") {
+        window.dispatchEvent(new Event("userProfileUpdated")); // Clear UI user state
+        window.location.href = "/";
+      }
     }
     return Promise.reject(error);
   }
