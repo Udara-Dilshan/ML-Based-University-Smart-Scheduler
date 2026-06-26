@@ -69,6 +69,7 @@ class StudentProfileResponse(BaseModel):
 
 
 class LecturerProfileResponse(BaseModel):
+    lecturer_id: Optional[int] = None
     staff_id: Optional[str] = None
     dept_id: Optional[int] = None
     department_name: Optional[str] = None

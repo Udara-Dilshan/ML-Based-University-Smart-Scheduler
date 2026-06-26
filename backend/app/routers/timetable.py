@@ -364,6 +364,7 @@ class EditSessionRequest(BaseModel):
     start_time: str
     end_time: str
     resource_id: int
+    lecturer_id: Optional[int] = None
 
 @router.put("/sessions/{session_id}")
 def update_session(session_id: int, req: EditSessionRequest, db: Session = Depends(get_db)):
@@ -428,12 +429,20 @@ def update_session(session_id: int, req: EditSessionRequest, db: Session = Depen
             detail=f"Validation Error: Time is outside the batch's working hours ({batch_work_start//60:02d}:{batch_work_start%60:02d} - {batch_work_end//60:02d}:{batch_work_end%60:02d})."
         )
 
+    target_lecturer_id = req.lecturer_id if req.lecturer_id is not None else session.lecturer_id
+
     # Validation: Check conflicts with other sessions
-    conflicts = db.query(TimetableSession).filter(
+    conflicts_query = db.query(TimetableSession).filter(
         TimetableSession.day_of_week == req.day,
         TimetableSession.session_id != session_id,
         TimetableSession.status == session.status
-    ).all()
+    )
+    if session.status == "PUBLISHED":
+        conflicts_query = conflicts_query.filter(
+            TimetableSession.academic_year == session.academic_year,
+            TimetableSession.semester == session.semester
+        )
+    conflicts = conflicts_query.all()
     
     for other in conflicts:
         o_start = other.start_time.hour * 60 + other.start_time.minute
@@ -443,21 +452,69 @@ def update_session(session_id: int, req: EditSessionRequest, db: Session = Depen
         if start_mins < o_end and o_start < end_mins:
             if other.resource_id == req.resource_id:
                 raise HTTPException(status_code=409, detail=f"Conflict: Room '{other.resource.name}' is already booked.")
-            if other.lecturer_id == session.lecturer_id:
+            if other.lecturer_id == target_lecturer_id:
                 raise HTTPException(status_code=409, detail="Conflict: Lecturer is booked for another class.")
             if other.batch_id == session.batch_id:
                 raise HTTPException(status_code=409, detail="Conflict: Batch already has a class scheduled at this time.")
 
     # All clear, update
+    # Store old values for email
+    was_published = session.status == "PUBLISHED"
+    old_room_name = session.resource.name if session.resource else ""
+    old_lecturer_name = f"{session.lecturer.user.first_name} {session.lecturer.user.last_name}" if session.lecturer and session.lecturer.user else ""
+
     session.day_of_week = req.day
     session.start_time = new_start
     session.end_time = new_end
     session.resource_id = req.resource_id
+    session.lecturer_id = target_lecturer_id
     db.commit()
+    db.refresh(session)
+    
+    # Fire notifications if it was a published session
+    if was_published:
+        from app.utils.email import send_timetable_update_email
+        from app.models.profiles import Student
+        
+        details = {
+            "module_code": session.module.code if session.module else "",
+            "module_name": session.module.name if session.module else "",
+            "day": session.day_of_week,
+            "start_time": session.start_time.strftime("%H:%M"),
+            "end_time": session.end_time.strftime("%H:%M"),
+            "room_name": session.resource.name if session.resource else "",
+            "lecturer_name": f"{session.lecturer.user.first_name} {session.lecturer.user.last_name}" if session.lecturer and session.lecturer.user else "",
+            "batch_code": session.batch.batch_code if session.batch else ""
+        }
+        
+        # Notify Lecturer
+        if session.lecturer and session.lecturer.user and session.lecturer.user.email:
+            send_timetable_update_email(
+                to_emails=[session.lecturer.user.email],
+                role="LECTURER",
+                subject="Timetable Update - Class Rescheduled",
+                details=details
+            )
+            
+        # Notify Batch Students
+        students = db.query(Student).filter(Student.batch == session.batch_id).all()
+        student_emails = [s.user.email for s in students if s.user and s.user.email]
+        if student_emails:
+            # Chunking to avoid massive To header (optional, but good practice)
+            chunk_size = 50
+            for i in range(0, len(student_emails), chunk_size):
+                send_timetable_update_email(
+                    to_emails=student_emails[i:i+chunk_size],
+                    role="STUDENT",
+                    subject="Timetable Update - Class Rescheduled",
+                    details=details
+                )
+    
     return {"message": "Session updated successfully"}
 
 class SuggestRequest(BaseModel):
     session_id: int
+    lecturer_id: Optional[int] = None
 
 @router.post("/suggest-alternatives")
 def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
@@ -492,14 +549,23 @@ def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
     l_end = int(batch_cs.get("lunch_break_end", global_cs.get("lunch_break_end", 780)))
     
     # Lecturer unavailability records
+    target_lecturer_id = req.lecturer_id if req.lecturer_id is not None else session.lecturer_id
+    
     unavail = db.query(LecturerAvailability).filter(
-        LecturerAvailability.lecturer_id == session.lecturer_id
+        LecturerAvailability.lecturer_id == target_lecturer_id
     ).all()
     
     DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
-    all_sessions = db.query(TimetableSession).filter(
+    
+    all_sessions_query = db.query(TimetableSession).filter(
         TimetableSession.status == session.status
-    ).all()
+    )
+    if session.status == "PUBLISHED":
+        all_sessions_query = all_sessions_query.filter(
+            TimetableSession.academic_year == session.academic_year,
+            TimetableSession.semester == session.semester
+        )
+    all_sessions = all_sessions_query.all()
     suggestions = []
     
     for day in DAYS:
@@ -535,7 +601,7 @@ def suggest_alternatives(req: SuggestRequest, db: Session = Depends(get_db)):
                     o_end = other.end_time.hour * 60 + other.end_time.minute
                     
                     if slot_start < o_end and o_start < slot_end:
-                        if other.resource_id == room.resource_id or other.lecturer_id == session.lecturer_id or other.batch_id == session.batch_id:
+                        if other.resource_id == room.resource_id or other.lecturer_id == target_lecturer_id or other.batch_id == session.batch_id:
                             conflict = True
                             break
                 

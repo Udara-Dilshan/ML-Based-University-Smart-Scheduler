@@ -101,6 +101,7 @@ def _to_user_response(user: User) -> UserResponse:
     lecturer_profile = None
     if user.lecturer_profile:
         lecturer_profile = {
+            "lecturer_id": user.lecturer_profile.id,
             "staff_id": user.lecturer_profile.employee_id,
             "dept_id": _parse_int(user.lecturer_profile.department),
             "designation": user.lecturer_profile.designation,

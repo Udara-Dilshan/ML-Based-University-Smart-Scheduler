@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../layout/AdminLayout";
-import { timetableAPI, academicAPI, resourceAPI, getUser } from "../../../services/api";
+import { timetableAPI, academicAPI, resourceAPI, userAPI, getUser } from "../../../services/api";
 import {
   Loader2,
   CalendarDays,
@@ -65,6 +65,8 @@ export default function ManageTimetables() {
   const [resources, setResources] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [semesters, setSemesters] = useState([]);
+  const [lecturers, setLecturers] = useState([]);
+  const [searchLecturer, setSearchLecturer] = useState("");
   
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
@@ -98,7 +100,7 @@ export default function ManageTimetables() {
       await timetableAPI.exportTimetable(params, selectedStatus, format);
       setSuccess(`Timetable exported as ${format.toUpperCase()} successfully.`);
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
+    } catch {
       setError("Failed to export timetable. Please try again.");
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -124,19 +126,30 @@ export default function ManageTimetables() {
 
   const fetchFilters = async () => {
     try {
-      const [facRes, deptRes, degRes, batchRes, resRes, filterRes] = await Promise.all([
+      const [facRes, deptRes, degRes, batchRes, resRes, filterRes, usersRes] = await Promise.all([
         academicAPI.getFaculties(),
         academicAPI.getDepartments(),
         academicAPI.getDegrees(),
         academicAPI.getBatches(),
         resourceAPI.getResources(),
-        timetableAPI.getFilters()
+        timetableAPI.getFilters(),
+        userAPI.getAll()
       ]);
       setFaculties(facRes);
       setDepartments(deptRes);
       setDegrees(degRes);
       setBatches(batchRes);
       setResources(resRes);
+      
+      const activeLecturers = usersRes
+        .filter(u => u.role === "Lecturer" && u.is_active && u.lecturer_profile)
+        .map(u => ({
+          lecturer_id: u.lecturer_profile.lecturer_id,
+          first_name: u.first_name,
+          last_name: u.last_name,
+          department_code: deptRes.find(d => d.dept_id === u.lecturer_profile.dept_id)?.code || ""
+        }));
+      setLecturers(activeLecturers);
       if (filterRes) {
         setAcademicYears(filterRes.academic_years || []);
         setSemesters(filterRes.semesters || []);
@@ -227,8 +240,11 @@ export default function ManageTimetables() {
       day: session.day,
       start_time: session.start_time,
       end_time: session.end_time,
-      resource_id: session.resource_id
+      resource_id: session.resource_id,
+      lecturer_id: session.lecturer_id
     });
+    const currentLecturer = lecturers.find(l => l.lecturer_id === session.lecturer_id);
+    setSearchLecturer(currentLecturer ? `${currentLecturer.first_name} ${currentLecturer.last_name}` : "");
     setEditError(null);
     setSuggestions([]);
     setSelectedSuggestion(null);
@@ -263,7 +279,7 @@ export default function ManageTimetables() {
   const fetchAlternatives = async () => {
     try {
       setLoadingSuggestions(true);
-      const data = await timetableAPI.suggestAlternatives(editSession.session_id);
+      const data = await timetableAPI.suggestAlternatives(editSession.session_id, editForm.lecturer_id);
       setSuggestions(data.suggestions || []);
     } catch (err) {
       console.error("Failed to fetch suggestions", err);
@@ -277,7 +293,8 @@ export default function ManageTimetables() {
       day: suggestion.day,
       start_time: suggestion.start_time,
       end_time: suggestion.end_time,
-      resource_id: suggestion.resource_id
+      resource_id: suggestion.resource_id,
+      lecturer_id: editForm.lecturer_id
     });
     setSelectedSuggestion(suggestion);
   };
@@ -423,7 +440,7 @@ export default function ManageTimetables() {
                         
                         return (
                           <td key={`${day}-${slot}`} rowSpan={rowSpan} className="border-r border-gray-100 last:border-r-0 relative group p-0 hover:bg-gray-50 transition-colors cursor-pointer"
-                              onClick={() => selectedStatus === "DRAFT" && openEditModal(daySession)}>
+                              onClick={() => (selectedStatus === "DRAFT" || selectedStatus === "PUBLISHED") && openEditModal(daySession)}>
                             <div className={`absolute inset-1.5 ${theme.bg} border ${theme.border} rounded-xl p-3 flex flex-col shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all z-10`}>
                                {/* Dot indicator */}
                                <div className={`absolute top-3 right-3 w-2 h-2 rounded-full ${theme.dot}`}></div>
@@ -448,7 +465,7 @@ export default function ManageTimetables() {
                                  </div>
                                </div>
                                
-                               {selectedStatus === "DRAFT" && (
+                               {(selectedStatus === "DRAFT" || selectedStatus === "PUBLISHED") && (
                                  <div className="absolute hidden group-hover:flex right-2 bottom-2 bg-white rounded-full px-2 py-1 shadow-sm text-[10px] font-bold text-gray-700 border border-gray-200">
                                    Edit
                                  </div>
@@ -674,14 +691,21 @@ export default function ManageTimetables() {
               </div>
             )}
           </div>
-          <button
-            onClick={fetchTimetables}
-            disabled={loading}
-            className="bg-gray-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-70 flex items-center gap-2 text-sm shadow-sm"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Find Timetables
-          </button>
+          {selectedStatus === "DRAFT" || (selectedAcademicYear && selectedSemester) ? (
+            <button
+              onClick={fetchTimetables}
+              disabled={loading}
+              className="bg-gray-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-70 flex items-center gap-2 text-sm shadow-sm"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              Find Timetables
+            </button>
+          ) : (
+            <div className="text-xs font-medium text-amber-700 bg-amber-50 px-4 py-2.5 rounded-lg border border-amber-200 flex items-center gap-2 shadow-sm">
+              <AlertTriangle className="w-4 h-4" />
+              Select Academic Year & Semester to search
+            </div>
+          )}
         </div>
       </div>
 
@@ -743,6 +767,30 @@ export default function ManageTimetables() {
                         .map(r => <option key={r.resource_id} value={r.resource_id}>{r.name} ({r.type})</option>)}
                     </select>
                   </div>
+                  {selectedStatus === "PUBLISHED" && (
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Lecturer</label>
+                      <input
+                        type="text"
+                        list="lecturer-options"
+                        value={searchLecturer}
+                        onChange={(e) => {
+                          setSearchLecturer(e.target.value);
+                          const matched = lecturers.find(l => `${l.first_name} ${l.last_name}` === e.target.value);
+                          setEditForm({...editForm, lecturer_id: matched ? matched.lecturer_id : null});
+                        }}
+                        placeholder="Type to search lecturer..."
+                        className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      />
+                      <datalist id="lecturer-options">
+                        {lecturers.map(l => (
+                          <option key={l.lecturer_id} value={`${l.first_name} ${l.last_name}`}>
+                            {l.department_code ? `(${l.department_code})` : ""}
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
                     <select

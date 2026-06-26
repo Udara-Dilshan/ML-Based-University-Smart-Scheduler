@@ -579,8 +579,12 @@ export const timetableAPI = {
     const response = await api.put(`/api/timetable/sessions/${sessionId}`, payload);
     return response.data;
   },
-  suggestAlternatives: async (sessionId) => {
-    const response = await api.post("/api/timetable/suggest-alternatives", { session_id: sessionId });
+  suggestAlternatives: async (sessionId, lecturerId = null) => {
+    const payload = { session_id: sessionId };
+    if (lecturerId) {
+      payload.lecturer_id = lecturerId;
+    }
+    const response = await api.post("/api/timetable/suggest-alternatives", payload);
     return response.data;
   },
   getFilters: async () => {
