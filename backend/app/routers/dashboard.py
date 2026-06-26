@@ -650,8 +650,15 @@ def get_student_dashboard_summary(
 
     if batch_id:
         from ..models.profiles import Lecturer as LecturerProfile
+        from ..models.settings import SystemSetting
+        
+        current_academic_year = db.query(SystemSetting).filter(SystemSetting.category == "CURRENT_ACADEMIC_YEAR").first()
+        current_semester = db.query(SystemSetting).filter(SystemSetting.category == "ACTIVE_SEMESTER_CYCLE").first()
+        
+        academic_year_val = current_academic_year.value if current_academic_year else None
+        semester_val = current_semester.value if current_semester else None
 
-        rows = (
+        query = (
             db.query(TimetableSession, Module, Resource)
             .join(Module, Module.module_id == TimetableSession.module_id)
             .join(Resource, Resource.resource_id == TimetableSession.resource_id)
@@ -660,9 +667,14 @@ def get_student_dashboard_summary(
                 TimetableSession.status == "PUBLISHED",
                 func.upper(TimetableSession.day_of_week) == today_name.upper(),
             )
-            .order_by(TimetableSession.start_time)
-            .all()
         )
+        
+        if academic_year_val:
+            query = query.filter(TimetableSession.academic_year == academic_year_val)
+        if semester_val:
+            query = query.filter(TimetableSession.semester == semester_val)
+            
+        rows = query.order_by(TimetableSession.start_time).all()
 
         for session, module, resource in rows:
             start_min = _time_to_minutes(session.start_time)
@@ -698,13 +710,20 @@ def get_student_dashboard_summary(
                 "lecturer_name": lecturer_name,
             })
 
-        total_modules = (
-            db.query(func.count(DegreeSemesterModule.id))
-            .join(Batch, Batch.degree_id == DegreeSemesterModule.degree_id)
-            .filter(Batch.batch_id == batch_id)
-            .scalar()
-            or 0
-        )
+        batch = db.query(Batch).filter(Batch.batch_id == batch_id).first()
+        if batch:
+            semester_number, _ = _resolve_batch_semester(batch, db)
+            total_modules = (
+                db.query(func.count(DegreeSemesterModule.id))
+                .filter(
+                    DegreeSemesterModule.degree_id == batch.degree_id,
+                    DegreeSemesterModule.semester_number == semester_number
+                )
+                .scalar()
+                or 0
+            )
+        else:
+            total_modules = 0
 
     return {
         "today_sessions": today_sessions,
