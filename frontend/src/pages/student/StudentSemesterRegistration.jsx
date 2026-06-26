@@ -39,6 +39,7 @@ export default function StudentSemesterRegistration() {
           return;
         }
 
+        const today = new Date().toISOString().split("T")[0];
         const defaults = {
           enrollment_no: data?.student?.registration_number || data?.student?.reg_no || "",
           faculty_name: data?.faculty?.name || "",
@@ -52,7 +53,7 @@ export default function StudentSemesterRegistration() {
           email: data?.student?.email || "",
           scholarship_name: "",
           scholarship_amount: "",
-          form_date: "",
+          form_date: today,
         };
 
         setForm((prev) => ({ ...prev, ...defaults }));

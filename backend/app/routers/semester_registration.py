@@ -105,6 +105,12 @@ def _resolve_batch_semester(batch: Batch, db: Session) -> tuple[int, str, Option
     if active_term:
         academic_year = getattr(active_term, "academic_year", None)
 
+    if not academic_year:
+        from app.models.settings import SystemSetting
+        current_academic_year = db.query(SystemSetting).filter(SystemSetting.category == "CURRENT_ACADEMIC_YEAR").first()
+        if current_academic_year:
+            academic_year = current_academic_year.value
+
     if active_term and active_term.semester_name in SEMESTER_NAME_TO_NUMBER:
         semester_number = SEMESTER_NAME_TO_NUMBER[active_term.semester_name]
         semester_name = active_term.semester_name
