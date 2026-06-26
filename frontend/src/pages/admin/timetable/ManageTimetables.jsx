@@ -63,6 +63,8 @@ export default function ManageTimetables() {
   const [degrees, setDegrees] = useState([]);
   const [batches, setBatches] = useState([]);
   const [resources, setResources] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
+  const [semesters, setSemesters] = useState([]);
   
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
@@ -122,18 +124,23 @@ export default function ManageTimetables() {
 
   const fetchFilters = async () => {
     try {
-      const [facRes, deptRes, degRes, batchRes, resRes] = await Promise.all([
+      const [facRes, deptRes, degRes, batchRes, resRes, filterRes] = await Promise.all([
         academicAPI.getFaculties(),
         academicAPI.getDepartments(),
         academicAPI.getDegrees(),
         academicAPI.getBatches(),
-        resourceAPI.getResources()
+        resourceAPI.getResources(),
+        timetableAPI.getFilters()
       ]);
       setFaculties(facRes);
       setDepartments(deptRes);
       setDegrees(degRes);
       setBatches(batchRes);
       setResources(resRes);
+      if (filterRes) {
+        setAcademicYears(filterRes.academic_years || []);
+        setSemesters(filterRes.semesters || []);
+      }
       
       if (currentUser?.role === "Scheduler" && facRes.length > 0) {
         setSelectedFaculty(facRes[0].faculty_id.toString());
@@ -545,7 +552,7 @@ export default function ManageTimetables() {
               className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
             >
               <option value="">All</option>
-              {Array.from(new Set(sessions.map(s => s.academic_year).filter(Boolean))).map(year => (
+              {academicYears.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
@@ -559,7 +566,7 @@ export default function ManageTimetables() {
               className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
             >
               <option value="">All</option>
-              {Array.from(new Set(sessions.map(s => s.semester).filter(Boolean))).map(sem => (
+              {semesters.map(sem => (
                 <option key={sem} value={sem}>{sem}</option>
               ))}
             </select>

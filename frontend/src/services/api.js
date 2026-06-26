@@ -583,6 +583,10 @@ export const timetableAPI = {
     const response = await api.post("/api/timetable/suggest-alternatives", { session_id: sessionId });
     return response.data;
   },
+  getFilters: async () => {
+    const response = await api.get("/api/timetable/filters");
+    return response.data;
+  },
   publish: async (payload) => {
     const response = await api.post("/api/timetable/publish", payload);
     return response.data;

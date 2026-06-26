@@ -114,6 +114,18 @@ def save_timetable(req: SaveTimetableRequest, db: Session = Depends(get_db)):
     
     return {"message": "Timetable saved successfully", "count": len(new_sessions)}
 
+@router.get("/filters")
+def get_timetable_filters(db: Session = Depends(get_db)):
+    from app.models.timetable import TimetableSession
+    
+    academic_years = db.query(TimetableSession.academic_year).filter(TimetableSession.academic_year.isnot(None)).distinct().all()
+    semesters = db.query(TimetableSession.semester).filter(TimetableSession.semester.isnot(None)).distinct().all()
+    
+    return {
+        "academic_years": [ay[0] for ay in academic_years if ay[0]],
+        "semesters": [s[0] for s in semesters if s[0]]
+    }
+
 @router.get("/manage")
 def get_managed_timetables(
     batch_id: Optional[int] = None,
