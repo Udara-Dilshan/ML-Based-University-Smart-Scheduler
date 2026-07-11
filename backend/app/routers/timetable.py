@@ -735,7 +735,8 @@ def get_lecturer_timetable(
             "status": r.status.value if hasattr(r.status, 'value') else r.status,
             "room_name": r.resource.name if r.resource else "N/A",
             "module_code": r.module.code if r.module else "N/A",
-            "module_name": r.module.name if r.module else "N/A"
+            "module_name": r.module.name if r.module else "N/A",
+            "batch_code": r.batch.batch_code if r.batch else f"Batch #{r.batch_id}"
         })
     return result
 

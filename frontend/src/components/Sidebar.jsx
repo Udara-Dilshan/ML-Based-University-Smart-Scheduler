@@ -46,6 +46,7 @@ export default function Sidebar() {
   const isRequestsRoute = [
     "/admin/requests/events",
     "/admin/requests/vehicles",
+    "/admin/requests/availability",
   ].includes(location.pathname);
 
   const [isUsersOpen, setIsUsersOpen] = useState(isUsersRoute);
@@ -236,6 +237,9 @@ export default function Sidebar() {
               </NavLink>
               <NavLink to="/admin/requests/vehicles" className={subItemClass}>
                 Vehicle Requests
+              </NavLink>
+              <NavLink to="/admin/requests/availability" className={subItemClass}>
+                Availability Requests
               </NavLink>
             </div>
           )}

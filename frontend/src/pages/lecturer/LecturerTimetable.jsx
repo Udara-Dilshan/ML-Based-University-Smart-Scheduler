@@ -250,7 +250,7 @@ export default function LecturerTimetable() {
                                 {session.start_time?.slice(0, 5)} - {session.end_time?.slice(0, 5)}
                               </p>
                               <p className="text-xs mt-1 opacity-80">
-                                Batch #{session.batch_id} • {session.room_name}
+                                {session.batch_code || `Batch #${session.batch_id}`} • {session.room_name}
                               </p>
                             </div>
                           ) : null}

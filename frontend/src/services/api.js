@@ -468,6 +468,14 @@ export const lecturerAPI = {
     const response = await api.get("/api/timetable/lecturer/me");
     return response.data;
   },
+  getAllAvailabilityRequests: async (params) => {
+    const response = await api.get("/availability/requests", { params });
+    return response.data;
+  },
+  updateAvailabilityRequestStatus: async (availId, status) => {
+    const response = await api.put(`/availability/requests/${availId}/status`, { status });
+    return response.data;
+  },
 };
 
 export const semesterRegistrationAPI = {

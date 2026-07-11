@@ -299,7 +299,8 @@ def load_scheduling_context(
         .filter(
             LecturerAvailability.lecturer_id.in_(
                 [lec.lecturer_id for lec in lecturers.values()]
-            )
+            ),
+            LecturerAvailability.status == "approved"
         )
         .all()
     )

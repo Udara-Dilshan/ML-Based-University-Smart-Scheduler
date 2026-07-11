@@ -149,6 +149,7 @@ export default function LecturerAvailability() {
             endTime: end,
             unavailable: true,
             reason: item.reason || "",
+            status: item.status || "pending",
           };
         });
 
@@ -178,12 +179,10 @@ export default function LecturerAvailability() {
     const key = getSlotKey(day, slot);
     const current = unavailability[key];
     if (current?.unavailable) {
-      setUnavailability((prev) => {
-        const nextState = { ...prev };
-        delete nextState[key];
-        return nextState;
-      });
-      setSaved(false);
+      const nextState = { ...unavailability };
+      delete nextState[key];
+      setUnavailability(nextState);
+      syncToBackend(nextState);
       return;
     }
 
@@ -199,62 +198,26 @@ export default function LecturerAvailability() {
     setPendingSlot(null);
     setReasonInput("");
     setIsReasonModalOpen(false);
-    setSaved(false);
+    syncToBackend({});
   };
 
-  const buildUnavailablePayload = () => {
-    return Object.entries(unavailability)
-      .filter(([, slotData]) => Boolean(slotData?.unavailable))
-      .map(([key]) => {
-        const slotData = unavailability[key];
-        return {
-          day_of_week: DAY_TO_BACKEND[slotData?.day] || slotData?.day?.toUpperCase(),
-          unavailable_start: slotData?.startTime,
-          unavailable_end: slotData?.endTime,
-          reason: slotData?.reason || null,
-        };
-      });
-  };
-
-  const confirmReason = () => {
-    if (!pendingSlot) {
-      setIsReasonModalOpen(false);
-      return;
-    }
-
-    const { day, slot, key } = pendingSlot;
-    const [startTime, endTime] = slot.split(" - ");
-
-    setUnavailability((prev) => ({
-      ...prev,
-      [key]: {
-        day,
-        startTime,
-        endTime,
-        unavailable: true,
-        reason: reasonInput.trim(),
-      },
-    }));
-
-    setPendingSlot(null);
-    setReasonInput("");
-    setIsReasonModalOpen(false);
-    setSaved(false);
-  };
-
-  const cancelReason = () => {
-    setPendingSlot(null);
-    setReasonInput("");
-    setIsReasonModalOpen(false);
-  };
-
-  const handleSave = async () => {
+  const syncToBackend = async (stateObj) => {
     if (!lecturerId) {
       setErrorMessage("Lecturer identity not found.");
       return;
     }
 
-    const unavailableSlots = buildUnavailablePayload();
+    const unavailableSlots = Object.entries(stateObj)
+      .filter(([, slotData]) => Boolean(slotData?.unavailable))
+      .map(([key]) => {
+        const slotData = stateObj[key];
+        return {
+          day_of_week: DAY_TO_BACKEND[slotData?.day] || slotData?.day?.toUpperCase(),
+          unavailable_start: slotData?.startTime,
+          unavailable_end: slotData?.endTime,
+          reason: slotData?.reason || "No reason provided",
+        };
+      });
 
     try {
       setIsSaving(true);
@@ -268,12 +231,55 @@ export default function LecturerAvailability() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.detail || error?.message || "Failed to save availability"
-      );
+      const detail = error?.response?.data?.detail;
+      const errorMsg = typeof detail === 'string'
+        ? detail
+        : (Array.isArray(detail) ? detail.map(d => d.msg).join(", ") : error?.message || "Failed to save availability");
+      
+      setErrorMessage(errorMsg);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const confirmReason = () => {
+    if (!pendingSlot) {
+      setIsReasonModalOpen(false);
+      return;
+    }
+
+    const { day, slot, key } = pendingSlot;
+    const [startTime, endTime] = slot.split(" - ");
+
+    if (!reasonInput.trim()) {
+      alert("Please provide a reason to mark this slot as unavailable.");
+      return;
+    }
+
+    const nextState = {
+      ...unavailability,
+      [key]: {
+        day,
+        startTime,
+        endTime,
+        unavailable: true,
+        reason: reasonInput.trim(),
+        status: "pending",
+      },
+    };
+
+    setUnavailability(nextState);
+    syncToBackend(nextState);
+
+    setPendingSlot(null);
+    setReasonInput("");
+    setIsReasonModalOpen(false);
+  };
+
+  const cancelReason = () => {
+    setPendingSlot(null);
+    setReasonInput("");
+    setIsReasonModalOpen(false);
   };
 
   return (
@@ -284,25 +290,27 @@ export default function LecturerAvailability() {
           <p className="text-sm text-gray-500 mt-0.5">
             Click on time slots to mark when you are Unavailable (e.g., for meetings, visiting lectures, personal commitments). Working window is {constraints.working_hours_start} - {constraints.working_hours_end} for {constraints.working_days.join(", ")}.
           </p>
-          <p className="text-xs text-gray-600 mt-2">🟢 Available  🔴 Unavailable</p>
+          <p className="text-xs text-gray-600 mt-2">
+            🟢 Available  🔴 Approved (Unavailable)  🟠 Pending  🔘 Rejected
+          </p>
         </div>
         <div className="flex items-center gap-2">
+          {saved && (
+            <span className="flex items-center gap-1 text-sm font-medium text-green-600 mr-2">
+              <Check size={16} /> Saved!
+            </span>
+          )}
+          {isSaving && (
+            <span className="text-sm font-medium text-teal-600 mr-2">
+              Saving...
+            </span>
+          )}
           <button
             onClick={handleMarkAllAvailable}
             disabled={isLoading || isSaving}
             className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
           >
             Mark All as Available
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isLoading || isSaving}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              saved ? "bg-green-500 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"
-            }`}
-          >
-            {saved ? <Check size={16} /> : <Save size={16} />}
-            {saved ? "Saved!" : isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
@@ -348,16 +356,23 @@ export default function LecturerAvailability() {
                         disabled={isLoading || isSaving}
                         className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-all border ${
                           isUnavailable(day, slot)
-                            ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
+                            ? unavailability[getSlotKey(day, slot)]?.status === "approved"
+                              ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
+                              : unavailability[getSlotKey(day, slot)]?.status === "rejected"
+                                ? "bg-gray-500 text-white border-gray-500 hover:bg-gray-600"
+                                : "bg-amber-500 text-white border-amber-500 hover:bg-amber-600"
                             : "bg-green-500 text-white border-green-500 hover:bg-green-600"
                         }`}
                         title={
                           isUnavailable(day, slot)
-                            ? `Unavailable${unavailability[getSlotKey(day, slot)]?.reason ? ` - ${unavailability[getSlotKey(day, slot)]?.reason}` : ""}`
+                            ? `Unavailable (${unavailability[getSlotKey(day, slot)]?.status}) - ${unavailability[getSlotKey(day, slot)]?.reason}`
                             : "Available"
                         }
                       >
-                        {isLoading ? "..." : isUnavailable(day, slot) ? "Unavailable" : "Available"}
+                        {isLoading ? "..." : isUnavailable(day, slot) ? (
+                          unavailability[getSlotKey(day, slot)]?.status === "approved" ? "Approved" : 
+                          unavailability[getSlotKey(day, slot)]?.status === "rejected" ? "Rejected" : "Pending"
+                        ) : "Available"}
                       </button>
                     </td>
                   ))}
@@ -379,7 +394,7 @@ export default function LecturerAvailability() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Reason (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700">Reason (Required)</label>
               <input
                 type="text"
                 value={reasonInput}

@@ -20,6 +20,7 @@ import Timetable from "./pages/admin/timetable/Timetable";
 import ManageTimetables from "./pages/admin/timetable/ManageTimetables";
 import AdminEventRequests from "./pages/admin/requests/AdminEventRequests";
 import AdminVehicleRequests from "./pages/admin/requests/AdminVehicleRequests";
+import AvailabilityRequests from "./pages/admin/requests/AvailabilityRequests";
 import AdminManageEvents from "./pages/admin/AdminManageEvents";
 import AdminManageVehicleBookings from "./pages/admin/AdminManageVehicleBookings";
 import Resources from "./pages/admin/resources/Resources";
@@ -100,6 +101,7 @@ function App() {
           <Route path="/admin/direct-vehicles"  element={<AdminManageVehicleBookings />} />
           <Route path="/admin/requests/events"  element={<AdminEventRequests />} />
           <Route path="/admin/requests/vehicles" element={<AdminVehicleRequests />} />
+          <Route path="/admin/requests/availability" element={<AvailabilityRequests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />
           <Route path="/admin/settings"    element={<Settings />} />
@@ -125,6 +127,7 @@ function App() {
           <Route path="/scheduler/resources" element={<Resources />} />
           <Route path="/scheduler/requests/events" element={<AdminEventRequests />} />
           <Route path="/scheduler/requests/vehicles" element={<AdminVehicleRequests />} />
+          <Route path="/scheduler/requests/availability" element={<AvailabilityRequests />} />
           <Route path="/scheduler/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/scheduler/reports" element={<Reports />} />
           <Route path="/scheduler/departments" element={<Departments />} />

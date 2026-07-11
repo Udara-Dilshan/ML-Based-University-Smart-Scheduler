@@ -10,6 +10,7 @@ class LecturerAvailability(Base):
     day_of_week = Column(String(20), nullable=False)
     unavailable_start = Column(Time, nullable=False)
     unavailable_end = Column(Time, nullable=False)
-    reason = Column(String(255), nullable=True)
+    reason = Column(String(255), nullable=False)
+    status = Column(String(20), default="pending")
 
     lecturer = relationship("Lecturer")
