@@ -48,6 +48,7 @@ class VehicleRequest(Base):
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING)
     assigned_vehicle_id = Column(Integer, ForeignKey("vehicles.vehicle_id", ondelete="SET NULL"), nullable=True)
     rejection_reason = Column(Text, nullable=True)
+    document_path = Column(String(255), nullable=True)
 
     # Relationships
     requester = relationship("User", back_populates="vehicle_requests")
@@ -73,6 +74,7 @@ class EventRequest(Base):
     purpose = Column(Text, nullable=True)
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING)
     rejection_reason = Column(Text, nullable=True)
+    document_path = Column(String(255), nullable=True)
     # If manager approves with an alternative venue, this holds the actual allocated resource
     allocated_resource_id = Column(Integer, ForeignKey("resources.resource_id", ondelete="SET NULL"), nullable=True)
 
@@ -99,6 +101,7 @@ class Event(Base):
     description = Column(Text, nullable=True)
     event_type = Column(String(50), nullable=True)   # e.g. "Academic", "Sports", "Cultural"
     status = Column(Enum(RequestStatus), default=RequestStatus.APPROVED)
+    document_path = Column(String(255), nullable=True)
     # Link back to originating event request (if created via approval workflow)
     source_request_id = Column(Integer, ForeignKey("event_requests.req_id", ondelete="SET NULL"), nullable=True)
 

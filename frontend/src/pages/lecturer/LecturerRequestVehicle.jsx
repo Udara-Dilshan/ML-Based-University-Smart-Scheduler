@@ -20,6 +20,7 @@ export default function LecturerRequestVehicle() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [documentFile, setDocumentFile] = useState(null);
 
   // Conflict Check States
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function LecturerRequestVehicle() {
         end_time: formData.end_time,
         destination: formData.destination || null,
         purpose: formData.purpose || null,
+        document: documentFile,
       };
 
       // 1. Pre-check for conflicts
@@ -85,6 +87,7 @@ export default function LecturerRequestVehicle() {
         end_time: formData.end_time,
         destination: formData.destination || null,
         purpose: formData.purpose || null,
+        document: documentFile,
       });
       setSuccess(true);
       setIsConflictModalOpen(false);
@@ -115,7 +118,7 @@ export default function LecturerRequestVehicle() {
               View My Requests
             </button>
             <button
-              onClick={() => { setSuccess(false); setFormData({ vehicle_type_needed: "Bus", passenger_count: "", trip_date: "", start_time: "", end_time: "", destination: "", purpose: "" }); }}
+              onClick={() => { setSuccess(false); setFormData({ vehicle_type_needed: "Bus", passenger_count: "", trip_date: "", start_time: "", end_time: "", destination: "", purpose: "" }); setDocumentFile(null); }}
               className="rounded-lg border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
             >
               Submit Another
@@ -253,6 +256,19 @@ export default function LecturerRequestVehicle() {
               className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
+        </div>
+
+        {/* Supporting Document */}
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <span className="flex items-center gap-1.5"><FileText size={14} className="text-orange-500" />Supporting Document (Optional)</span>
+          </label>
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={(e) => setDocumentFile(e.target.files[0])}
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+          />
         </div>
 
         {/* Purpose */}

@@ -95,7 +95,7 @@ def check_event_request(db: Session, req: EventRequest) -> Dict[str, Any]:
 
     for session in timetable_clash:
         if _times_overlap(req.start_time, req.end_time, session.start_time, session.end_time):
-            batch_info = f"Batch {session.batch_id}" if session.batch_id else "Unknown batch"
+            batch_info = session.batch.batch_code if (session.batch and session.batch.batch_code) else (f"Batch {session.batch_id}" if session.batch_id else "Unknown batch")
             clash_label = (
                 f"Booked for Academic Session ({batch_info}) "
                 f"at {session.start_time.strftime('%H:%M')}"
@@ -382,10 +382,11 @@ def check_direct_event(
     )
     for session in timetable_sessions:
         if _times_overlap(start_time, end_time, session.start_time, session.end_time):
+            batch_info = session.batch.batch_code if (session.batch and session.batch.batch_code) else (f"Batch {session.batch_id}" if session.batch_id else "Unknown batch")
             return {
                 "has_conflict": True,
                 "clash_detail": (
-                    f"Academic session scheduled at "
+                    f"Academic session ({batch_info}) scheduled at "
                     f"{session.start_time.strftime('%H:%M')} — {session.end_time.strftime('%H:%M')} "
                     f"on this venue for this day."
                 ),

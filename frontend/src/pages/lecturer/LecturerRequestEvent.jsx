@@ -21,6 +21,7 @@ export default function LecturerRequestEvent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [documentFile, setDocumentFile] = useState(null);
   
   // Conflict Check States
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
@@ -64,6 +65,7 @@ export default function LecturerRequestEvent() {
         end_time: formData.end_time,
         participant_count: Number(formData.participant_count),
         purpose: formData.purpose || null,
+        document: documentFile,
       };
 
       // 1. Pre-check for conflicts
@@ -98,6 +100,7 @@ export default function LecturerRequestEvent() {
         end_time: formData.end_time,
         participant_count: Number(formData.participant_count),
         purpose: formData.purpose || null,
+        document: documentFile,
       });
       setSuccess(true);
       setIsConflictModalOpen(false);
@@ -128,7 +131,7 @@ export default function LecturerRequestEvent() {
               View My Requests
             </button>
             <button
-              onClick={() => { setSuccess(false); setFormData({ resource_id: "", event_name: "", event_type: "General", event_date: "", start_time: "", end_time: "", participant_count: "", purpose: "" }); }}
+              onClick={() => { setSuccess(false); setFormData({ resource_id: "", event_name: "", event_type: "General", event_date: "", start_time: "", end_time: "", participant_count: "", purpose: "" }); setDocumentFile(null); }}
               className="rounded-lg border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
             >
               Submit Another
@@ -276,6 +279,19 @@ export default function LecturerRequestEvent() {
             onChange={handleChange}
             placeholder="e.g. 80"
             className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          />
+        </div>
+
+        {/* Supporting Document */}
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <span className="flex items-center gap-1.5"><FileText size={14} className="text-orange-500" />Supporting Document (Optional)</span>
+          </label>
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={(e) => setDocumentFile(e.target.files[0])}
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
           />
         </div>
 

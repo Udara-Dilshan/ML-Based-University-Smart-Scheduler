@@ -14,9 +14,11 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+import uuid
+from pathlib import Path
 
 from app.database.connection import get_db
 from app.models.event import Event, EventRequest, RequestStatus, VehicleRequest
@@ -86,6 +88,7 @@ def _serialize_event_request(req: EventRequest, ai_result: Optional[Dict] = None
         "rejection_reason": req.rejection_reason,
         "allocated_resource_id": req.allocated_resource_id,
         "allocated_resource_name": allocated.name if allocated else None,
+        "document_path": req.document_path,
     }
     if ai_result:
         result["ai_status"] = ai_result.get("ai_status", "CLEAR")
@@ -115,6 +118,7 @@ def _serialize_vehicle_request(req: VehicleRequest, ai_result: Optional[Dict] = 
         "assigned_vehicle_id": req.assigned_vehicle_id,
         "assigned_vehicle_reg": vehicle.reg_number if vehicle else None,
         "rejection_reason": req.rejection_reason,
+        "document_path": req.document_path,
     }
     if ai_result:
         result["ai_status"] = ai_result.get("ai_status", "CLEAR")
@@ -217,30 +221,59 @@ def check_event_conflict(
 
 
 @router.post("/events", status_code=status.HTTP_201_CREATED)
-def submit_event_request(
-    payload: EventRequestCreate,
+async def submit_event_request(
+    resource_id: int = Form(...),
+    event_name: str = Form(...),
+    event_type: str = Form(...),
+    event_date: str = Form(...),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+    participant_count: int = Form(...),
+    purpose: Optional[str] = Form(None),
+    document: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_lecturer),
 ):
     """Lecturer submits a venue/event request."""
-    if payload.start_time >= payload.end_time:
+    try:
+        start_time_val = datetime.time.fromisoformat(start_time)
+        end_time_val = datetime.time.fromisoformat(end_time)
+        event_date_val = datetime.date.fromisoformat(event_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date or time format")
+
+    if start_time_val >= end_time_val:
         raise HTTPException(status_code=422, detail="start_time must be before end_time")
 
-    resource = db.query(Resource).filter(Resource.resource_id == payload.resource_id).first()
+    resource = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
+    document_path = None
+    if document and document.filename:
+        file_content = await document.read()
+        if len(file_content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=422, detail="File size must be less than 5MB")
+        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        ext = Path(document.filename).suffix.lower()
+        unique_filename = f"event_req_{uuid.uuid4()}{ext}"
+        path = uploads_dir / unique_filename
+        path.write_bytes(file_content)
+        document_path = f"static/uploads/bookings/{unique_filename}"
+
     req = EventRequest(
         requested_by_user_id=current_user.user_id,
-        resource_id=payload.resource_id,
-        event_name=payload.event_name.strip(),
-        event_type=payload.event_type.strip(),
-        event_date=payload.event_date,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
-        participant_count=payload.participant_count,
-        purpose=(payload.purpose or "").strip() or None,
+        resource_id=resource_id,
+        event_name=event_name.strip(),
+        event_type=event_type.strip(),
+        event_date=event_date_val,
+        start_time=start_time_val,
+        end_time=end_time_val,
+        participant_count=participant_count,
+        purpose=(purpose or "").strip() or None,
         status=RequestStatus.PENDING,
+        document_path=document_path,
     )
     db.add(req)
     db.commit()
@@ -396,25 +429,53 @@ def check_vehicle_conflict(
 
 
 @router.post("/vehicles", status_code=status.HTTP_201_CREATED)
-def submit_vehicle_request(
-    payload: VehicleRequestCreate,
+async def submit_vehicle_request(
+    vehicle_type_needed: str = Form(...),
+    passenger_count: int = Form(...),
+    trip_date: str = Form(...),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+    destination: Optional[str] = Form(None),
+    purpose: Optional[str] = Form(None),
+    document: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_lecturer),
 ):
     """Lecturer submits a vehicle request."""
-    if payload.start_time >= payload.end_time:
+    try:
+        start_time_val = datetime.time.fromisoformat(start_time)
+        end_time_val = datetime.time.fromisoformat(end_time)
+        trip_date_val = datetime.date.fromisoformat(trip_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date or time format")
+
+    if start_time_val >= end_time_val:
         raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    document_path = None
+    if document and document.filename:
+        file_content = await document.read()
+        if len(file_content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=422, detail="File size must be less than 5MB")
+        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        ext = Path(document.filename).suffix.lower()
+        unique_filename = f"veh_req_{uuid.uuid4()}{ext}"
+        path = uploads_dir / unique_filename
+        path.write_bytes(file_content)
+        document_path = f"static/uploads/bookings/{unique_filename}"
 
     req = VehicleRequest(
         requested_by_user_id=current_user.user_id,
-        vehicle_type_needed=payload.vehicle_type_needed.strip(),
-        passenger_count=payload.passenger_count,
-        trip_date=payload.trip_date,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
-        destination=(payload.destination or "").strip() or None,
-        purpose=(payload.purpose or "").strip() or None,
+        vehicle_type_needed=vehicle_type_needed.strip(),
+        passenger_count=passenger_count,
+        trip_date=trip_date_val,
+        start_time=start_time_val,
+        end_time=end_time_val,
+        destination=(destination or "").strip() or None,
+        purpose=(purpose or "").strip() or None,
         status=RequestStatus.PENDING,
+        document_path=document_path,
     )
     db.add(req)
     db.commit()
@@ -553,13 +614,21 @@ def list_events(
             "organizer_name": (
                 f"{organizer.first_name} {organizer.last_name}" if organizer else "University"
             ),
+            "document_path": e.document_path,
         })
     return result
 
 
 @router.post("/direct-events", status_code=status.HTTP_201_CREATED)
-def create_direct_event(
-    payload: DirectEventCreate,
+async def create_direct_event(
+    resource_id: int = Form(...),
+    event_name: str = Form(...),
+    event_date: str = Form(...),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+    description: Optional[str] = Form(None),
+    event_type: Optional[str] = Form("General"),
+    document: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_manager),
 ):
@@ -567,19 +636,26 @@ def create_direct_event(
     Resource Manager / Admin directly creates an approved event.
     AI conflict check runs first — if clash exists, returns 409.
     """
-    if payload.start_time >= payload.end_time:
+    try:
+        start_time_val = datetime.time.fromisoformat(start_time)
+        end_time_val = datetime.time.fromisoformat(end_time)
+        event_date_val = datetime.date.fromisoformat(event_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date or time format")
+
+    if start_time_val >= end_time_val:
         raise HTTPException(status_code=422, detail="start_time must be before end_time")
 
-    resource = db.query(Resource).filter(Resource.resource_id == payload.resource_id).first()
+    resource = db.query(Resource).filter(Resource.resource_id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
     conflict = check_direct_event(
         db=db,
-        resource_id=payload.resource_id,
-        event_date=payload.event_date,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
+        resource_id=resource_id,
+        event_date=event_date_val,
+        start_time=start_time_val,
+        end_time=end_time_val,
     )
     if conflict["has_conflict"]:
         raise HTTPException(
@@ -587,19 +663,33 @@ def create_direct_event(
             detail=f"Conflict detected: {conflict['clash_detail']}",
         )
 
-    start_dt = datetime.datetime.combine(payload.event_date, payload.start_time)
-    end_dt = datetime.datetime.combine(payload.event_date, payload.end_time)
+    start_dt = datetime.datetime.combine(event_date_val, start_time_val)
+    end_dt = datetime.datetime.combine(event_date_val, end_time_val)
+
+    document_path = None
+    if document and document.filename:
+        file_content = await document.read()
+        if len(file_content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=422, detail="File size must be less than 5MB")
+        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        ext = Path(document.filename).suffix.lower()
+        unique_filename = f"event_{uuid.uuid4()}{ext}"
+        path = uploads_dir / unique_filename
+        path.write_bytes(file_content)
+        document_path = f"static/uploads/bookings/{unique_filename}"
 
     event = Event(
-        resource_id=payload.resource_id,
+        resource_id=resource_id,
         organizer_user_id=current_user.user_id,
-        event_name=payload.event_name.strip(),
-        event_date=payload.event_date,
+        event_name=event_name.strip(),
+        event_date=event_date_val,
         start_time=start_dt,
         end_time=end_dt,
-        description=(payload.description or "").strip() or None,
-        event_type=(payload.event_type or "General").strip(),
+        description=(description or "").strip() or None,
+        event_type=(event_type or "General").strip(),
         status=RequestStatus.APPROVED,
+        document_path=document_path,
     )
     db.add(event)
     db.commit()
@@ -647,6 +737,7 @@ def list_direct_events(
                 f"{organizer.first_name} {organizer.last_name}" if organizer else "University"
             ),
             "source_request_id": e.source_request_id,
+            "document_path": e.document_path,
         })
     return result
 

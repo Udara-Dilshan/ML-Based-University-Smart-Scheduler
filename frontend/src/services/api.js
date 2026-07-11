@@ -338,7 +338,15 @@ export const bookingAPI = {
     return response.data;
   },
   createDirectEvent: async (payload) => {
-    const response = await api.post("/booking-requests/direct-events", payload);
+    const formData = new FormData();
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] !== undefined && payload[key] !== null) {
+        formData.append(key, payload[key]);
+      }
+    });
+    const response = await api.post("/booking-requests/direct-events", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
   updateDirectEvent: async (id, payload) => {
@@ -378,7 +386,15 @@ export const bookingAPI = {
     return response.data;
   },
   submitEventRequest: async (payload) => {
-    const response = await api.post("/booking-requests/events", payload);
+    const formData = new FormData();
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] !== undefined && payload[key] !== null) {
+        formData.append(key, payload[key]);
+      }
+    });
+    const response = await api.post("/booking-requests/events", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
   checkVehicleConflict: async (payload) => {
@@ -386,7 +402,15 @@ export const bookingAPI = {
     return response.data;
   },
   submitVehicleRequest: async (payload) => {
-    const response = await api.post("/booking-requests/vehicles", payload);
+    const formData = new FormData();
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] !== undefined && payload[key] !== null) {
+        formData.append(key, payload[key]);
+      }
+    });
+    const response = await api.post("/booking-requests/vehicles", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
   getMyEventRequests: async () => {

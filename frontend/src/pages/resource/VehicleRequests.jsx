@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw,
-  Calendar, Users, MapPin, Bus, Truck, Car, Clock, Search, Download
+  Calendar, Users, MapPin, Bus, Truck, Car, Clock, Search, Download, Eye
 } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
 
@@ -412,6 +412,17 @@ export default function VehicleRequests({ isCardView = false }) {
                 <td className="px-4 py-3">
                   {req.destination && <p className="font-medium text-gray-900">{req.destination}</p>}
                   {req.purpose && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{req.purpose}</p>}
+                  {req.document_path && (
+                    <a
+                      href={`http://localhost:8000/${req.document_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 flex w-fit items-center gap-1 rounded bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600 hover:bg-orange-100"
+                      title="View Document"
+                    >
+                      <Eye size={10} /> Document
+                    </a>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 font-medium text-gray-800">

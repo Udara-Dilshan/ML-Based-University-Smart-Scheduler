@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
-  Plus, Trash2, Calendar, Clock, MapPin, Tag,
-  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit, Download, Search
+  Plus, Trash2, Calendar, Clock, MapPin, Tag, FileText,
+  AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit, Download, Search, Eye
 } from "lucide-react";
 import { bookingAPI, resourceAPI } from "../../services/api";
 
@@ -28,6 +28,7 @@ export default function ManageEvents() {
   const [editingEventId, setEditingEventId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [documentFile, setDocumentFile] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -118,6 +119,7 @@ export default function ManageEvents() {
       setFormData(initialForm);
       setEditingEventId(null);
     }
+    setDocumentFile(null);
     setFormError("");
     setIsModalOpen(true);
   };
@@ -145,6 +147,7 @@ export default function ManageEvents() {
         end_time: formData.end_time,
         description: formData.description || null,
         event_type: formData.event_type,
+        document: documentFile,
       };
 
       if (editingEventId) {
@@ -321,6 +324,17 @@ export default function ManageEvents() {
                       Direct Add
                     </span>
                   )}
+                  {ev.document_path && (
+                    <a
+                      href={`http://localhost:8000/${ev.document_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 flex w-fit items-center gap-1 rounded bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600 hover:bg-orange-100"
+                      title="View Document"
+                    >
+                      <Eye size={10} /> Document
+                    </a>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -457,6 +471,18 @@ export default function ManageEvents() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Brief description of the event..."
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Supporting Document (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setDocumentFile(e.target.files[0])}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
                 />
               </div>
 
