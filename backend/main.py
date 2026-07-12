@@ -11,6 +11,7 @@ from app.routers import (
     semester_registration,
     medical,
     reports,
+    audit,
 )
 from app.routers import booking_requests
 
@@ -55,6 +56,7 @@ app.include_router(timetable_export.router)
 app.include_router(settings.router)
 app.include_router(booking_requests.router)  # prefix: /booking-requests
 app.include_router(reports.router)           # prefix: /api/reports
+app.include_router(audit.router)
 
 # Serve static files (uploads)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

@@ -253,6 +253,10 @@ export default function Sidebar() {
           <BarChart3 size={16} />
           Reports & Analytics
         </NavLink>
+        <NavLink to="/admin/audit-logs" className={navItemClass}>
+          <ClipboardList size={16} />
+          Audit Logs
+        </NavLink>
         <NavLink to="/admin/settings" className={navItemClass}>
           <BarChart3 size={16} />
           Settings

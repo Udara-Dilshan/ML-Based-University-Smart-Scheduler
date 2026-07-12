@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
@@ -22,6 +22,7 @@ from app.utils.email import send_reset_password_email
 import os
 import uuid
 from pathlib import Path
+from app.utils.audit import log_action
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -162,7 +163,7 @@ def _serialize_auth_user(user: User, db: Session | None = None) -> dict:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: UserLoginRequest, db: Session = Depends(get_db)):
+def login(request: UserLoginRequest, req: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user or not verify_password(request.password, user.password_hash):
         raise HTTPException(
@@ -177,6 +178,9 @@ def login(request: UserLoginRequest, db: Session = Depends(get_db)):
             "role": user.role,
         }
     )
+    
+    log_action(background_tasks, get_db, user, action="USER_LOGIN", entity_type="User", entity_id=user.user_id, ip_address=req.client.host if req.client else None)
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -184,8 +188,14 @@ def login(request: UserLoginRequest, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/logout")
+def logout(req: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    log_action(background_tasks, get_db, current_user, action="USER_LOGOUT", entity_type="User", entity_id=current_user.user_id, ip_address=req.client.host if req.client else None)
+    return {"message": "Logged out successfully"}
+
+
 @router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
+def signup(request: StudentSignupRequest, req: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == request.email).first()
     if existing_user:
         raise HTTPException(
@@ -238,6 +248,9 @@ def signup(request: StudentSignupRequest, db: Session = Depends(get_db)):
             "role": user.role,
         }
     )
+    
+    log_action(background_tasks, get_db, user, action="USER_SIGNUP", entity_type="User", entity_id=user.user_id, ip_address=req.client.host if req.client else None)
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",

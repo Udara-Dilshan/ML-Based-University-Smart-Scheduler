@@ -28,6 +28,7 @@ import Vehicles from "./pages/admin/vehicles/Vehicles";
 import Requests from "./pages/admin/requests/Requests";
 import MedicalSubmissions from "./pages/admin/medical/MedicalSubmissions";
 import Reports from "./pages/admin/reports/Reports";
+import AuditLogs from "./pages/admin/reports/AuditLogs";
 import Settings from "./pages/admin/settings/Settings";
 import Profile from "./pages/admin/profile/Profile";
 import FacultyManagement from "./pages/admin/faculties/FacultyManagement";
@@ -104,6 +105,7 @@ function App() {
           <Route path="/admin/requests/availability" element={<AvailabilityRequests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />
+          <Route path="/admin/audit-logs"  element={<AuditLogs />} />
           <Route path="/admin/settings"    element={<Settings />} />
           <Route path="/admin/profile"     element={<Profile />} />
           <Route path="/admin/faculties"   element={<FacultyManagement />} />

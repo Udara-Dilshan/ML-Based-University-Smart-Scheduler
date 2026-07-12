@@ -13,6 +13,10 @@ class AuditLog(Base):
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     action = Column(String(255), nullable=False)
     details = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    entity_type = Column(String(100), nullable=True)
+    entity_id = Column(Integer, nullable=True)
+    user_role = Column(String(50), nullable=True)
     timestamp = Column(DateTime, server_default=func.now())
 
     # Relationships

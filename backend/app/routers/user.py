@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.models.academic import Batch, Department, Faculty
@@ -17,6 +17,7 @@ from app.utils.dependencies import (
 import os
 import uuid
 from pathlib import Path
+from app.utils.audit import log_action
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -299,6 +300,8 @@ def get_users(
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: UserCreate,
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin_or_scheduler),
 ):
@@ -373,6 +376,10 @@ def create_user(
 
     db.commit()
     db.refresh(user)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="CREATE_USER", entity_type="User", entity_id=user.user_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _to_user_response(user)
 
 

@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Users, Calendar, Settings, BarChart3 } from 'lucide-react';
+import { authAPI } from '../../services/api';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    await authAPI.logout();
     navigate('/');
   };
 

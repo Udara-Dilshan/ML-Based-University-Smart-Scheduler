@@ -384,8 +384,8 @@ export default function Navbar({ title }) {
     };
   }, []);
 
-  const handleLogout = () => {
-    authAPI.logout();
+  const handleLogout = async () => {
+    await authAPI.logout();
     navigate("/");
   };
 

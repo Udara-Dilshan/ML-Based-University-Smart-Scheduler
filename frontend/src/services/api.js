@@ -77,9 +77,19 @@ export const authAPI = {
       throw error.response?.data || { message: "Failed to fetch user data" };
     }
   },
-  logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  logout: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await api.post("/api/auth/logout");
+      }
+    } catch (error) {
+      // Ignore errors on logout
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event("userProfileUpdated"));
+    }
   },
   updateCurrentUser: async (payload) => {
     try {
@@ -708,6 +718,13 @@ export const normalizeRole = (role) => {
     default:
       return role;
   }
+};
+
+export const auditAPI = {
+  getAuditLogs: async (params) => {
+    const response = await api.get("/api/audit-logs", { params });
+    return response.data;
+  },
 };
 
 export const getHomeRouteByRole = (role) => {

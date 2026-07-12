@@ -14,10 +14,11 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 import uuid
+from app.utils.audit import log_action
 from pathlib import Path
 
 from app.database.connection import get_db
@@ -230,6 +231,8 @@ async def submit_event_request(
     participant_count: int = Form(...),
     purpose: Optional[str] = Form(None),
     document: Optional[UploadFile] = File(None),
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_lecturer),
 ):
@@ -277,6 +280,10 @@ async def submit_event_request(
     db.add(req)
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="SUBMIT_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_event_request(req)
 
 
@@ -335,6 +342,8 @@ def get_event_request(
 def approve_event_request(
     req_id: int,
     payload: EventRequestApprove,
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_manager),
 ):
@@ -376,6 +385,10 @@ def approve_event_request(
     db.add(event)
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="APPROVE_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_event_request(req)
 
 
@@ -383,6 +396,8 @@ def approve_event_request(
 def reject_event_request(
     req_id: int,
     payload: EventRequestReject,
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_manager),
 ):
@@ -393,9 +408,13 @@ def reject_event_request(
         raise HTTPException(status_code=409, detail="Request is already processed")
 
     req.status = RequestStatus.REJECTED
-    req.rejection_reason = payload.rejection_reason
+    req.rejection_reason = payload.rejection_reason.strip()
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="REJECT_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_event_request(req)
 
 
@@ -437,6 +456,8 @@ async def submit_vehicle_request(
     destination: Optional[str] = Form(None),
     purpose: Optional[str] = Form(None),
     document: Optional[UploadFile] = File(None),
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_lecturer),
 ):
@@ -479,6 +500,10 @@ async def submit_vehicle_request(
     db.add(req)
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="SUBMIT_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_vehicle_request(req)
 
 
@@ -536,6 +561,8 @@ def get_vehicle_request(
 def approve_vehicle_request(
     req_id: int,
     payload: VehicleRequestApprove,
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_manager),
 ):
@@ -561,6 +588,10 @@ def approve_vehicle_request(
     req.assigned_vehicles = vehicles
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="APPROVE_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_vehicle_request(req)
 
 
@@ -568,6 +599,8 @@ def approve_vehicle_request(
 def reject_vehicle_request(
     req_id: int,
     payload: VehicleRequestReject,
+    req_obj: Request = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_manager),
 ):
@@ -581,6 +614,10 @@ def reject_vehicle_request(
     req.rejection_reason = payload.rejection_reason
     db.commit()
     db.refresh(req)
+    
+    if background_tasks and req_obj:
+        log_action(background_tasks, get_db, current_user, action="REJECT_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        
     return _serialize_vehicle_request(req)
 
 
