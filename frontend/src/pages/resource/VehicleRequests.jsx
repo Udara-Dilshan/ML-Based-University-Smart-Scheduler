@@ -251,7 +251,7 @@ function VehicleActionModal({ request, onClose, onRefresh }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function VehicleRequests({ isCardView = false }) {
+export default function VehicleRequests({ isCardView = false, isViewOnly = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -401,19 +401,19 @@ export default function VehicleRequests({ isCardView = false }) {
               <th className="px-4 py-3 font-semibold text-gray-700">Vehicle Needed</th>
               <th className="px-4 py-3 font-semibold text-gray-700">System Status (AI)</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Status</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Actions</th>
+              {!isViewOnly && <th className="px-4 py-3 font-semibold text-gray-700">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-500">
+              <tr><td colSpan={isViewOnly ? "6" : "7"} className="px-4 py-10 text-center text-gray-500">
                 <div className="flex items-center justify-center gap-2">
                   <RefreshCw size={16} className="animate-spin" /> Loading requests...
                 </div>
               </td></tr>
             )}
             {!loading && filteredRequests.length === 0 && (
-              <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400">No vehicle requests found matching criteria.</td></tr>
+              <tr><td colSpan={isViewOnly ? "6" : "7"} className="px-4 py-10 text-center text-gray-400">No vehicle requests found matching criteria.</td></tr>
             )}
             {!loading && filteredRequests.map((req) => (
               <tr key={req.req_id} className="border-t border-gray-100 hover:bg-gray-50/50">
@@ -477,16 +477,18 @@ export default function VehicleRequests({ isCardView = false }) {
                     <p className="mt-1 text-xs text-gray-400 line-clamp-2">{req.rejection_reason}</p>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  {req.status === "PENDING" && (
-                    <button
-                      onClick={() => setSelectedRequest(req)}
-                      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                    >
-                      Review
-                    </button>
-                  )}
-                </td>
+                {!isViewOnly && (
+                  <td className="px-4 py-3">
+                    {req.status === "PENDING" && (
+                      <button
+                        onClick={() => setSelectedRequest(req)}
+                        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                      >
+                        Review
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
