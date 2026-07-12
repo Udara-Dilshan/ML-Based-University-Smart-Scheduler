@@ -37,7 +37,7 @@ function VehicleTypeIcon({ type }) {
 // ─── Action Modal ─────────────────────────────────────────────────────────────
 function VehicleActionModal({ request, onClose, onRefresh }) {
   const [mode, setMode] = useState(null); // "approve" | "reject"
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
   const [rejectReason, setRejectReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -46,11 +46,11 @@ function VehicleActionModal({ request, onClose, onRefresh }) {
   const capableVehicles = availableVehicles.filter((v) => v.capacity_ok);
 
   const handleApprove = async () => {
-    if (!selectedVehicle) { setError("Please select a vehicle"); return; }
+    if (selectedVehicleIds.length === 0) { setError("Please select at least one vehicle"); return; }
     try {
       setSaving(true);
       setError("");
-      await bookingAPI.approveVehicleRequest(request.req_id, selectedVehicle);
+      await bookingAPI.approveVehicleRequest(request.req_id, selectedVehicleIds);
       onRefresh();
       onClose();
     } catch (err) {
@@ -59,6 +59,11 @@ function VehicleActionModal({ request, onClose, onRefresh }) {
       setSaving(false);
     }
   };
+
+  const selectedCapacity = availableVehicles
+    .filter(v => selectedVehicleIds.includes(v.vehicle_id))
+    .reduce((sum, v) => sum + v.capacity, 0);
+  const isCapacityMet = selectedCapacity >= request.passenger_count;
 
   const handleReject = async (e) => {
     e.preventDefault();
@@ -159,43 +164,50 @@ function VehicleActionModal({ request, onClose, onRefresh }) {
         {/* Vehicle assignment */}
         {mode === "approve" && (
           <div className="border-t border-gray-100 p-5 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">
-              Select a vehicle ({request.passenger_count} seats needed):
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-800">
+                Select vehicles:
+              </p>
+              <p className={`text-sm font-semibold ${isCapacityMet ? "text-emerald-600" : "text-amber-600"}`}>
+                Selected Capacity: {selectedCapacity} / Required: {request.passenger_count}
+              </p>
+            </div>
             {availableVehicles.length === 0 && (
               <p className="text-xs text-gray-500">No available vehicles found at this time.</p>
             )}
             <div className="space-y-2 max-h-56 overflow-y-auto">
-              {availableVehicles.map((v) => (
+              {availableVehicles.map((v) => {
+                const isSelected = selectedVehicleIds.includes(v.vehicle_id);
+                return (
                 <label key={v.vehicle_id}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition ${
-                    selectedVehicle === v.vehicle_id
+                    isSelected
                       ? "border-emerald-500 bg-emerald-50"
-                      : v.capacity_ok
-                      ? "border-gray-200 hover:border-emerald-300"
-                      : "border-gray-100 bg-gray-50 opacity-70"
+                      : "border-gray-200 hover:border-emerald-300"
                   }`}>
-                  <input type="radio" name="vehicle" value={v.vehicle_id}
-                    checked={selectedVehicle === v.vehicle_id}
-                    onChange={() => setSelectedVehicle(v.vehicle_id)}
-                    className="accent-emerald-600"
-                    disabled={!v.capacity_ok} />
+                  <input type="checkbox" name="vehicle" value={v.vehicle_id}
+                    checked={isSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedVehicleIds([...selectedVehicleIds, v.vehicle_id]);
+                      } else {
+                        setSelectedVehicleIds(selectedVehicleIds.filter(id => id !== v.vehicle_id));
+                      }
+                    }}
+                    className="accent-emerald-600 rounded" />
                   <VehicleTypeIcon type={v.type} />
                   <div className="flex-1">
                     <p className="font-semibold text-gray-900 text-sm">{v.reg_number}</p>
                     <p className="text-xs text-gray-500">{v.type} · {v.capacity} seats{v.driver_name ? ` · ${v.driver_name}` : ""}</p>
                   </div>
-                  {!v.capacity_ok && (
-                    <span className="text-xs text-red-500 font-medium">Too small</span>
-                  )}
-                  {v.capacity_ok && (
-                    <span className="text-xs text-emerald-600 font-medium">✓ Fits</span>
+                  {isSelected && (
+                    <span className="text-xs text-emerald-600 font-medium">✓ Selected</span>
                   )}
                 </label>
-              ))}
+              )})}
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={handleApprove} disabled={!selectedVehicle || saving}
+              <button onClick={handleApprove} disabled={!isCapacityMet || saving}
                 className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
                 {saving ? "Approving..." : "Confirm Assignment"}
               </button>

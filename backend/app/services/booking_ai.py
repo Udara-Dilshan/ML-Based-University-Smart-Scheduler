@@ -270,18 +270,15 @@ def check_vehicle_request(db: Session, req: VehicleRequest) -> Dict[str, Any]:
     passenger_count = req.passenger_count or 0
 
     query = db.query(Vehicle).filter(Vehicle.is_available.is_(True))
-    if vehicle_type:
-        query = query.filter(Vehicle.type == vehicle_type)
+    # Remove strict filtering by vehicle_type to allow mixing and matching different vehicles
+
 
     all_matching = query.order_by(Vehicle.capacity.asc()).all()
 
     if not all_matching:
         return {
             "ai_status": "NO_VEHICLE_AVAILABLE",
-            "clash_detail": (
-                f"No available {vehicle_type} vehicles in the fleet."
-                if vehicle_type else "No available vehicles in the fleet."
-            ),
+            "clash_detail": "No available vehicles in the fleet.",
             "available_vehicles": [],
         }
 
@@ -292,7 +289,7 @@ def check_vehicle_request(db: Session, req: VehicleRequest) -> Dict[str, Any]:
             conflicting = (
                 db.query(VehicleRequest)
                 .filter(
-                    VehicleRequest.assigned_vehicle_id == vehicle.vehicle_id,
+                    VehicleRequest.assigned_vehicles.any(Vehicle.vehicle_id == vehicle.vehicle_id),
                     VehicleRequest.trip_date == req.trip_date,
                     VehicleRequest.status == RequestStatus.APPROVED,
                     VehicleRequest.req_id != req.req_id,
@@ -320,10 +317,7 @@ def check_vehicle_request(db: Session, req: VehicleRequest) -> Dict[str, Any]:
     if not free_vehicles:
         return {
             "ai_status": "NO_VEHICLE_AVAILABLE",
-            "clash_detail": (
-                f"All {vehicle_type} vehicles are booked at this time."
-                if vehicle_type else "All vehicles are booked at this time."
-            ),
+            "clash_detail": "All vehicles are booked at this time.",
             "available_vehicles": [],
         }
 
@@ -335,7 +329,7 @@ def check_vehicle_request(db: Session, req: VehicleRequest) -> Dict[str, Any]:
             "ai_status": "CAPACITY_MISMATCH",
             "clash_detail": (
                 f"Required: {passenger_count} passengers, "
-                f"Largest available {vehicle_type}: {smallest_cap} seats"
+                f"Largest available vehicle: {smallest_cap} seats"
             ),
             "available_vehicles": free_vehicles,
         }
@@ -422,7 +416,7 @@ def check_direct_event(
 
 def check_direct_vehicle(
     db: Session,
-    assigned_vehicle_id: int,
+    assigned_vehicle_ids: List[int],
     trip_date: datetime.date,
     start_time: datetime.time,
     end_time: datetime.time,
@@ -440,7 +434,7 @@ def check_direct_vehicle(
     conflicting_query = (
         db.query(VehicleRequest)
         .filter(
-            VehicleRequest.assigned_vehicle_id == assigned_vehicle_id,
+            VehicleRequest.assigned_vehicles.any(Vehicle.vehicle_id.in_(assigned_vehicle_ids)),
             VehicleRequest.trip_date == trip_date,
             VehicleRequest.status == RequestStatus.APPROVED,
         )

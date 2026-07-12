@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, Clock, Users, MapPin, FileText, CheckCircle2, AlertTriangle, ArrowLeft, Bus, Truck } from "lucide-react";
+import { CalendarDays, Clock, Users, MapPin, FileText, CheckCircle2, AlertTriangle, ArrowLeft, Bus, Truck, Car } from "lucide-react";
 import { bookingAPI } from "../../services/api";
 import Modal from "../../components/Modal";
 
-const VEHICLE_TYPES = ["Bus", "Van", "Minibus", "Car"];
+const VEHICLE_TYPES = ["Bus", "Van", "Car", "Minibus", "Truck", "Other"];
 
 export default function LecturerRequestVehicle() {
   const navigate = useNavigate();
@@ -169,7 +169,7 @@ export default function LecturerRequestVehicle() {
           <label className="mb-2 block text-sm font-semibold text-gray-700">
             Vehicle Type Required <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {VEHICLE_TYPES.map((type) => (
               <label key={type}
                 className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 p-3 transition ${
@@ -183,7 +183,7 @@ export default function LecturerRequestVehicle() {
                   onChange={handleChange}
                   className="sr-only"
                 />
-                {type === "Bus" ? <Bus size={24} className="text-blue-600" /> : <Truck size={24} className="text-orange-500" />}
+                {type === "Bus" ? <Bus size={24} className="text-blue-600" /> : type === "Car" ? <Car size={24} className="text-gray-500" /> : <Truck size={24} className="text-orange-500" />}
                 <span className="text-xs font-semibold text-gray-800">{type}</span>
               </label>
             ))}

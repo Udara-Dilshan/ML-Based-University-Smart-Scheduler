@@ -1,7 +1,7 @@
 """
 Vehicle, Event, and Request Management Models
 """
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DateTime, Text, Date, Time
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DateTime, Text, Date, Time, Table
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -12,6 +12,14 @@ class RequestStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+vehicle_request_assignments = Table(
+    "vehicle_request_assignments",
+    Base.metadata,
+    Column("req_id", Integer, ForeignKey("vehicle_requests.req_id", ondelete="CASCADE"), primary_key=True),
+    Column("vehicle_id", Integer, ForeignKey("vehicles.vehicle_id", ondelete="CASCADE"), primary_key=True)
+)
 
 
 class Vehicle(Base):
@@ -26,7 +34,7 @@ class Vehicle(Base):
     is_available = Column(Boolean, default=True)
 
     # Relationships
-    vehicle_requests = relationship("VehicleRequest", back_populates="vehicle")
+    vehicle_requests = relationship("VehicleRequest", secondary=vehicle_request_assignments, back_populates="assigned_vehicles")
 
     def __repr__(self):
         return f"<Vehicle {self.reg_number}>"
@@ -46,13 +54,12 @@ class VehicleRequest(Base):
     destination = Column(String(255), nullable=True)
     purpose = Column(Text, nullable=True)
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING)
-    assigned_vehicle_id = Column(Integer, ForeignKey("vehicles.vehicle_id", ondelete="SET NULL"), nullable=True)
     rejection_reason = Column(Text, nullable=True)
     document_path = Column(String(255), nullable=True)
 
     # Relationships
     requester = relationship("User", back_populates="vehicle_requests")
-    vehicle = relationship("Vehicle", back_populates="vehicle_requests")
+    assigned_vehicles = relationship("Vehicle", secondary=vehicle_request_assignments, back_populates="vehicle_requests")
 
     def __repr__(self):
         return f"<VehicleRequest {self.req_id} - {self.status}>"

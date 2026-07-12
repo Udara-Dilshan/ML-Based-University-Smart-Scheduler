@@ -99,7 +99,6 @@ def _serialize_event_request(req: EventRequest, ai_result: Optional[Dict] = None
 
 def _serialize_vehicle_request(req: VehicleRequest, ai_result: Optional[Dict] = None) -> Dict[str, Any]:
     requester = req.requester
-    vehicle = req.vehicle
 
     result = {
         "req_id": req.req_id,
@@ -115,8 +114,8 @@ def _serialize_vehicle_request(req: VehicleRequest, ai_result: Optional[Dict] = 
         "destination": req.destination,
         "purpose": req.purpose,
         "status": req.status.value if req.status else "PENDING",
-        "assigned_vehicle_id": req.assigned_vehicle_id,
-        "assigned_vehicle_reg": vehicle.reg_number if vehicle else None,
+        "assigned_vehicle_ids": [v.vehicle_id for v in req.assigned_vehicles] if getattr(req, "assigned_vehicles", None) else [],
+        "assigned_vehicle_reg": ", ".join(v.reg_number for v in req.assigned_vehicles) if getattr(req, "assigned_vehicles", None) else None,
         "rejection_reason": req.rejection_reason,
         "document_path": req.document_path,
     }
@@ -161,7 +160,7 @@ class VehicleRequestCreate(BaseModel):
 
 
 class VehicleRequestApprove(BaseModel):
-    assigned_vehicle_id: int
+    assigned_vehicle_ids: List[int]
 
 
 class VehicleRequestReject(BaseModel):
@@ -179,7 +178,7 @@ class DirectEventCreate(BaseModel):
 
 
 class DirectVehicleCreate(BaseModel):
-    assigned_vehicle_id: int
+    assigned_vehicle_ids: List[int]
     trip_date: datetime.date
     start_time: datetime.time
     end_time: datetime.time
@@ -547,14 +546,19 @@ def approve_vehicle_request(
     if req.status != RequestStatus.PENDING:
         raise HTTPException(status_code=409, detail="Request is already processed")
 
-    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == payload.assigned_vehicle_id).first()
-    if not vehicle:
-        raise HTTPException(status_code=404, detail="Vehicle not found")
-    if not vehicle.is_available:
-        raise HTTPException(status_code=409, detail="Selected vehicle is marked as Unavailable")
+    if not payload.assigned_vehicle_ids:
+        raise HTTPException(status_code=400, detail="Must assign at least one vehicle")
+
+    vehicles = db.query(Vehicle).filter(Vehicle.vehicle_id.in_(payload.assigned_vehicle_ids)).all()
+    if len(vehicles) != len(payload.assigned_vehicle_ids):
+        raise HTTPException(status_code=404, detail="One or more vehicles not found")
+    
+    for vehicle in vehicles:
+        if not vehicle.is_available:
+            raise HTTPException(status_code=409, detail=f"Vehicle {vehicle.reg_number} is marked as Unavailable")
 
     req.status = RequestStatus.APPROVED
-    req.assigned_vehicle_id = payload.assigned_vehicle_id
+    req.assigned_vehicles = vehicles
     db.commit()
     db.refresh(req)
     return _serialize_vehicle_request(req)
@@ -848,16 +852,20 @@ def create_direct_vehicle(
     if payload.start_time >= payload.end_time:
         raise HTTPException(status_code=422, detail="start_time must be before end_time")
 
-    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == payload.assigned_vehicle_id).first()
-    if not vehicle:
-        raise HTTPException(status_code=404, detail="Vehicle not found")
+    if not payload.assigned_vehicle_ids:
+        raise HTTPException(status_code=400, detail="Must assign at least one vehicle")
+
+    vehicles = db.query(Vehicle).filter(Vehicle.vehicle_id.in_(payload.assigned_vehicle_ids)).all()
+    if len(vehicles) != len(payload.assigned_vehicle_ids):
+        raise HTTPException(status_code=404, detail="One or more vehicles not found")
     
-    if not vehicle.is_available:
-        raise HTTPException(status_code=409, detail="Vehicle is not available.")
+    for vehicle in vehicles:
+        if not vehicle.is_available:
+            raise HTTPException(status_code=409, detail=f"Vehicle {vehicle.reg_number} is not available.")
 
     conflict = check_direct_vehicle(
         db=db,
-        assigned_vehicle_id=payload.assigned_vehicle_id,
+        assigned_vehicle_ids=payload.assigned_vehicle_ids,
         trip_date=payload.trip_date,
         start_time=payload.start_time,
         end_time=payload.end_time,
@@ -867,7 +875,7 @@ def create_direct_vehicle(
 
     req = VehicleRequest(
         requested_by_user_id=current_user.user_id,
-        vehicle_type_needed=vehicle.type,
+        vehicle_type_needed=vehicles[0].type if vehicles else None,
         passenger_count=payload.passenger_count,
         trip_date=payload.trip_date,
         start_time=payload.start_time,
@@ -875,7 +883,7 @@ def create_direct_vehicle(
         destination=(payload.destination or "").strip() or None,
         purpose=(payload.purpose or "").strip() or None,
         status=RequestStatus.APPROVED,
-        assigned_vehicle_id=vehicle.vehicle_id,
+        assigned_vehicles=vehicles,
     )
     db.add(req)
     db.commit()
@@ -898,13 +906,16 @@ def update_direct_vehicle(
     if not req:
         raise HTTPException(status_code=404, detail="Vehicle booking not found or not approved")
 
-    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == payload.assigned_vehicle_id).first()
-    if not vehicle:
-        raise HTTPException(status_code=404, detail="Vehicle not found")
+    if not payload.assigned_vehicle_ids:
+        raise HTTPException(status_code=400, detail="Must assign at least one vehicle")
+
+    vehicles = db.query(Vehicle).filter(Vehicle.vehicle_id.in_(payload.assigned_vehicle_ids)).all()
+    if len(vehicles) != len(payload.assigned_vehicle_ids):
+        raise HTTPException(status_code=404, detail="One or more vehicles not found")
 
     conflict = check_direct_vehicle(
         db=db,
-        assigned_vehicle_id=payload.assigned_vehicle_id,
+        assigned_vehicle_ids=payload.assigned_vehicle_ids,
         trip_date=payload.trip_date,
         start_time=payload.start_time,
         end_time=payload.end_time,
@@ -913,8 +924,8 @@ def update_direct_vehicle(
     if conflict["has_conflict"]:
         raise HTTPException(status_code=409, detail=f"Conflict detected: {conflict['clash_detail']}")
 
-    req.assigned_vehicle_id = payload.assigned_vehicle_id
-    req.vehicle_type_needed = vehicle.type
+    req.assigned_vehicles = vehicles
+    req.vehicle_type_needed = vehicles[0].type if vehicles else None
     req.passenger_count = payload.passenger_count
     req.trip_date = payload.trip_date
     req.start_time = payload.start_time

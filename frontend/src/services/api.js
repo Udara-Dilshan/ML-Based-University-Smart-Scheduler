@@ -323,8 +323,8 @@ export const bookingAPI = {
     const response = await api.get("/booking-requests/vehicles", { params });
     return response.data;
   },
-  approveVehicleRequest: async (id, assigned_vehicle_id) => {
-    const response = await api.put(`/booking-requests/vehicles/${id}/approve`, { assigned_vehicle_id });
+  approveVehicleRequest: async (id, assigned_vehicle_ids) => {
+    const response = await api.put(`/booking-requests/vehicles/${id}/approve`, { assigned_vehicle_ids });
     return response.data;
   },
   rejectVehicleRequest: async (id, rejection_reason) => {
