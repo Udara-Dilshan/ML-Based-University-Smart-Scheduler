@@ -12,6 +12,7 @@ from app.routers import (
     medical,
     reports,
     audit,
+    notifications,
 )
 from app.routers import booking_requests
 
@@ -57,6 +58,7 @@ app.include_router(settings.router)
 app.include_router(booking_requests.router)  # prefix: /booking-requests
 app.include_router(reports.router)           # prefix: /api/reports
 app.include_router(audit.router)
+app.include_router(notifications.router)     # prefix: /notifications
 
 # Serve static files (uploads)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

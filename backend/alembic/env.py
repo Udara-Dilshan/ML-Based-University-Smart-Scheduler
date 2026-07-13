@@ -28,7 +28,7 @@ config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 target_metadata = Base.metadata
 
-BOOTSTRAP_HEAD_REVISION = "b93d8e41aa21"
+from alembic.script import ScriptDirectory
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
@@ -56,6 +56,11 @@ def run_migrations_online() -> None:
 
         if not has_version_table or not has_version_row:
             initialize_database()
+            
+            # Dynamically get the current head revision
+            script = ScriptDirectory.from_config(context.config)
+            head_revision = script.get_current_head()
+
             connection.execute(
                 text(
                     """
@@ -66,16 +71,21 @@ def run_migrations_online() -> None:
                 )
             )
             connection.execute(text("DELETE FROM alembic_version"))
-            connection.execute(
-                text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
-                {"revision": BOOTSTRAP_HEAD_REVISION},
-            )
+            
+            if head_revision:
+                connection.execute(
+                    text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+                    {"revision": head_revision},
+                )
+                
             connection.commit()
             return
 
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
+            
+        connection.commit()
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -181,7 +181,6 @@ def load_scheduling_context(
         .filter(
             BatchActiveTerm.is_active == True,  # noqa: E712
         )
-        .subquery()
     )
 
     batch_q = db.query(Batch).filter(Batch.batch_id.in_(active_term_subq))

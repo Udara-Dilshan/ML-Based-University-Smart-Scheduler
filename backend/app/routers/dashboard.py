@@ -386,7 +386,10 @@ def get_lecturer_dashboard_summary(
             .join(Module, Module.module_id == TimetableSession.module_id)
             .join(Batch, Batch.batch_id == TimetableSession.batch_id)
             .join(Resource, Resource.resource_id == TimetableSession.resource_id)
-            .filter(TimetableSession.lecturer_id == lecturer_profile_id)
+            .filter(
+                TimetableSession.lecturer_id == lecturer_profile_id,
+                TimetableSession.status == "PUBLISHED"
+            )
             .all()
         )
 

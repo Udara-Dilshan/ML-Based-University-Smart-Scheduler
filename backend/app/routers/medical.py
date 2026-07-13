@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from app.models.medical import MedicalSubmission, MedicalSubmissionStatus
 from app.models.profiles import Student
 from app.models.user import User, UserRole
 from app.utils.dependencies import require_admin_user, require_admin_or_scheduler, get_scheduler_faculty_id, require_roles
+from app.utils.notifications import create_notification, notify_role
 
 router = APIRouter(prefix="/api/medical-submissions", tags=["medical-submissions"])
 
@@ -182,6 +183,7 @@ async def create_submission(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
+    background_tasks: BackgroundTasks = None,
 ):
     if not reason.strip():
         raise HTTPException(status_code=422, detail="Reason is required")
@@ -233,6 +235,16 @@ async def create_submission(
     db.add(submission)
     db.commit()
     db.refresh(submission)
+    
+    if background_tasks:
+        notify_role(background_tasks, get_db, db, "SUPER_ADMIN", "New Medical Submission", f"Student {current_user.first_name} submitted a medical document.", "MEDICAL_SUBMISSION", "MedicalSubmission", submission.submission_id)
+        
+        if department and department.faculty_id:
+            from app.models.profiles import SchedulerProfile
+            from app.utils.notifications import create_notification
+            schedulers = db.query(SchedulerProfile.user_id).filter(SchedulerProfile.faculty_id == department.faculty_id).all()
+            for (uid,) in schedulers:
+                create_notification(background_tasks, get_db, uid, "New Medical Submission", f"Student {current_user.first_name} submitted a medical document.", "MEDICAL_SUBMISSION", "MedicalSubmission", submission.submission_id)
 
     return _serialize_submission(submission)
 
@@ -243,6 +255,7 @@ def review_submission(
     payload: MedicalSubmissionReview,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin_or_scheduler),
+    background_tasks: BackgroundTasks = None,
 ):
     faculty_id = get_scheduler_faculty_id(current_user)
     query = db.query(MedicalSubmission).filter(MedicalSubmission.submission_id == submission_id)
@@ -263,4 +276,8 @@ def review_submission(
 
     db.commit()
     db.refresh(submission)
+    
+    if background_tasks:
+        create_notification(background_tasks, get_db, submission.student_user_id, f"Medical Submission {normalized_status.capitalize()}", f"Your medical submission from {submission.start_date} to {submission.end_date} was {normalized_status.lower()}.", "MEDICAL_SUBMISSION", "MedicalSubmission", submission.submission_id)
+
     return _serialize_submission(submission)

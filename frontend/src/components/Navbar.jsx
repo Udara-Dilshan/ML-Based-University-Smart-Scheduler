@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, LogOut, Search, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authAPI, getUser } from "../services/api";
+import { authAPI, getUser, notificationsAPI } from "../services/api";
 
 const SEARCH_TARGETS = [
   {
@@ -311,7 +311,61 @@ export default function Navbar({ title }) {
     }).slice(0, 6);
   }, [searchQuery, scopedTargets]);
 
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await notificationsAPI.getNotifications();
+      setNotifications(data);
+      setHasUnreadNotifications(data.some(n => !n.is_read));
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser?.user_id) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser?.user_id]);
+
+  const getNotificationRoute = (notification) => {
+    switch (notification.type) {
+      case "EVENT_REQUEST":
+        if (currentRole === "ResourceManager") return "/resource/event-requests";
+        if (currentRole === "Student") return "/student/events";
+        if (currentRole === "Lecturer") return "/lecturer/my-requests";
+        return "/admin/requests";
+      case "VEHICLE_REQUEST":
+        if (currentRole === "ResourceManager") return "/resource/vehicle-requests";
+        if (currentRole === "Lecturer") return "/lecturer/my-requests";
+        return "/admin/requests";
+      case "MEDICAL_SUBMISSION":
+        if (currentRole === "SuperAdmin") return "/admin/medical-submissions";
+        if (currentRole === "Scheduler") return "/scheduler/medical-submissions";
+        return "/student/medical";
+      case "TIMETABLE_PUBLISH":
+        return isLecturer ? "/lecturer/timetable" : "/student/timetable";
+      default:
+        return "/";
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    setIsNotificationsOpen(false);
+    if (!notification.is_read) {
+      try {
+        await notificationsAPI.markAsRead(notification.id);
+        fetchNotifications();
+      } catch (err) {}
+    }
+    navigate(getNotificationRoute(notification));
+  };
 
   // Listen for storage changes to update profile image
   useEffect(() => {
@@ -320,7 +374,7 @@ export default function Navbar({ title }) {
     };
 
     const handleNotificationsRead = () => {
-      setHasUnreadNotifications(false);
+      fetchNotifications();
     };
 
     window.addEventListener("userProfileUpdated", handleProfileUpdate);
@@ -330,6 +384,19 @@ export default function Navbar({ title }) {
       window.removeEventListener("userProfileUpdated", handleProfileUpdate);
       window.removeEventListener("notificationsRead", handleNotificationsRead);
     };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const userName = useMemo(() => {
@@ -545,12 +612,56 @@ export default function Navbar({ title }) {
       </form>
 
       <div className="flex items-center gap-4">
-        <button className="relative text-gray-500 hover:text-gray-700">
-          <Bell size={18} />
-          {hasUnreadNotifications && (
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+        <div className="relative" ref={notificationsRef}>
+          <button 
+            className="relative text-gray-500 hover:text-gray-700"
+            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+          >
+            <Bell size={18} />
+            {hasUnreadNotifications && (
+              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+            )}
+          </button>
+
+          {isNotificationsOpen && (
+            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-lg z-50 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-gray-50">
+                <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+                {hasUnreadNotifications && (
+                  <button 
+                    onClick={async () => {
+                      await notificationsAPI.markAllAsRead();
+                      fetchNotifications();
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-[28rem] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-gray-500">No notifications yet.</div>
+                ) : (
+                  notifications.map((n) => (
+                    <div 
+                      key={n.id} 
+                      onClick={() => handleNotificationClick(n)}
+                      className={`cursor-pointer px-4 py-3 border-b border-gray-50 transition-colors hover:bg-gray-50 ${!n.is_read ? 'bg-blue-50/50' : ''}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-sm ${!n.is_read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>{n.title}</span>
+                        {!n.is_read && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>}
+                      </div>
+                      <p className="text-xs text-gray-600 line-clamp-2 mb-2">{n.message}</p>
+                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{new Date(n.created_at).toLocaleString()}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
-        </button>
+        </div>
         <button
           type="button"
           onClick={handleLogout}

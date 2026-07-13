@@ -148,8 +148,6 @@ function NotificationItem({ notif, onMarkRead }) {
 export default function StudentDashboard() {
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [allRead, setAllRead] = useState(false);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -174,19 +172,6 @@ export default function StudentDashboard() {
       });
     return () => { mounted = false; };
   }, []);
-
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-    setAllRead(true);
-  };
-
-  const unreadCount = notifications.filter((n) => n.unread).length;
-  
-  useEffect(() => {
-    if (unreadCount === 0) {
-      window.dispatchEvent(new Event("notificationsRead"));
-    }
-  }, [unreadCount]);
 
   const todaySessions = summary?.today_sessions ?? [];
   const ongoingCount = todaySessions.filter((s) => s.status === "Ongoing").length;
@@ -236,10 +221,10 @@ export default function StudentDashboard() {
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="w-full">
 
         {/* Today's Classes */}
-        <div className="col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <Clock size={15} className="text-indigo-500" />
@@ -272,38 +257,6 @@ export default function StudentDashboard() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Bell size={15} className="text-indigo-500" />
-              Notifications
-              {unreadCount > 0 && !allRead && (
-                <span className="text-xs bg-blue-500 text-white rounded-full px-1.5 py-0.5 leading-none font-semibold">
-                  {unreadCount}
-                </span>
-              )}
-            </h3>
-            <button
-              onClick={handleMarkAllRead}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-40"
-              disabled={allRead}
-            >
-              Mark all read
-            </button>
-          </div>
-
-          <div className="divide-y divide-gray-50 flex-1 overflow-y-auto">
-            {notifications.map((n) => (
-              <NotificationItem 
-                key={n.id} 
-                notif={n} 
-                onMarkRead={(id) => setNotifications(prev => prev.map(item => item.id === id ? { ...item, unread: false } : item))} 
-              />
-            ))}
-          </div>
         </div>
 
       </div>

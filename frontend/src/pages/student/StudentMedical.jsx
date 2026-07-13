@@ -97,10 +97,14 @@ export default function StudentMedical() {
       setFile(null);
       setPreview(null);
       setMessage({ type: "success", text: "Medical certificate submitted successfully." });
+      setTimeout(() => {
+        setMessage({ type: "", text: "" });
+      }, 5000);
     } catch (err) {
+      const errorMessage = err?.response?.data?.detail || err?.message || "Failed to submit medical certificate.";
       setMessage({
         type: "error",
-        text: err?.detail || err?.message || "Failed to submit medical certificate.",
+        text: errorMessage,
       });
     } finally {
       setSaving(false);

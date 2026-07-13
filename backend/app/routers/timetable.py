@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ from app.ga.data_loader import load_scheduling_context
 from app.ga.engine import run_ga
 from app.utils.dependencies import require_roles
 from app.models.user import User, UserRole
+from app.utils.notifications import notify_users
 
 router = APIRouter(prefix="/api/timetable", tags=["timetable"])
 
@@ -625,7 +626,7 @@ class PublishRequest(BaseModel):
     faculty_id: Optional[int] = None
 
 @router.post("/publish")
-def publish_timetable(req: PublishRequest, db: Session = Depends(get_db)):
+def publish_timetable(req: PublishRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     from app.models.timetable import TimetableSession
     from app.models.academic import Batch, Degree, Department
     
@@ -663,6 +664,27 @@ def publish_timetable(req: PublishRequest, db: Session = Depends(get_db)):
         count += 1
         
     db.commit()
+
+    if background_tasks:
+        from app.models.profiles import Student, Lecturer
+        lecturer_profile_ids = set([s.lecturer_id for s in draft_sessions if s.lecturer_id])
+        batch_ids = set([s.batch_id for s in draft_sessions if s.batch_id])
+
+        user_ids_to_notify = set()
+        
+        if lecturer_profile_ids:
+            lecturers = db.query(Lecturer.user_id).filter(Lecturer.id.in_(lecturer_profile_ids)).all()
+            for (uid,) in lecturers:
+                if uid: user_ids_to_notify.add(uid)
+
+        if batch_ids:
+            students = db.query(Student.user_id).filter(Student.batch.in_(batch_ids)).all()
+            for (uid,) in students:
+                if uid: user_ids_to_notify.add(uid)
+
+        if user_ids_to_notify:
+            notify_users(background_tasks, get_db, list(user_ids_to_notify), "Timetable Published", "A new timetable has been published and is now available.", "TIMETABLE_PUBLISH")
+
     return {"message": f"Successfully published {count} sessions."}
 
 @router.post("/archive")

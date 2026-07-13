@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 import uuid
 from app.utils.audit import log_action
+from app.utils.notifications import create_notification, notify_role
 from pathlib import Path
 
 from app.database.connection import get_db
@@ -283,6 +284,7 @@ async def submit_event_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="SUBMIT_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        notify_role(background_tasks, get_db, db, "RESOURCE_MANAGER", "New Event Request", f"{current_user.first_name} requested {resource.name} for {event_date_val}.", "EVENT_REQUEST", "EventRequest", req.req_id)
         
     return _serialize_event_request(req)
 
@@ -388,6 +390,7 @@ def approve_event_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="APPROVE_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        create_notification(background_tasks, get_db, req.requested_by_user_id, "Event Request Approved", f"Your request for {req.event_name} was approved.", "EVENT_REQUEST", "EventRequest", req.req_id)
         
     return _serialize_event_request(req)
 
@@ -414,6 +417,7 @@ def reject_event_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="REJECT_EVENT_REQUEST", entity_type="EventRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        create_notification(background_tasks, get_db, req.requested_by_user_id, "Event Request Rejected", f"Your request for {req.event_name} was rejected: {payload.rejection_reason}", "EVENT_REQUEST", "EventRequest", req.req_id)
         
     return _serialize_event_request(req)
 
@@ -503,6 +507,7 @@ async def submit_vehicle_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="SUBMIT_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        notify_role(background_tasks, get_db, db, "RESOURCE_MANAGER", "New Vehicle Request", f"{current_user.first_name} requested a {vehicle_type_needed} for {trip_date_val}.", "VEHICLE_REQUEST", "VehicleRequest", req.req_id)
         
     return _serialize_vehicle_request(req)
 
@@ -591,6 +596,7 @@ def approve_vehicle_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="APPROVE_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        create_notification(background_tasks, get_db, req.requested_by_user_id, "Vehicle Request Approved", f"Your vehicle request for {req.trip_date} was approved.", "VEHICLE_REQUEST", "VehicleRequest", req.req_id)
         
     return _serialize_vehicle_request(req)
 
@@ -617,6 +623,7 @@ def reject_vehicle_request(
     
     if background_tasks and req_obj:
         log_action(background_tasks, get_db, current_user, action="REJECT_VEHICLE_REQUEST", entity_type="VehicleRequest", entity_id=req.req_id, ip_address=req_obj.client.host if req_obj.client else None)
+        create_notification(background_tasks, get_db, req.requested_by_user_id, "Vehicle Request Rejected", f"Your vehicle request for {req.trip_date} was rejected: {payload.rejection_reason}", "VEHICLE_REQUEST", "VehicleRequest", req.req_id)
         
     return _serialize_vehicle_request(req)
 
