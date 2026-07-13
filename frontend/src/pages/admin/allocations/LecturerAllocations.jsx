@@ -2,6 +2,40 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { academicAPI, getUser } from "../../../services/api";
 
+const LecturerSearchInput = ({ lecturers, departmentById, value, onChange }) => {
+  const getLabel = (l) => {
+    const deptCode = departmentById[l.dept_id]?.code;
+    return deptCode ? `${l.full_name} (${deptCode})` : l.full_name;
+  };
+  
+  const selectedLecturer = lecturers.find(l => String(l.user_id) === String(value));
+  const [searchText, setSearchText] = useState(selectedLecturer ? getLabel(selectedLecturer) : "");
+
+  useEffect(() => {
+    if (value) {
+      const l = lecturers.find(l => String(l.user_id) === String(value));
+      if (l) setSearchText(getLabel(l));
+    } else {
+      setSearchText("");
+    }
+  }, [value, lecturers, departmentById]);
+
+  return (
+    <input
+      type="text"
+      list="lecturer-options"
+      value={searchText}
+      placeholder="Type to search lecturer..."
+      onChange={(e) => {
+        setSearchText(e.target.value);
+        const matched = lecturers.find(l => getLabel(l) === e.target.value);
+        onChange(matched ? String(matched.user_id) : "");
+      }}
+      className="w-full min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+    />
+  );
+};
+
 export default function LecturerAllocations() {
   const currentUser = getUser();
   const [faculties, setFaculties] = useState([]);
@@ -68,10 +102,8 @@ export default function LecturerAllocations() {
   );
 
   const departmentLecturers = useMemo(() => {
-    const deptId = selectedBatch?.degree?.dept_id;
-    if (!deptId) return lecturers;
-    return lecturers.filter(l => Number(l.dept_id) === Number(deptId));
-  }, [lecturers, selectedBatch]);
+    return lecturers;
+  }, [lecturers]);
 
   // rows that have a lecturer selected
   const assignableRows = useMemo(() =>
@@ -506,23 +538,17 @@ export default function LecturerAllocations() {
                         <span className="text-sm text-slate-500">{module.credits} cr</span>
                       </td>
                       <td className="px-5 py-3">
-                        <select
+                        <LecturerSearchInput
+                          lecturers={departmentLecturers}
+                          departmentById={departmentById}
                           value={currentVal}
-                          onChange={e =>
+                          onChange={(newVal) =>
                             setRowLecturerByModule(prev => ({
                               ...prev,
-                              [module.module_id]: e.target.value,
+                              [module.module_id]: newVal,
                             }))
                           }
-                          className="w-full min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                        >
-                          <option value="">— Select lecturer —</option>
-                          {departmentLecturers.map(l => (
-                            <option key={l.user_id} value={l.user_id}>
-                              {l.full_name}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </td>
                       <td className="px-5 py-3">
                         <button
@@ -571,6 +597,16 @@ export default function LecturerAllocations() {
           </div>
         )}
       </div>
+        {/* Global Datalist for Searchable Lecturers */}
+      <datalist id="lecturer-options">
+        {departmentLecturers.map(l => {
+          const deptCode = departmentById[l.dept_id]?.code;
+          const label = deptCode ? `${l.full_name} (${deptCode})` : l.full_name;
+          return (
+            <option key={l.user_id} value={label} />
+          );
+        })}
+      </datalist>
     </AdminLayout>
   );
 }

@@ -1128,16 +1128,7 @@ def assign_lecturer_to_module(payload: LecturerModuleAssignmentSave, db: Session
     if lecturer.role not in {"LECTURER", "Lecturer"}:
         raise HTTPException(status_code=422, detail="Selected user is not a lecturer")
 
-    lecturer_dept_id = None
-    if lecturer.lecturer_profile and lecturer.lecturer_profile.department is not None:
-        raw_dept = str(lecturer.lecturer_profile.department).strip()
-        if raw_dept.isdigit():
-            lecturer_dept_id = int(raw_dept)
-
-    if lecturer_dept_id is None:
-        raise HTTPException(status_code=422, detail="Selected lecturer has no department configured")
-    if batch.degree and lecturer_dept_id != batch.degree.dept_id:
-        raise HTTPException(status_code=422, detail="Selected lecturer does not belong to this batch's department")
+    # Cross-department teaching is allowed, so we skip the strict department checks.
 
     semester_number, _ = _resolve_batch_semester(batch, db)
     is_active_module = (
