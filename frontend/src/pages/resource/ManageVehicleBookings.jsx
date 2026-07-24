@@ -58,7 +58,7 @@ export default function ManageVehicleBookings() {
         (b.requester_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         vehicleName.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesVehicle = !vehicleFilter || b.assigned_vehicle_id === Number(vehicleFilter);
+      const matchesVehicle = !vehicleFilter || (b.assigned_vehicle_ids && b.assigned_vehicle_ids.includes(Number(vehicleFilter)));
       
       return matchesSearch && matchesVehicle;
     });
@@ -94,7 +94,7 @@ export default function ManageVehicleBookings() {
       csvRows.push(row.join(","));
     });
     
-    const csvString = csvRows.join("\\n");
+    const csvString = csvRows.join("\n");
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -108,7 +108,7 @@ export default function ManageVehicleBookings() {
   const handleOpenModal = (booking = null) => {
     if (booking) {
       setFormData({
-        assigned_vehicle_id: booking.assigned_vehicle_id || "",
+        assigned_vehicle_id: (booking.assigned_vehicle_ids && booking.assigned_vehicle_ids[0]) || "",
         trip_date: booking.trip_date || "",
         start_time: booking.start_time || "",
         end_time: booking.end_time || "",
@@ -141,7 +141,7 @@ export default function ManageVehicleBookings() {
       setFormError("");
       
       const payload = {
-        assigned_vehicle_id: Number(formData.assigned_vehicle_id),
+        assigned_vehicle_ids: [Number(formData.assigned_vehicle_id)],
         trip_date: formData.trip_date,
         start_time: formData.start_time,
         end_time: formData.end_time,
