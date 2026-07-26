@@ -604,6 +604,17 @@ export const reportAPI = {
   },
 };
 
+export const forecastAPI = {
+  forecastVehicles: async (payload) => {
+    const response = await api.post("/api/forecast/vehicles", payload);
+    return response.data;
+  },
+  getMetrics: async () => {
+    const response = await api.get("/api/forecast/metrics");
+    return response.data;
+  }
+};
+
 export const timetableAPI = {
   generate: async (payload) => {
     const response = await api.post("/api/timetable/generate", payload);

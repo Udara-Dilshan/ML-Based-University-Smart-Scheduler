@@ -13,6 +13,7 @@ from app.routers import (
     reports,
     audit,
     notifications,
+    forecast,
 )
 from app.routers import booking_requests
 
@@ -59,6 +60,7 @@ app.include_router(booking_requests.router)  # prefix: /booking-requests
 app.include_router(reports.router)           # prefix: /api/reports
 app.include_router(audit.router)
 app.include_router(notifications.router)     # prefix: /notifications
+app.include_router(forecast.router)
 
 # Serve static files (uploads)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

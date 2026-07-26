@@ -45,6 +45,7 @@ import SchedulerSettings from "./pages/scheduler/SchedulerSettings";
 import ResourceDashboard from "./pages/resource/ResourceDashboard";
 import ResourceProfile from "./pages/resource/ResourceProfile";
 import ResourceSettings from "./pages/resource/ResourceSettings";
+import DemandForecast from "./pages/DemandForecast";
 
 // Lecturer
 import LecturerLayout from "./pages/lecturer/layout/LecturerLayout";
@@ -105,6 +106,7 @@ function App() {
           <Route path="/admin/requests/availability" element={<AvailabilityRequests />} />
           <Route path="/admin/medical-submissions" element={<MedicalSubmissions />} />
           <Route path="/admin/reports"     element={<Reports />} />
+          <Route path="/admin/forecast"    element={<DemandForecast />} />
           <Route path="/admin/audit-logs"  element={<AuditLogs />} />
           <Route path="/admin/settings"    element={<Settings />} />
           <Route path="/admin/profile"     element={<Profile />} />
@@ -184,6 +186,7 @@ function App() {
             <Route path="/resource/event-requests" element={<EventRequests />} />
             <Route path="/resource/vehicle-requests" element={<VehicleRequests />} />
             <Route path="/resource/reports" element={<Reports isComponent={true} />} />
+            <Route path="/resource/forecast" element={<DemandForecast isComponent={true} />} />
             <Route path="/resource/profile" element={<ResourceProfile />} />
             <Route path="/resource/settings" element={<ResourceSettings />} />
           </Route>

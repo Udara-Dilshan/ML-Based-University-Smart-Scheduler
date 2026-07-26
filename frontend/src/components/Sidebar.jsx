@@ -12,6 +12,7 @@ import {
   Car,
   Users,
   CalendarPlus,
+  TrendingUp,
 } from "lucide-react";
 import { getUser } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
@@ -252,6 +253,10 @@ export default function Sidebar() {
         <NavLink to="/admin/reports" className={navItemClass}>
           <BarChart3 size={16} />
           Reports & Analytics
+        </NavLink>
+        <NavLink to="/admin/forecast" className={navItemClass}>
+          <TrendingUp size={16} />
+          Demand Forecast
         </NavLink>
         <NavLink to="/admin/audit-logs" className={navItemClass}>
           <ClipboardList size={16} />

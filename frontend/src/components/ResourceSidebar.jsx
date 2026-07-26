@@ -8,6 +8,7 @@ import {
   FileText,
   CalendarPlus,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
@@ -72,6 +73,10 @@ export default function ResourceSidebar() {
 
         <NavLink to="/resource/reports" className={navItemClass}>
           <BarChart3 size={16} />Reports & Analytics
+        </NavLink>
+
+        <NavLink to="/resource/forecast" className={navItemClass}>
+          <TrendingUp size={16} />Demand Forecast
         </NavLink>
 
       </nav>
