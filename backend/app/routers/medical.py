@@ -14,6 +14,7 @@ from app.models.academic import Batch, Degree, Department
 from app.models.medical import MedicalSubmission, MedicalSubmissionStatus
 from app.models.profiles import Student
 from app.models.user import User, UserRole
+from app.utils.cloudinary_config import upload_image
 from app.utils.dependencies import require_admin_user, require_admin_or_scheduler, get_scheduler_faculty_id, require_roles
 from app.utils.notifications import create_notification, notify_role
 
@@ -206,13 +207,15 @@ async def create_submission(
     if len(file_content) > max_size:
         raise HTTPException(status_code=422, detail="File size must be less than 5MB")
 
-    uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "medical"
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-
     file_extension = Path(file.filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = uploads_dir / unique_filename
-    file_path.write_bytes(file_content)
+    
+    # Upload to Cloudinary
+    image_url = upload_image(
+        file_content=file_content,
+        folder="uni-scheduler/medical",
+        filename=unique_filename
+    )
 
     batch = _get_student_batch(db, current_user)
     degree = batch.degree if batch and batch.degree else None
@@ -227,7 +230,7 @@ async def create_submission(
         start_date=start_date_value,
         end_date=end_date_value,
         description=(description or "").strip() or None,
-        document_path=f"/static/uploads/medical/{unique_filename}",
+        document_path=image_url,
         document_type=file.content_type,
         document_size=len(file_content),
         status=MedicalSubmissionStatus.PENDING,

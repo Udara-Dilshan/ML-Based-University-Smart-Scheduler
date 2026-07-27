@@ -18,6 +18,7 @@ import os
 import uuid
 from pathlib import Path
 from app.utils.audit import log_action
+from app.utils.cloudinary_config import upload_image
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -525,21 +526,19 @@ async def upload_user_image(
         )
 
     try:
-        # Create uploads directory if it doesn't exist
-        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-
         # Generate unique filename
         file_extension = Path(file.filename).suffix.lower()
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = uploads_dir / unique_filename
+        unique_filename = f"{uuid.uuid4()}"
 
-        # Save file
-        with open(file_path, "wb") as f:
-            f.write(file_content)
+        # Upload to Cloudinary
+        image_url = upload_image(
+            file_content=file_content,
+            folder="uni-scheduler/profiles",
+            filename=unique_filename
+        )
 
-        # Return relative path
-        relative_path = f"/static/uploads/{unique_filename}"
+        # Return Cloudinary URL
+        relative_path = image_url
 
         return {
             "message": "Image uploaded successfully",

@@ -16,7 +16,13 @@ from app.schemas.user import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
 )
-from app.utils.auth import verify_password, create_access_token, hash_password, decode_access_token
+from app.utils.auth import (
+    verify_password,
+    create_access_token,
+    hash_password,
+    decode_access_token,
+)
+from app.utils.cloudinary_config import upload_image
 from app.utils.dependencies import get_current_user
 from app.utils.email import send_reset_password_email
 import os
@@ -341,21 +347,19 @@ async def upload_profile_image(
         )
 
     try:
-        # Create uploads directory if it doesn't exist
-        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-
         # Generate unique filename
         file_extension = Path(file.filename).suffix.lower()
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = uploads_dir / unique_filename
+        unique_filename = f"{uuid.uuid4()}"
 
-        # Save file
-        with open(file_path, "wb") as f:
-            f.write(file_content)
+        # Upload to Cloudinary
+        image_url = upload_image(
+            file_content=file_content,
+            folder="uni-scheduler/profiles",
+            filename=unique_filename
+        )
 
-        # Store relative path in database
-        relative_path = f"/static/uploads/{unique_filename}"
+        # Store Cloudinary URL in database
+        relative_path = image_url
         current_user.profile_image = relative_path
         db.commit()
         db.refresh(current_user)

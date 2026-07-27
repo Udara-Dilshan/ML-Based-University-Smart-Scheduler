@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 import uuid
 from app.utils.audit import log_action
 from app.utils.notifications import create_notification, notify_role
+from app.utils.cloudinary_config import upload_image
 from pathlib import Path
 
 from app.database.connection import get_db
@@ -257,13 +258,16 @@ async def submit_event_request(
         file_content = await document.read()
         if len(file_content) > 5 * 1024 * 1024:
             raise HTTPException(status_code=422, detail="File size must be less than 5MB")
-        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
         ext = Path(document.filename).suffix.lower()
         unique_filename = f"event_req_{uuid.uuid4()}{ext}"
-        path = uploads_dir / unique_filename
-        path.write_bytes(file_content)
-        document_path = f"static/uploads/bookings/{unique_filename}"
+        
+        # Upload to Cloudinary
+        image_url = upload_image(
+            file_content=file_content,
+            folder="uni-scheduler/bookings",
+            filename=unique_filename
+        )
+        document_path = image_url
 
     req = EventRequest(
         requested_by_user_id=current_user.user_id,
@@ -481,13 +485,16 @@ async def submit_vehicle_request(
         file_content = await document.read()
         if len(file_content) > 5 * 1024 * 1024:
             raise HTTPException(status_code=422, detail="File size must be less than 5MB")
-        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
         ext = Path(document.filename).suffix.lower()
         unique_filename = f"veh_req_{uuid.uuid4()}{ext}"
-        path = uploads_dir / unique_filename
-        path.write_bytes(file_content)
-        document_path = f"static/uploads/bookings/{unique_filename}"
+        
+        # Upload to Cloudinary
+        image_url = upload_image(
+            file_content=file_content,
+            folder="uni-scheduler/bookings",
+            filename=unique_filename
+        )
+        document_path = image_url
 
     req = VehicleRequest(
         requested_by_user_id=current_user.user_id,
@@ -719,13 +726,16 @@ async def create_direct_event(
         file_content = await document.read()
         if len(file_content) > 5 * 1024 * 1024:
             raise HTTPException(status_code=422, detail="File size must be less than 5MB")
-        uploads_dir = Path(__file__).parent.parent.parent / "static" / "uploads" / "bookings"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
         ext = Path(document.filename).suffix.lower()
         unique_filename = f"event_{uuid.uuid4()}{ext}"
-        path = uploads_dir / unique_filename
-        path.write_bytes(file_content)
-        document_path = f"static/uploads/bookings/{unique_filename}"
+        
+        # Upload to Cloudinary
+        image_url = upload_image(
+            file_content=file_content,
+            folder="uni-scheduler/bookings",
+            filename=unique_filename
+        )
+        document_path = image_url
 
     event = Event(
         resource_id=resource_id,
