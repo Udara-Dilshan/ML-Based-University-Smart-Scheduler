@@ -7,7 +7,7 @@ import {
   FileHeart, FileText,
 } from "lucide-react";
 import uwuLogo from "../assets/uwu-logo.jpg";
-import { getUser } from "../services/api";
+import { getUser, getImageUrl } from "../services/api";
 
 const navItemClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive
@@ -94,7 +94,7 @@ export default function StudentSidebar() {
         <div className="flex items-center gap-3">
           {user.profile_image ? (
             <img
-              src={`http://localhost:8000${user.profile_image}`}
+              src={getImageUrl(user.profile_image)}
               alt="Profile"
               className="h-8 w-8 rounded-full object-cover border border-gray-200"
             />

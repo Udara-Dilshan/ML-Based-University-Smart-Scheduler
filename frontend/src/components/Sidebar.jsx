@@ -14,7 +14,7 @@ import {
   CalendarPlus,
   TrendingUp,
 } from "lucide-react";
-import { getUser } from "../services/api";
+import { getUser, getImageUrl } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
 const navItemClass = ({ isActive }) =>
@@ -272,7 +272,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-3">
           {currentUser?.profile_image ? (
             <img
-              src={`http://localhost:8000${currentUser.profile_image}`}
+              src={getImageUrl(currentUser.profile_image)}
               alt="Profile"
               className="h-8 w-8 rounded-full object-cover border border-gray-300"
             />

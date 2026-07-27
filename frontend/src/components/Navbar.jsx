@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, LogOut, Search, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authAPI, getUser, notificationsAPI } from "../services/api";
+import { authAPI, getUser, notificationsAPI, getImageUrl } from "../services/api";
 
 const SEARCH_TARGETS = [
   {
@@ -681,7 +681,7 @@ export default function Navbar({ title }) {
           >
             {currentUser?.profile_image ? (
               <img
-                src={`http://localhost:8000${currentUser.profile_image}`}
+                src={getImageUrl(currentUser.profile_image)}
                 alt="Profile"
                 className="h-8 w-8 rounded-full object-cover border border-gray-300"
               />

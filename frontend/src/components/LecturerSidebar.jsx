@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { getImageUrl } from "../services/api";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -107,7 +108,7 @@ export default function LecturerSidebar() {
         <div className="flex items-center gap-3">
           {user.profile_image ? (
             <img
-              src={`http://localhost:8000${user.profile_image}`}
+              src={getImageUrl(user.profile_image)}
               alt="Profile"
               className="h-8 w-8 rounded-full object-cover border border-gray-200"
             />

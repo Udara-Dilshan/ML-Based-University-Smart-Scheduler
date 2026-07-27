@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
-import { academicAPI, medicalAPI } from "../../../services/api";
+import { academicAPI, medicalAPI, getImageUrl } from "../../../services/api";
 
 const statusOptions = [
   { value: "", label: "All" },
@@ -274,7 +274,7 @@ export default function MedicalSubmissions() {
                       </td>
                       <td className="px-4 py-3">
                         <a
-                          href={`http://localhost:8000${item.document_path}`}
+                          href={getImageUrl(item.document_path)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-blue-600 hover:underline"

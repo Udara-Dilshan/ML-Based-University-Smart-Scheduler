@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, Edit3, Mail, Phone, Save } from "lucide-react";
-import { authAPI, getUser, setUser } from "../../services/api";
+import { authAPI, getUser, setUser, getImageUrl } from "../../services/api";
 
 export default function StudentProfile() {
   const fileInputRef = useRef(null);
@@ -197,7 +197,7 @@ export default function StudentProfile() {
             <div className="relative">
               {profileImage ? (
                 <img
-                  src={`http://localhost:8000${profileImage}`}
+                  src={getImageUrl(profileImage)}
                   alt={fullName}
                   className="h-28 w-28 rounded-full object-cover border-4 border-blue-100 shadow-sm"
                 />

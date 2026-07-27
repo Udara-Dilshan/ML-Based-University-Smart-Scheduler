@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import Modal from "../../../components/Modal";
 import { Mail, Phone, Calendar, Shield, Edit2, Key, AlertCircle, Upload, X } from "lucide-react";
-import { getUser } from "../../../services/api";
+import { getUser, getImageUrl } from "../../../services/api";
 import api from "../../../services/api";
 import { useNavigate } from "react-router-dom";
 
@@ -310,7 +310,7 @@ export default function Profile() {
                 />
               ) : profileData?.profile_image ? (
                 <img
-                  src={`http://localhost:8000${profileData.profile_image}`}
+                  src={getImageUrl(profileData.profile_image)}
                   alt="Profile"
                   className="h-20 w-20 rounded-full object-cover border-2 border-gray-200"
                 />

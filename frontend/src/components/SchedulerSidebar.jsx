@@ -15,7 +15,7 @@ import {
   User,
   Activity,
 } from "lucide-react";
-import { getUser } from "../services/api";
+import { getUser, getImageUrl } from "../services/api";
 import uwuLogo from "../assets/uwu-logo.jpg";
 
 const navItemClass = ({ isActive }) =>
@@ -71,13 +71,7 @@ export default function SchedulerSidebar() {
 
   const facultyName = currentUser?.scheduler_profile?.faculty_name || "My Faculty";
 
-  const profileImageSrc = (() => {
-    const img = currentUser?.profile_image;
-    if (!img) return null;
-    if (img.startsWith("http")) return img;
-    if (img.startsWith("/")) return `http://localhost:8000${img}`;
-    return `http://localhost:8000/${img}`;
-  })();
+  const profileImageSrc = getImageUrl(currentUser?.profile_image);
 
   return (
     <aside className="h-screen w-64 bg-white border-r border-gray-200 flex flex-col">

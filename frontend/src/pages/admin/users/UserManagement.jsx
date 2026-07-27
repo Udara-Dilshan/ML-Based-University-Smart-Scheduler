@@ -5,7 +5,7 @@ import Modal from "../../../components/Modal";
 import { academicAPI } from "../../../services/api";
 import { createUser, deleteUser, getUsers, updateUser } from "../../../services/userService";
 import { Upload, X } from "lucide-react";
-import api, { getUser } from "../../../services/api";
+import api, { getUser, getImageUrl } from "../../../services/api";
 
 const roleOptions = [
   "SuperAdmin",
@@ -1581,7 +1581,7 @@ export default function UserManagement({ forcedRole = null, titleOverride = "Use
                     />
                   ) : form.profile_image ? (
                     <img
-                      src={`http://localhost:8000${form.profile_image}`}
+                      src={getImageUrl(form.profile_image)}
                       alt="Profile"
                       className="h-16 w-16 rounded-lg object-cover border-2 border-gray-300"
                     />

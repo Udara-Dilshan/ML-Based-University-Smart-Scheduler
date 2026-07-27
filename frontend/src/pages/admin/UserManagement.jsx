@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -14,7 +14,7 @@ const UserManagement = () => {
   });
 
   const fetchUsers = () => {
-    axios.get('http://localhost:8000/users/')
+    api.get('/api/users/')
       .then(res => {
         setUsers(res.data);
       })
@@ -31,7 +31,7 @@ const UserManagement = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8000/users/', formData)
+    api.post('/api/users/', formData)
       .then(() => {
         alert("User added successfully!");
         setShowModal(false);
@@ -53,7 +53,7 @@ const UserManagement = () => {
 
   const deleteUser = (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
-      axios.delete(`http://localhost:8000/users/${userId}`)
+      api.delete(`/api/users/${userId}`)
         .then(() => {
           alert("User deleted!");
           fetchUsers();

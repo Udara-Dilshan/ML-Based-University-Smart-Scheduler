@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Calendar, Clock, MapPin, Tag, FileText,
   AlertTriangle, CheckCircle2, RefreshCw, X, Sparkles, Edit, Download, Search, Eye
 } from "lucide-react";
-import { bookingAPI, resourceAPI } from "../../services/api";
+import { bookingAPI, resourceAPI, getImageUrl } from "../../services/api";
 
 const EVENT_TYPES = ["General", "Academic", "Sports", "Cultural", "Technical", "Official"];
 
@@ -326,7 +326,7 @@ export default function ManageEvents() {
                   )}
                   {ev.document_path && (
                     <a
-                      href={`http://localhost:8000/${ev.document_path}`}
+                      href={getImageUrl(ev.document_path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1 flex w-fit items-center gap-1 rounded bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600 hover:bg-orange-100"
