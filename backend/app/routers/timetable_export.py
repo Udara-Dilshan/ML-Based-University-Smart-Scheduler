@@ -5,6 +5,8 @@ from typing import Optional
 from io import BytesIO
 import tempfile
 from pathlib import Path
+import sys
+import subprocess
 
 from app.database.connection import get_db
 from app.models.timetable import TimetableSession
@@ -31,8 +33,11 @@ router = APIRouter(prefix="/api/timetable/export", tags=["timetable-export"])
 def _ensure_dependencies(format_name: str) -> None:
     if format_name == "docx" and docx is None:
         raise HTTPException(status_code=500, detail="python-docx is not installed")
-    if format_name == "pdf" and docx_to_pdf is None:
-        raise HTTPException(status_code=500, detail="docx2pdf is not installed")
+    if format_name == "pdf":
+        if docx is None:
+            raise HTTPException(status_code=500, detail="python-docx is not installed")
+        if sys.platform == "win32" and docx_to_pdf is None:
+            raise HTTPException(status_code=500, detail="docx2pdf is not installed")
 
 def _set_cell_shading(cell, color_hex: str):
     shading_elm = OxmlElement('w:shd')
@@ -359,17 +364,26 @@ def export_timetable(
                 docx_path.write_bytes(docx_bytes)
                 
                 try:
-                    import pythoncom
-                    pythoncom.CoInitialize()
-                    docx_to_pdf(str(docx_path), str(pdf_path))
+                    if sys.platform == "win32":
+                        import pythoncom
+                        pythoncom.CoInitialize()
+                        if docx_to_pdf is None:
+                            raise Exception("docx2pdf is not installed")
+                        docx_to_pdf(str(docx_path), str(pdf_path))
+                    else:
+                        subprocess.run([
+                            "libreoffice", "--headless", "--convert-to", "pdf",
+                            "--outdir", str(temp_dir), str(docx_path)
+                        ], check=True)
                 except Exception as e:
                     raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
                 finally:
-                    try:
-                        import pythoncom
-                        pythoncom.CoUninitialize()
-                    except Exception:
-                        pass
+                    if sys.platform == "win32":
+                        try:
+                            import pythoncom
+                            pythoncom.CoUninitialize()
+                        except Exception:
+                            pass
 
                 if not pdf_path.exists():
                     raise HTTPException(status_code=500, detail="Failed to generate PDF")
@@ -420,20 +434,29 @@ def export_timetable(
                     docx_path.write_bytes(docx_bytes)
                     
                     try:
-                        import pythoncom
-                        pythoncom.CoInitialize()
-                        docx_to_pdf(str(docx_path), str(pdf_path))
+                        if sys.platform == "win32":
+                            import pythoncom
+                            pythoncom.CoInitialize()
+                            if docx_to_pdf is not None:
+                                docx_to_pdf(str(docx_path), str(pdf_path))
+                        else:
+                            subprocess.run([
+                                "libreoffice", "--headless", "--convert-to", "pdf",
+                                "--outdir", str(temp_dir), str(docx_path)
+                            ], check=True)
+                            
                         if pdf_path.exists():
                             zip_file.write(pdf_path, batch_filename)
                             added_count += 1
                     except Exception as e:
                         print(f"Failed to convert {batch.batch_code}: {e}")
                     finally:
-                        try:
-                            import pythoncom
-                            pythoncom.CoUninitialize()
-                        except Exception:
-                            pass
+                        if sys.platform == "win32":
+                            try:
+                                import pythoncom
+                                pythoncom.CoUninitialize()
+                            except Exception:
+                                pass
 
         if added_count == 0:
             raise HTTPException(status_code=404, detail="No timetable sessions found to export")

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: uni-scheduler-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    volumes:
+      - backend-uploads:/app/static/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Pass the backend URL during frontend build
+        # For local testing, localhost:8000 is used since the browser accesses it on localhost.
+        # When moving to EC2, this MUST be changed to the EC2 Public IP (e.g., http://<EC2-IP>:8000)
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    container_name: uni-scheduler-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-uploads:

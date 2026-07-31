@@ -40,7 +40,10 @@ origins = [
 ]
 env_origins = os.getenv("FRONTEND_URL", "")
 if env_origins:
-    origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+    if env_origins.strip() == "*":
+        origins = ["*"]
+    else:
+        origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
 
 app.add_middleware(
     CORSMiddleware,

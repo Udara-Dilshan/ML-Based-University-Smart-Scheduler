@@ -5,6 +5,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 import tempfile
+import sys
+import subprocess
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -53,9 +55,8 @@ class SemesterRegistrationPayload(BaseModel):
 
 
 TEMPLATE_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "frontend"
-    / "public"
+    Path(__file__).resolve().parent.parent
+    / "templates"
     / "semester-registration.docx"
 )
 SAMPLE_ENROLLMENT_NO = "UWU/ICT/21/010"
@@ -560,7 +561,7 @@ def _render_docx(data: dict, modules: list[Module]) -> bytes:
 
 
 def _render_pdf(data: dict, modules: list[Module]) -> bytes:
-    if docx_to_pdf is None:
+    if sys.platform == "win32" and docx_to_pdf is None:
         raise HTTPException(status_code=500, detail="docx2pdf is not installed")
 
     docx_bytes = _render_docx(data, modules)
@@ -571,17 +572,24 @@ def _render_pdf(data: dict, modules: list[Module]) -> bytes:
         docx_path.write_bytes(docx_bytes)
         
         try:
-            import pythoncom
-            pythoncom.CoInitialize()
-            docx_to_pdf(str(docx_path), str(pdf_path))
+            if sys.platform == "win32":
+                import pythoncom
+                pythoncom.CoInitialize()
+                docx_to_pdf(str(docx_path), str(pdf_path))
+            else:
+                subprocess.run([
+                    "libreoffice", "--headless", "--convert-to", "pdf",
+                    "--outdir", str(temp_dir), str(docx_path)
+                ], check=True)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
         finally:
-            try:
-                import pythoncom
-                pythoncom.CoUninitialize()
-            except Exception:
-                pass
+            if sys.platform == "win32":
+                try:
+                    import pythoncom
+                    pythoncom.CoUninitialize()
+                except Exception:
+                    pass
 
         if not pdf_path.exists():
             raise HTTPException(status_code=500, detail="Failed to generate PDF")
