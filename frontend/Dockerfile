@@ -1,5 +1,5 @@
 # Step 1: Build the React application using Node
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Accept build argument for backend URL
 ARG VITE_API_URL

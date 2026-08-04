@@ -1,9 +1,15 @@
+import os
+import time
+
+# Set global timezone for the application
+os.environ['TZ'] = 'Asia/Colombo'
+if hasattr(time, 'tzset'):
+    time.tzset()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import os
 import uvicorn
-
 from app.database.connection import initialize_database
 from app.routers import (
     auth, user, dashboard, academic,

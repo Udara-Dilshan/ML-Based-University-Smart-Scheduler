@@ -55,6 +55,7 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=3600,
     echo=os.getenv("SQL_ECHO", "False") == "True",
+    connect_args={"init_command": "SET time_zone='+05:30'"}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
