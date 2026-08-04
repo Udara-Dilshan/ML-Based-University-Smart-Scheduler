@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, LogOut, Search, Settings, User } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Search, Settings, User, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { authAPI, getUser, notificationsAPI, getImageUrl } from "../services/api";
 
@@ -282,7 +282,7 @@ const normalizeSearchText = (value) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-export default function Navbar({ title }) {
+export default function Navbar({ title, onMenuClick }) {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -556,10 +556,21 @@ export default function Navbar({ title }) {
   };
 
   return (
-    <header className="h-16 border-b border-gray-200 bg-white px-6 flex items-center justify-between gap-6">
-      <h1 className="text-lg font-semibold text-gray-900 min-w-28">{title}</h1>
+    <header className="h-16 border-b border-gray-200 bg-white px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6">
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+        {onMenuClick && (
+          <button 
+            type="button" 
+            onClick={onMenuClick} 
+            className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md focus:outline-none"
+          >
+            <Menu size={24} />
+          </button>
+        )}
+        <h1 className="text-base md:text-lg font-semibold text-gray-900 truncate max-w-[150px] sm:max-w-none">{title}</h1>
+      </div>
 
-      <form className="relative flex-1 max-w-xl" onSubmit={handleSearchSubmit}>
+      <form className="relative flex-1 max-w-xl hidden sm:block" onSubmit={handleSearchSubmit}>
         <div className="relative">
           <Search
             size={16}
@@ -665,7 +676,7 @@ export default function Navbar({ title }) {
         <button
           type="button"
           onClick={handleLogout}
-          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+          className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
         >
           <LogOut size={14} />
           Logout
