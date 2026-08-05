@@ -298,6 +298,22 @@ const LoginPage = () => {
               If you are a lecturer or staff member, please contact IT support.
             </p>
           </div>
+
+          {/* Developer Credit */}
+          <div className="mt-8 text-center">
+            <p className="text-[11px] text-gray-400">
+              Built with ❤️ for UWU ICT 16 Capstone<br/>
+              Developed by Group 14 | Lead Developer:{' '}
+              <a 
+                href="https://github.com/Nadeesh-Malaka/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-medium text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                Nadeesh Malaka
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
