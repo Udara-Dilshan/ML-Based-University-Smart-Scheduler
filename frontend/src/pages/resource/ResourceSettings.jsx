@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyRound, Bell, ShieldCheck } from "lucide-react";
 import { authAPI } from "../../services/api";
+import AboutSystemCard from "../../components/AboutSystemCard";
 
 export default function ResourceSettings() {
   const [form, setForm] = useState({
@@ -151,6 +152,10 @@ export default function ResourceSettings() {
             </div>
           </div>
         </section>
+      </div>
+
+      <div className="mt-6">
+        <AboutSystemCard />
       </div>
     </div>
   );

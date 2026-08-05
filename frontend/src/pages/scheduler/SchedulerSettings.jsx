@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyRound, Bell, ShieldCheck } from "lucide-react";
 import { authAPI } from "../../services/api";
 import AdminLayout from "../admin/layout/AdminLayout";
+import AboutSystemCard from "../../components/AboutSystemCard";
 
 export default function SchedulerSettings() {
   const [form, setForm] = useState({
@@ -153,6 +154,10 @@ export default function SchedulerSettings() {
               </div>
             </div>
           </section>
+        </div>
+        
+        <div className="mt-6">
+          <AboutSystemCard />
         </div>
       </div>
     </AdminLayout>

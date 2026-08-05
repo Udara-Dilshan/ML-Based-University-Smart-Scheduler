@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { academicAPI, settingsAPI } from "../../../services/api";
+import AboutSystemCard from "../../../components/AboutSystemCard";
 
 const DAY_OPTIONS = [
 	{ label: "Mon", value: "MON" },
@@ -778,6 +779,8 @@ export default function Settings() {
 						)}
 					</div>
 				)}
+
+				<AboutSystemCard />
 			</div>
 		</AdminLayout>
 	);

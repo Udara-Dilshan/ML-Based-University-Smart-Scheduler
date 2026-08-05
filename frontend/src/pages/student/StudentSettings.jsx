@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { authAPI } from "../../services/api";
+import AboutSystemCard from "../../components/AboutSystemCard";
 
 export default function StudentSettings() {
   const [form, setForm] = useState({
@@ -126,6 +127,10 @@ export default function StudentSettings() {
             </div>
           </form>
         </div>
+      </div>
+      
+      <div className="mt-6">
+        <AboutSystemCard />
       </div>
     </div>
   );
