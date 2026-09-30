@@ -5,6 +5,7 @@
 ![AI Model](https://img.shields.io/badge/AI-Genetic%20Algorithm-green?style=for-the-badge)
 
 ---
+Linkedin Post : https://lnkd.in/p/eJaAfhqv
 
 ## 📖 Overview
 
